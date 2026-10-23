@@ -1,0 +1,12 @@
+{
+  "name": "emitmail-worker",
+  "version": "1.0.0",
+  "description": "This is worker backend for EmitMail",
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
