@@ -99,7 +99,7 @@ export const processEmailDeliveryJob = async (
         }
       }
 
-      if (env.NODE_ENV === 'test' || targetHost === '127.0.0.1') {
+      if (env.NODE_ENV === 'test' || env.NODE_ENV === 'development' || targetHost === '127.0.0.1') {
         transporter = nodemailer.createTransport({
           jsonTransport: true,
           dkim: dkimOptions,
