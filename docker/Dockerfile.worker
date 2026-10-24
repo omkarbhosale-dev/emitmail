@@ -12,7 +12,7 @@ COPY apps/api/package.json ./apps/api/
 COPY apps/worker/package.json ./apps/worker/
 COPY apps/dashboard/package.json ./apps/dashboard/
 COPY apps/docs/package.json ./apps/docs/
-COPY packages/ ./packages/
+RUN mkdir -p packages
 
 RUN pnpm install --frozen-lockfile
 
