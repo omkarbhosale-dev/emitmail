@@ -50,6 +50,23 @@ const envSchema = z.object({
   CURRENT_VERSION: z.string().default('1.0.0'),
   GITHUB_REPO: z.string().default('emitmail/emitmail'),
   GITHUB_TOKEN: z.string().optional(),
+  ALLOW_PENDING_DOMAIN_API_KEYS: z
+    .preprocess((val) => val === 'true' || val === true || val === '1', z.boolean())
+    .default(false),
+  SMTP_RELAY_HOST: z.string().optional(),
+  SMTP_RELAY_PORT: z.coerce.number().int().positive().default(587),
+  SMTP_RELAY_USER: z.string().optional(),
+  SMTP_RELAY_PASS: z.string().optional(),
+  SMTP_RELAY_SECURE: z
+    .preprocess((val) => val === 'true' || val === true || val === '1', z.boolean())
+    .default(false),
+  DIRECT_MX_FALLBACK: z
+    .preprocess((val) => val === 'true' || val === true || val === '1', z.boolean())
+    .default(true),
+  EMAIL_QUEUE_NAME: z.string().default('email-delivery-queue'),
+  START_WORKERS: z
+    .preprocess((val) => val === 'true' || val === true || val === '1', z.boolean())
+    .default(false),
 });
 
 const parseEnv = () => {

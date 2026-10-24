@@ -111,6 +111,14 @@ export class DomainsService {
       select: safeDomainSelect,
     });
 
+    // Enqueue verification job to BullMQ
+    try {
+      const { enqueueDomainVerification } = await import('../../queues/domainVerification.queue.js');
+      await enqueueDomainVerification(created.id, 0, 1);
+    } catch (err) {
+      console.warn('⚠️ Could not enqueue initial domain verification job:', err);
+    }
+
     return created;
   }
 
@@ -165,6 +173,12 @@ export class DomainsService {
       return null;
     }
 
+    // Set status to VERIFYING during active check
+    await prisma.domain.update({
+      where: { id },
+      data: { status: DomainStatus.VERIFYING },
+    });
+
     const serverConfig = await ServerConfigService.getActiveConfig();
 
     const verificationResult = await verifyDomainDns({
@@ -177,13 +191,18 @@ export class DomainsService {
       existingDnsRecords: domain.dnsRecords as unknown as DnsRecordDefinition[],
     });
 
-    // Determine overall status
-    let newStatus: DomainStatus = DomainStatus.PENDING;
-    if (verificationResult.isAllRequiredVerified) {
-      newStatus = DomainStatus.VERIFIED;
-    } else {
-      newStatus = DomainStatus.FAILED;
+    // Record failure reasons per record
+    const failureReasons: Record<string, string> = {};
+    for (const record of verificationResult.updatedRecords) {
+      if (record.status !== 'VERIFIED') {
+        failureReasons[`${record.type}_${record.host}`] =
+          record.reason || 'Pending DNS propagation or mismatch';
+      }
     }
+
+    const newStatus: DomainStatus = verificationResult.isAllRequiredVerified
+      ? DomainStatus.VERIFIED
+      : DomainStatus.FAILED;
 
     const updatedDomain = await prisma.domain.update({
       where: { id: domain.id },
@@ -192,12 +211,24 @@ export class DomainsService {
         dkimVerified: verificationResult.dkimVerified,
         spfVerified: verificationResult.spfVerified,
         mxVerified: verificationResult.mxVerified,
-        dmarcVerified: verificationResult.dmarcVerified,
+        verificationErrors: verificationResult.isAllRequiredVerified
+          ? Prisma.DbNull
+          : (failureReasons as unknown as Prisma.InputJsonValue),
         dnsRecords: verificationResult.updatedRecords as unknown as Prisma.InputJsonValue,
         lastVerifiedAt: new Date(),
       },
       select: safeDomainSelect,
     });
+
+    // If not verified, trigger background exponential polling retry
+    if (!verificationResult.isAllRequiredVerified) {
+      try {
+        const { enqueueDomainVerification } = await import('../../queues/domainVerification.queue.js');
+        await enqueueDomainVerification(domain.id, 60000, 1);
+      } catch (err) {
+        console.warn('⚠️ Could not enqueue retry verification job:', err);
+      }
+    }
 
     return {
       domain: updatedDomain,

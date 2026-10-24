@@ -13,6 +13,8 @@ import { domainRoutes } from './modules/domains/domains.routes.js';
 import { apiKeyRoutes } from './modules/api-keys/apiKeys.routes.js';
 import { serverConfigRoutes } from './modules/server-config/serverConfig.routes.js';
 import { systemRoutes } from './modules/system/system.routes.js';
+import { emailRoutes } from './modules/emails/emails.routes.js';
+import { webhookRoutes } from './modules/webhooks/webhooks.routes.js';
 
 export const createApp = (): Express => {
   const app = express();
@@ -82,6 +84,15 @@ export const createApp = (): Express => {
   app.use('/api/v1/api-keys', apiKeyRoutes);
   app.use('/api/v1/server-config', serverConfigRoutes);
   app.use('/api/v1/system', systemRoutes);
+  app.use('/api/v1/emails', emailRoutes);
+  app.use('/v1/emails', emailRoutes);
+  app.use('/emails', emailRoutes);
+  app.use('/api/v1/webhooks', webhookRoutes);
+  app.use('/webhooks', webhookRoutes);
+
+  // Root endpoint aliases for convenience
+  app.use('/domains', domainRoutes);
+  app.use('/api-keys', apiKeyRoutes);
 
   // 404 Route Handler
   app.use((req: Request, res: Response) => {

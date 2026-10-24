@@ -125,3 +125,39 @@ export const generateApiKeyPair = (): {
     secretHash,
   };
 };
+
+/**
+ * Generates a domain-scoped high-entropy API token.
+ * Format: em_live_<64 hex chars>
+ * Key Prefix: first 16 characters (e.g. em_live_a1b2c3d4)
+ */
+export const generateDomainScopedApiKey = (prefix = 'em_live_'): {
+  rawToken: string;
+  keyPrefix: string;
+  keyHash: string;
+} => {
+  const rawToken = `${prefix}${crypto.randomBytes(32).toString('hex')}`;
+  const keyPrefix = rawToken.slice(0, 16);
+  const keyHash = hashSha256(rawToken);
+
+  return {
+    rawToken,
+    keyPrefix,
+    keyHash,
+  };
+};
+
+/**
+ * Signs a payload string with HMAC-SHA256 for webhook verification.
+ */
+export const signHmacSha256 = (payload: string, secret: string): string => {
+  return crypto.createHmac('sha256', secret).update(payload, 'utf8').digest('hex');
+};
+
+/**
+ * Generates a secure random 32-byte webhook secret string.
+ */
+export const generateWebhookSecret = (): string => {
+  return `whsec_${crypto.randomBytes(24).toString('hex')}`;
+};
+

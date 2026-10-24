@@ -421,22 +421,118 @@ Verifies SDK credentials and returns key authorization scope.
 
 ---
 
+### 5.7 Email Submission & Relay Dispatcher (`/v1/emails` or `/api/v1/emails`)
+
+#### `POST /v1/emails`
+Submits an email for asynchronous DKIM signing and SMTP delivery via BullMQ.
+- **Auth**: `Bearer <em_live_...>` (Domain-Scoped API Key)
+- **Tenancy Enforcement**: The sender `From` address domain must match the assigned `domainId` of the API key, and the domain must be in `VERIFIED` status.
+- **Request Body**:
+```json
+{
+  "from": "EmitMail Support <support@yourdomain.com>",
+  "to": ["user@example.com"],
+  "subject": "Hello from EmitMail",
+  "html": "<h1>Hello!</h1><p>Sent with DKIM signature.</p>",
+  "text": "Hello! Sent with DKIM signature.",
+  "replyTo": "help@yourdomain.com",
+  "cc": [],
+  "bcc": [],
+  "headers": {},
+  "attachments": []
+}
+```
+- **Response `202 Accepted`**:
+```json
+{
+  "success": true,
+  "message": "Email successfully accepted and queued for delivery",
+  "data": {
+    "id": "18a3a9bf-e22a-497a-881a-415589589715",
+    "from": "EmitMail Support <support@yourdomain.com>",
+    "to": ["user@example.com"],
+    "subject": "Hello from EmitMail",
+    "status": "QUEUED",
+    "messageId": "dd882bfdee180d4edb5d912211a07217@yourdomain.com",
+    "createdAt": "2026-10-24T07:29:22.691Z"
+  }
+}
+```
+
+#### Official Resend SDK Drop-in Compatibility
+Clients can use the official `resend` npm package pointing directly to EmitMail:
+```typescript
+import { Resend } from 'resend';
+
+const resend = new Resend(process.env.EMITMAIL_API_KEY, {
+  baseUrl: 'http://localhost:4000', // or 'http://localhost:4000/api/v1'
+});
+
+const { data, error } = await resend.emails.send({
+  from: 'Sender <hello@yourdomain.com>',
+  to: ['recipient@example.com'],
+  subject: 'Hello from EmitMail',
+  html: '<p>DKIM signed transactional email</p>',
+});
+
+console.log('Dispatched Email ID:', data?.id); // e.g. "em_8b3a8a7a3f0341b9a85690932fe01295"
+```
+
+#### `GET /emails/:id` (or `/v1/emails/:id`)
+Retrieves message delivery status (`QUEUED`, `SENDING`, `DELIVERED`, `BOUNCED`, `FAILED`).
+- **Auth**: `Bearer <em_live_...>`
+
+---
+
+### 5.8 Webhooks & Bounce Notification Pipeline (`/webhooks` or `/api/v1/webhooks`)
+
+#### `POST /webhooks`
+Registers an HTTP webhook subscription endpoint.
+- **Auth**: `Bearer <accessToken>` (Dashboard JWT) or `Bearer <em_live_...>` (API Key)
+- **Request Body**:
+```json
+{
+  "url": "https://api.yourdomain.com/emitmail-webhook",
+  "events": ["email.delivered", "email.bounced", "email.complaint"],
+  "secret": "your_custom_signing_secret"
+}
+```
+- **Webhook Signature**: Every outbound webhook request contains an `X-EmitMail-Signature: sha256=<hmac>` header signed using HMAC-SHA256 with the subscription secret.
+
+#### `POST /webhooks/inbound-bounce`
+Public/pipe bounce ingestion endpoint for Postfix, Haraka, or inbound mail processing scripts to parse RFC 3464 DSN delivery status notifications.
+- **Request Body**:
+```json
+{
+  "messageId": "dd882bfdee180d4edb5d912211a07217@yourdomain.com",
+  "recipient": "user@example.com",
+  "bounceType": "hard",
+  "diagnosticCode": "550 5.1.1 User unknown",
+  "source": "postfix-inbound-pipe"
+}
+```
+
+---
+
 ## 6. Postman Collection
 
 Import `apps/api/EmitMail.postman_collection.json` into Postman.
 
-The collection is pre-configured with 7 folders:
+The collection is pre-configured with 9 folders:
 1. `0. System Health` (Health checks + Version & Update engine)
 2. `1. Authentication`
 3. `2. Server Configuration & Pre-Flight Checks`
 4. `3. User Settings`
 5. `4. Domains`
 6. `5. API Keys`
+7. `6. Emails`
+8. `7. Webhooks & Inbound Bounce`
 
 ### Automatic Variable Chaining
 Test scripts inside the collection automatically store runtime variables:
 - `accessToken` on `POST /api/v1/auth/login`
 - `domainId` on `POST /api/v1/domains`
-- `keyId`, `apiKey`, and `apiSecret` on `POST /api/v1/api-keys`
+- `apiKey` (`em_live_...`) on `POST /api/v1/api-keys`
+- `emailId` on `POST /v1/emails`
 
 This allows you to execute end-to-end flows in Postman without manually copying tokens or IDs.

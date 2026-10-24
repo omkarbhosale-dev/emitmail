@@ -66,7 +66,17 @@ async function startServer(): Promise<void> {
   await ensureDefaultAdminExists();
   await ensureServerConfigExists();
 
-  // 4. Start HTTP Server
+  // 4. Start BullMQ Queue Workers (Decoupled: only starts in-process if env.START_WORKERS is enabled)
+  let runningWorkers: { closeAll: () => Promise<void> } | null = null;
+  if (env.START_WORKERS) {
+    const { startAllWorkers } = await import('./queues/index.js');
+    runningWorkers = startAllWorkers();
+    console.log('⚡ [Workers] In-process BullMQ workers started (single-node mode).');
+  } else {
+    console.log('ℹ️ [Workers] Running in decoupled API mode. Background queues dispatched to Redis.');
+  }
+
+  // 5. Start HTTP Server
   const app = createApp();
   const server = app.listen(env.PORT, () => {
     console.log(`✨ EmitMail API listening on http://localhost:${env.PORT} [${env.NODE_ENV}]`);
@@ -77,6 +87,9 @@ async function startServer(): Promise<void> {
     console.log(`\n🛑 Received ${signal}. Shutting down EmitMail API...`);
     server.close(async () => {
       try {
+        if (runningWorkers) {
+          await runningWorkers.closeAll();
+        }
         await prisma.$disconnect();
         await redis.quit();
       } catch (err) {

@@ -11,6 +11,10 @@ export const createApiKeySchema = z.object({
     .uuid('Invalid domain ID format (expected UUID)')
     .nullable()
     .optional(),
+  scopes: z
+    .array(z.string())
+    .default(['email:send'])
+    .optional(),
   expiresAt: z
     .string()
     .datetime({ message: 'expiresAt must be a valid ISO 8601 datetime string' })

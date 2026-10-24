@@ -12,6 +12,7 @@ declare global {
   namespace Express {
     interface Request {
       apiKey?: AuthenticatedApiKey;
+      domain?: Domain | null;
       scopedDomain?: Domain | null;
     }
   }
@@ -22,43 +23,40 @@ export const authenticateApiKey = async (
   res: Response,
   next: NextFunction
 ): Promise<void> => {
-  let apiKeyRaw: string | undefined;
-  let apiSecretRaw: string | undefined;
+  let tokenCandidate: string | undefined;
 
-  // 1. Check custom headers: x-api-key & x-api-secret
-  const headerKey = req.headers['x-api-key'];
-  const headerSecret = req.headers['x-api-secret'];
-
-  if (typeof headerKey === 'string' && typeof headerSecret === 'string') {
-    apiKeyRaw = headerKey.trim();
-    apiSecretRaw = headerSecret.trim();
+  // 1. Check Authorization: Bearer <token>
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    tokenCandidate = authHeader.substring(7).trim();
   }
 
-  // 2. Alternatively check Authorization: Bearer <apiKey>:<apiSecret>
-  if (!apiKeyRaw || !apiSecretRaw) {
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.substring(7).trim();
-      const parts = token.split(':');
-      if (parts.length === 2) {
-        apiKeyRaw = parts[0].trim();
-        apiSecretRaw = parts[1].trim();
-      }
-    }
+  // 2. Check x-api-key header
+  if (!tokenCandidate && typeof req.headers['x-api-key'] === 'string') {
+    tokenCandidate = req.headers['x-api-key'].trim();
   }
 
-  if (!apiKeyRaw || !apiSecretRaw) {
+  // 3. Fallback: check legacy x-api-key & x-api-secret pair or key:secret
+  let legacySecret: string | undefined;
+  if (tokenCandidate && tokenCandidate.includes(':')) {
+    const parts = tokenCandidate.split(':');
+    tokenCandidate = parts[0].trim();
+    legacySecret = parts[1].trim();
+  } else if (typeof req.headers['x-api-secret'] === 'string') {
+    legacySecret = req.headers['x-api-secret'].trim();
+  }
+
+  if (!tokenCandidate) {
     sendError(
       res,
-      'Missing API Key or API Secret. Provide x-api-key and x-api-secret headers or Authorization: Bearer <key>:<secret>',
+      'Missing API Key. Provide "Authorization: Bearer <em_live_token>" or "x-api-key" header.',
       401
     );
     return;
   }
 
   try {
-    const keyHash = hashSha256(apiKeyRaw);
-    const secretHash = hashSha256(apiSecretRaw);
+    const keyHash = hashSha256(tokenCandidate);
 
     const apiKeyRecord = await prisma.apiKey.findUnique({
       where: { keyHash },
@@ -67,9 +65,18 @@ export const authenticateApiKey = async (
       },
     });
 
-    if (!apiKeyRecord || apiKeyRecord.secretHash !== secretHash) {
-      sendError(res, 'Invalid API Key or API Secret credentials', 401);
+    if (!apiKeyRecord) {
+      sendError(res, 'Invalid API Key credentials', 401);
       return;
+    }
+
+    // If legacy dual-credential key was created with secretHash, check secret if provided
+    if (apiKeyRecord.secretHash && legacySecret) {
+      const secretHash = hashSha256(legacySecret);
+      if (apiKeyRecord.secretHash !== secretHash && apiKeyRecord.secretHash !== keyHash) {
+        sendError(res, 'Invalid API Key secret', 401);
+        return;
+      }
     }
 
     if (!apiKeyRecord.isActive) {
@@ -82,7 +89,7 @@ export const authenticateApiKey = async (
       return;
     }
 
-    // Update lastUsedAt asynchronously in the background
+    // Update lastUsedAt timestamp asynchronously
     prisma.apiKey
       .update({
         where: { id: apiKeyRecord.id },
@@ -92,7 +99,9 @@ export const authenticateApiKey = async (
         console.error('Failed to update API key lastUsedAt timestamp:', err);
       });
 
+    // Attach tenancy & domain context
     req.apiKey = apiKeyRecord;
+    req.domain = apiKeyRecord.domain;
     req.scopedDomain = apiKeyRecord.domain;
 
     next();

@@ -1,26 +1,63 @@
 import { Request, Response } from 'express';
 import { prisma } from '../../config/db.js';
-import { generateApiKeyPair } from '../../utils/crypto.js';
+import { env } from '../../config/env.js';
+import { generateDomainScopedApiKey, hashSha256 } from '../../utils/crypto.js';
 import { sendSuccess, sendError } from '../../utils/response.js';
 import { CreateApiKeyInput, ApiKeyIdParam } from './apiKeys.schema.js';
+import { DomainStatus } from '@prisma/client';
 
 export const createApiKey = async (req: Request, res: Response): Promise<void> => {
-  const { name, domainId, expiresAt } = req.body as CreateApiKeyInput;
+  const { name, domainId, scopes = ['email:send'], expiresAt } = req.body as CreateApiKeyInput;
 
-  // If domainId provided, check that domain exists
+  // 1. Prerequisite Validation: Domain Existence & Verification Status
   if (domainId) {
     const domain = await prisma.domain.findUnique({
       where: { id: domainId },
     });
+
     if (!domain) {
       sendError(res, `Domain with ID "${domainId}" not found`, 404, [
         { path: 'domainId', message: 'Referenced domain does not exist' },
       ]);
       return;
     }
+
+    // Check verification status unless relaxed mode is enabled
+    if (!env.ALLOW_PENDING_DOMAIN_API_KEYS && domain.status !== DomainStatus.VERIFIED) {
+      sendError(
+        res,
+        `Cannot generate API key for domain "${domain.domainName}". Sender domain must be in VERIFIED status before generating scoped credentials.`,
+        400,
+        [
+          {
+            path: 'domainId',
+            message: `Domain status is currently ${domain.status}. Verify DNS records first.`,
+          },
+        ]
+      );
+      return;
+    }
+  } else {
+    // If domainId is null (account-wide key), ensure at least one VERIFIED domain exists
+    if (!env.ALLOW_PENDING_DOMAIN_API_KEYS) {
+      const verifiedDomainCount = await prisma.domain.count({
+        where: { status: DomainStatus.VERIFIED },
+      });
+
+      if (verifiedDomainCount === 0) {
+        sendError(
+          res,
+          'Prerequisite failed: At least one sender domain must be in VERIFIED status before generating API keys.',
+          400
+        );
+        return;
+      }
+    }
   }
 
-  const { apiKey, apiSecret, keyPrefix, keyHash, secretHash } = generateApiKeyPair();
+  // 2. Generate secure high-entropy API token (em_live_...)
+  const { rawToken, keyPrefix, keyHash } = generateDomainScopedApiKey('em_live_');
+  const secretHash = hashSha256(rawToken);
 
   const newKey = await prisma.apiKey.create({
     data: {
@@ -28,6 +65,7 @@ export const createApiKey = async (req: Request, res: Response): Promise<void> =
       keyPrefix,
       keyHash,
       secretHash,
+      scopes,
       domainId: domainId ?? null,
       expiresAt: expiresAt ? new Date(expiresAt) : null,
       isActive: true,
@@ -48,16 +86,16 @@ export const createApiKey = async (req: Request, res: Response): Promise<void> =
     {
       id: newKey.id,
       name: newKey.name,
+      apiKey: rawToken,
       keyPrefix: newKey.keyPrefix,
-      apiKey,
-      apiSecret,
       domainId: newKey.domainId,
       domain: newKey.domain,
+      scopes: newKey.scopes,
       isActive: newKey.isActive,
       expiresAt: newKey.expiresAt,
       createdAt: newKey.createdAt,
       warning:
-        'Please copy your API key and secret now. For security purposes, the secret key will never be shown again.',
+        'Please copy your API token now. For security purposes, the raw token will never be displayed or stored again.',
     },
     'API key generated successfully',
     201
@@ -71,6 +109,7 @@ export const listApiKeys = async (_req: Request, res: Response): Promise<void> =
       id: true,
       name: true,
       keyPrefix: true,
+      scopes: true,
       domainId: true,
       domain: {
         select: {
@@ -111,6 +150,7 @@ export const toggleApiKeyStatus = async (req: Request, res: Response): Promise<v
       id: true,
       name: true,
       keyPrefix: true,
+      scopes: true,
       domainId: true,
       isActive: true,
       lastUsedAt: true,
@@ -152,7 +192,9 @@ export const verifyCredentials = async (req: Request, res: Response): Promise<vo
     return;
   }
 
-  const scope = req.scopedDomain
+  const scope = req.domain
+    ? req.domain.domainName
+    : req.scopedDomain
     ? req.scopedDomain.domainName
     : 'ALL_VERIFIED_DOMAINS';
 
@@ -163,6 +205,7 @@ export const verifyCredentials = async (req: Request, res: Response): Promise<vo
       keyId: req.apiKey.id,
       keyName: req.apiKey.name,
       keyPrefix: req.apiKey.keyPrefix,
+      scopes: req.apiKey.scopes,
       scope,
       scopedDomainId: req.apiKey.domainId,
     },

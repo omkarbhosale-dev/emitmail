@@ -35,6 +35,16 @@
       "key": "apiSecret",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "emailId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "webhookId",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -589,6 +599,179 @@
               "path": ["api-keys", "{{keyId}}"]
             },
             "description": "Permanently revokes and deletes the API key."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "6. Emails",
+      "item": [
+        {
+          "name": "Send Outbound Email (API Key Auth)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from\": \"notifications@example.com\",\n  \"fromName\": \"EmitMail Notifications\",\n  \"to\": [\"user@example.com\"],\n  \"subject\": \"Welcome to EmitMail\",\n  \"html\": \"<h1>Welcome to EmitMail</h1><p>Your transactional email engine is operational.</p>\",\n  \"text\": \"Welcome to EmitMail! Your transactional email engine is operational.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/emails",
+              "host": ["{{baseUrl}}"],
+              "path": ["emails"]
+            },
+            "description": "Submits an email for asynchronous DKIM signing, relay routing, and delivery tracking. Also available at root /v1/emails."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Email Status by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/emails/{{emailId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["emails", "{{emailId}}"]
+            },
+            "description": "Retrieves the real-time delivery state (QUEUED, SENDING, DELIVERED, BOUNCED, FAILED) and metadata of an email."
+          },
+          "response": []
+        },
+        {
+          "name": "List Outbound Emails",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/emails?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["emails"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Lists paginated outbound emails dispatched under the authenticated domain/user."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "7. Webhooks & Inbound Bounce",
+      "item": [
+        {
+          "name": "Create Webhook Subscription",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://webhook.site/your-uuid\",\n  \"events\": [\"email.delivered\", \"email.bounced\", \"email.complaint\"],\n  \"description\": \"Production Webhook Sink\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhooks",
+              "host": ["{{baseUrl}}"],
+              "path": ["webhooks"]
+            },
+            "description": "Registers a webhook endpoint for automated event dispatching signed with HMAC-SHA256 (X-EmitMail-Signature)."
+          },
+          "response": []
+        },
+        {
+          "name": "List Webhook Subscriptions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/webhooks",
+              "host": ["{{baseUrl}}"],
+              "path": ["webhooks"]
+            },
+            "description": "Lists all active webhook subscriptions for the authenticated user/organization."
+          },
+          "response": []
+        },
+        {
+          "name": "Inbound Bounce Ingestion (DSN / RFC 3464)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recipient\": \"bounce-test@example.com\",\n  \"messageId\": \"msg-12345\",\n  \"bounceType\": \"hard\",\n  \"subType\": \"general\",\n  \"diagnosticCode\": \"550 5.1.1 User unknown\",\n  \"reportingMta\": \"mx.google.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhooks/inbound-bounce",
+              "host": ["{{baseUrl}}"],
+              "path": ["webhooks", "inbound-bounce"]
+            },
+            "description": "Ingests Delivery Status Notifications (DSN) or Postfix/Haraka/mail pipe bounce reports, updates email status to BOUNCED, and triggers email.bounced webhook events."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Webhook Subscription",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/webhooks/{{webhookId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["webhooks", "{{webhookId}}"]
+            },
+            "description": "Permanently deletes a webhook subscription."
           },
           "response": []
         }

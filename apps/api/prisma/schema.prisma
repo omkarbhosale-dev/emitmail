@@ -9,7 +9,16 @@ datasource db {
 
 enum DomainStatus {
   PENDING
+  VERIFYING
   VERIFIED
+  FAILED
+}
+
+enum EmailStatus {
+  QUEUED
+  SENDING
+  DELIVERED
+  BOUNCED
   FAILED
 }
 
@@ -52,11 +61,15 @@ model Domain {
   spfVerified         Boolean      @default(false)
   mxVerified          Boolean      @default(false)
   dmarcVerified       Boolean      @default(false)
+  verificationRetries Int          @default(0)
+  verificationErrors  Json?
   lastVerifiedAt      DateTime?
   createdAt           DateTime     @default(now())
   updatedAt           DateTime     @updatedAt
 
   apiKeys             ApiKey[]
+  emails              Email[]
+  webhooks            WebhookSubscription[]
 
   @@map("domains")
 }
@@ -66,7 +79,8 @@ model ApiKey {
   name       String
   keyPrefix  String
   keyHash    String    @unique
-  secretHash String    @unique
+  secretHash String?   @unique
+  scopes     String[]  @default(["email:send"])
   domainId   String?
   domain     Domain?   @relation(fields: [domainId], references: [id], onDelete: Cascade)
   isActive   Boolean   @default(true)
@@ -76,4 +90,66 @@ model ApiKey {
   updatedAt  DateTime  @updatedAt
 
   @@map("api_keys")
+}
+
+model Email {
+  id               String      @id @default(uuid())
+  domainId         String
+  domain           Domain      @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  from             String
+  to               String[]
+  subject          String
+  htmlContent      String?     @db.Text
+  textContent      String?     @db.Text
+  replyTo          String?
+  cc               String[]    @default([])
+  bcc              String[]    @default([])
+  headers          Json?
+  attachments      Json?
+  status           EmailStatus @default(QUEUED)
+  messageId        String?     @unique
+  deliveryAttempts Int         @default(0)
+  lastError        String?     @db.Text
+  sentAt           DateTime?
+  bouncedAt        DateTime?
+  bounceReason     String?     @db.Text
+  bounceType       String?     // "hard" | "soft"
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  @@index([domainId, status])
+  @@index([status, createdAt])
+  @@map("emails")
+}
+
+model WebhookSubscription {
+  id         String            @id @default(uuid())
+  domainId   String?
+  domain     Domain?           @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  url        String
+  events     String[]          // e.g. ["email.delivered", "email.bounced", "email.complaint"]
+  secret     String            // HMAC signing secret
+  isActive   Boolean           @default(true)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  deliveries WebhookDelivery[]
+
+  @@map("webhook_subscriptions")
+}
+
+model WebhookDelivery {
+  id             String              @id @default(uuid())
+  subscriptionId String
+  subscription   WebhookSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  event          String
+  payload        Json
+  statusCode     Int?
+  responseBody   String?             @db.Text
+  attempts       Int                 @default(0)
+  success        Boolean             @default(false)
+  lastError      String?             @db.Text
+  createdAt      DateTime            @default(now())
+
+  @@index([subscriptionId, createdAt])
+  @@map("webhook_deliveries")
 }
