@@ -1,0 +1,27 @@
+FROM node:20-alpine AS base
+
+# Install OpenSSL for Prisma engine & curl/wget for healthchecks
+RUN apk add --no-cache openssl libc6-compat wget curl
+RUN npm install -g pnpm@10
+
+WORKDIR /app
+
+# Stage 1: Install workspace dependencies
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/api/package.json ./apps/api/
+COPY apps/worker/package.json ./apps/worker/
+COPY apps/dashboard/package.json ./apps/dashboard/
+COPY apps/docs/package.json ./apps/docs/
+RUN mkdir -p packages
+
+RUN pnpm install --frozen-lockfile
+
+# Stage 2: Copy Prisma schema from API & Worker source
+COPY apps/api/prisma ./apps/api/prisma
+COPY apps/worker ./apps/worker
+
+WORKDIR /app/apps/worker
+RUN npx prisma generate --schema=../api/prisma/schema.prisma
+RUN pnpm build
+
+CMD ["node", "dist/index.js"]

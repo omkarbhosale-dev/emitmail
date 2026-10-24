@@ -1,0 +1,107 @@
+services:
+  emitmail-postgres:
+    image: postgres:16-alpine
+    container_name: emitmail-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: emitmail
+      POSTGRES_PASSWORD: emitmail_pass
+      POSTGRES_DB: emitmail
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U emitmail -d emitmail"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - emitmail-network
+
+  emitmail-redis:
+    image: redis:7-alpine
+    container_name: emitmail-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - emitmail-network
+
+  emitmail-api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    container_name: emitmail-api
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      NODE_ENV: development
+      PORT: 4000
+      API_PORT: 4000
+      DATABASE_URL: postgresql://emitmail:emitmail_pass@emitmail-postgres:5432/emitmail?schema=public
+      REDIS_URL: redis://emitmail-redis:6379
+      REDIS_PASSWORD: emitmail_redis_pass
+      JWT_SECRET: emitmail_super_secret_jwt_key_change_in_prod_2026
+      ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      START_WORKERS: "false"
+      EMAIL_QUEUE_NAME: email-delivery-queue
+      ALLOW_PENDING_DOMAIN_API_KEYS: "true"
+      DIRECT_MX_FALLBACK: "true"
+    depends_on:
+      emitmail-postgres:
+        condition: service_healthy
+      emitmail-redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4000/api/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - emitmail-network
+
+  emitmail-worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.worker
+    container_name: emitmail-worker
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://emitmail:emitmail_pass@emitmail-postgres:5432/emitmail?schema=public
+      REDIS_URL: redis://emitmail-redis:6379
+      REDIS_PASSWORD: emitmail_redis_pass
+      ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      EMAIL_QUEUE_NAME: email-delivery-queue
+      WORKER_CONCURRENCY: 10
+      DIRECT_MX_FALLBACK: "true"
+    depends_on:
+      emitmail-postgres:
+        condition: service_healthy
+      emitmail-redis:
+        condition: service_healthy
+      emitmail-api:
+        condition: service_started
+    networks:
+      - emitmail-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  emitmail-network:
+    driver: bridge
