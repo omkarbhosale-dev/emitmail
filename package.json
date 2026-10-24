@@ -1,0 +1,33 @@
+{
+  "name": "emitmail-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "EmitMail - Open-source, self-hosted Email Service Provider (ESP)",
+  "scripts": {
+    "dev:docker": "docker compose -f docker-compose.dev.yml up --build -d",
+    "dev:docker:down": "docker compose -f docker-compose.dev.yml down",
+    "docker:build": "docker compose -f docker-compose.dev.yml build",
+    "docker:up": "docker compose -f docker-compose.dev.yml up --build -d",
+    "docker:down": "docker compose -f docker-compose.dev.yml down",
+    "docker:logs": "docker compose -f docker-compose.dev.yml logs -f",
+    "docker:ps": "docker compose -f docker-compose.dev.yml ps",
+    "dev:api": "pnpm --filter emitmail-api dev",
+    "build:api": "pnpm --filter emitmail-api build",
+    "dev:worker": "pnpm --filter emitmail-worker dev",
+    "build:worker": "pnpm --filter emitmail-worker build",
+    "start:worker": "pnpm --filter emitmail-worker start",
+    "db:generate": "pnpm --filter emitmail-api db:generate",
+    "db:push": "pnpm --filter emitmail-api db:push",
+    "db:migrate": "pnpm --filter emitmail-api db:migrate",
+    "db:seed": "pnpm --filter emitmail-api db:seed",
+    "test:workflow": "pnpm --filter emitmail-api test:workflow",
+    "test:resend-worker": "dotenv -e .env -- tsx scripts/test-resend-queue-worker.ts",
+    "test:deliverability": "dotenv -e .env -- tsx scripts/test-deliverability-security.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "dotenv-cli": "^7.4.4",
+    "resend": "^6.34.1",
+    "tsx": "^4.23.15"
+  }
+}

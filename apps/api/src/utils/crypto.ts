@@ -1,0 +1,220 @@
+import crypto from 'node:crypto';
+import { env } from '../config/env.js';
+
+/**
+ * SHA-256 hash helper
+ */
+export const hashSha256 = (value: string): string => {
+  return crypto.createHash('sha256').update(value, 'utf8').digest('hex');
+};
+
+/**
+ * AES-256-GCM Encryption
+ * Encrypts plaintext string using 32-byte hex encryption key
+ * Returns format: iv:authTag:ciphertext (all in hex)
+ */
+export const encryptAes256Gcm = (
+  plaintext: string,
+  hexKey: string = env.ENCRYPTION_KEY
+): string => {
+  const key = Buffer.from(hexKey, 'hex');
+  const iv = crypto.randomBytes(12); // Standard 96-bit IV for GCM
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+
+  const ciphertext = Buffer.concat([
+    cipher.update(plaintext, 'utf8'),
+    cipher.final(),
+  ]);
+
+  const authTag = cipher.getAuthTag();
+
+  return `${iv.toString('hex')}:${authTag.toString('hex')}:${ciphertext.toString('hex')}`;
+};
+
+/**
+ * AES-256-GCM Decryption
+ * Decrypts string from format: iv:authTag:ciphertext
+ */
+export const decryptAes256Gcm = (
+  encryptedStr: string,
+  hexKey: string = env.ENCRYPTION_KEY
+): string => {
+  const parts = encryptedStr.split(':');
+  if (parts.length !== 3) {
+    throw new Error('Invalid encrypted string format. Expected iv:authTag:ciphertext');
+  }
+
+  const [ivHex, authTagHex, ciphertextHex] = parts;
+  const key = Buffer.from(hexKey, 'hex');
+  const iv = Buffer.from(ivHex, 'hex');
+  const authTag = Buffer.from(authTagHex, 'hex');
+  const ciphertext = Buffer.from(ciphertextHex, 'hex');
+
+  const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+  decipher.setAuthTag(authTag);
+
+  const decrypted = Buffer.concat([
+    decipher.update(ciphertext),
+    decipher.final(),
+  ]);
+
+  return decrypted.toString('utf8');
+};
+
+/**
+ * Generates a fresh 2048-bit RSA keypair for DKIM.
+ * Strips PEM headers & whitespace from public key so it can be used directly in DNS TXT records.
+ */
+export const generateDkimKeyPair = (): {
+  publicKeyPem: string;
+  privateKeyPem: string;
+  publicKeyDnsTxt: string;
+} => {
+  const { publicKey: publicKeyPem, privateKey: privateKeyPem } = crypto.generateKeyPairSync(
+    'rsa',
+    {
+      modulusLength: 2048,
+      publicKeyEncoding: {
+        type: 'spki',
+        format: 'pem',
+      },
+      privateKeyEncoding: {
+        type: 'pkcs8',
+        format: 'pem',
+      },
+    }
+  );
+
+  // Strip PEM headers, footers, carriage returns, and newlines
+  const publicKeyDnsTxt = publicKeyPem
+    .replace(/-----BEGIN PUBLIC KEY-----/g, '')
+    .replace(/-----END PUBLIC KEY-----/g, '')
+    .replace(/[\r\n\s]/g, '');
+
+  return {
+    publicKeyPem,
+    privateKeyPem,
+    publicKeyDnsTxt,
+  };
+};
+
+/**
+ * Generates API Key and API Secret pair.
+ * API Key format: emit_live_<32 hex chars>
+ * API Secret format: emit_sec_<48 hex chars>
+ * Key Prefix format: first 18 characters (e.g. emit_live_a1b2c3d4)
+ */
+export const generateApiKeyPair = (): {
+  apiKey: string;
+  apiSecret: string;
+  keyPrefix: string;
+  keyHash: string;
+  secretHash: string;
+} => {
+  const apiKey = `emit_live_${crypto.randomBytes(16).toString('hex')}`;
+  const apiSecret = `emit_sec_${crypto.randomBytes(24).toString('hex')}`;
+  const keyPrefix = apiKey.slice(0, 18);
+  const keyHash = hashSha256(apiKey);
+  const secretHash = hashSha256(apiSecret);
+
+  return {
+    apiKey,
+    apiSecret,
+    keyPrefix,
+    keyHash,
+    secretHash,
+  };
+};
+
+/**
+ * Generates a domain-scoped high-entropy API token.
+ * Format: em_live_<64 hex chars>
+ * Key Prefix: first 16 characters (e.g. em_live_a1b2c3d4)
+ */
+export const generateDomainScopedApiKey = (prefix = 'em_live_'): {
+  rawToken: string;
+  keyPrefix: string;
+  keyHash: string;
+} => {
+  const rawToken = `${prefix}${crypto.randomBytes(32).toString('hex')}`;
+  const keyPrefix = rawToken.slice(0, 16);
+  const keyHash = hashSha256(rawToken);
+
+  return {
+    rawToken,
+    keyPrefix,
+    keyHash,
+  };
+};
+
+/**
+ * Signs a payload string with HMAC-SHA256 for webhook verification.
+ */
+export const signHmacSha256 = (payload: string, secret: string): string => {
+  return crypto.createHmac('sha256', secret).update(payload, 'utf8').digest('hex');
+};
+
+/**
+ * Generates a secure random 32-byte webhook secret string.
+ */
+export const generateWebhookSecret = (): string => {
+  return `whsec_${crypto.randomBytes(24).toString('hex')}`;
+};
+
+export interface UnsubscribeTokenPayload {
+  domainId: string;
+  email: string;
+  messageId?: string;
+  iat?: number;
+}
+
+/**
+ * Generates a tamper-proof RFC 8058 unsubscribe token signed with HMAC-SHA256.
+ */
+export const generateUnsubscribeToken = (
+  payload: { domainId: string; email: string; messageId?: string },
+  secret: string = env.JWT_SECRET
+): string => {
+  const data = JSON.stringify({
+    ...payload,
+    email: payload.email.toLowerCase().trim(),
+    iat: Math.floor(Date.now() / 1000),
+  });
+  const dataB64 = Buffer.from(data, 'utf8').toString('base64url');
+  const signature = crypto.createHmac('sha256', secret).update(dataB64).digest('base64url');
+  return `${dataB64}.${signature}`;
+};
+
+/**
+ * Verifies and decodes an RFC 8058 unsubscribe token.
+ */
+export const verifyUnsubscribeToken = (
+  token: string,
+  secret: string = env.JWT_SECRET
+): { domainId: string; email: string; messageId?: string } | null => {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 2) return null;
+    const [dataB64, signature] = parts;
+    const expectedSig = crypto.createHmac('sha256', secret).update(dataB64).digest('base64url');
+
+    const sigBuf = Buffer.from(signature);
+    const expBuf = Buffer.from(expectedSig);
+    if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
+      return null;
+    }
+
+    const dataStr = Buffer.from(dataB64, 'base64url').toString('utf8');
+    const parsed = JSON.parse(dataStr);
+    if (!parsed.domainId || !parsed.email) return null;
+
+    return {
+      domainId: parsed.domainId,
+      email: parsed.email.toLowerCase().trim(),
+      messageId: parsed.messageId,
+    };
+  } catch {
+    return null;
+  }
+};
+

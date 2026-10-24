@@ -1,0 +1,184 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum DomainStatus {
+  PENDING
+  VERIFYING
+  VERIFIED
+  FAILED
+}
+
+enum EmailStatus {
+  QUEUED
+  SENDING
+  DELIVERED
+  BOUNCED
+  FAILED
+  SUPPRESSED
+}
+
+enum SuppressionReason {
+  HARD_BOUNCE
+  COMPLAINT
+  UNSUBSCRIBE
+  MANUAL
+}
+
+model ServerConfig {
+  id                 String   @id @default("master")
+  mailServerHostname String   @default("mail.yourdomain.com")
+  spfIncludeDomain   String   @default("_spf.yourdomain.com")
+  vpsPublicIpv4      String?  @default("0.0.0.0")
+  isConfigured       Boolean  @default(false)
+  updatedAt          DateTime @updatedAt
+
+  @@map("server_config")
+}
+
+model User {
+  id                 String   @id @default(uuid())
+  username           String   @unique @default("admin")
+  email              String?  @unique
+  fullName           String?  @default("EmitMail Administrator")
+  passwordHash       String
+  mustChangePassword Boolean  @default(true)
+  timezone           String   @default("UTC")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Domain {
+  id                  String       @id @default(uuid())
+  domainName          String       @unique
+  status              DomainStatus @default(PENDING)
+  dkimSelector        String       @default("esp")
+  dkimPublicKey       String       @db.Text
+  dkimPrivateKeyEnc   String       @db.Text
+  returnPathSubdomain String       @default("send")
+  dmarcPolicy         String       @default("v=DMARC1; p=quarantine; pct=100;")
+  dnsRecords          Json
+  dkimVerified        Boolean      @default(false)
+  spfVerified         Boolean      @default(false)
+  mxVerified          Boolean      @default(false)
+  dmarcVerified       Boolean      @default(false)
+  verificationRetries Int          @default(0)
+  verificationErrors  Json?
+  tlsPolicy           String       @default("enforce") // "enforce" | "opportunistic"
+  lastVerifiedAt      DateTime?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  apiKeys             ApiKey[]
+  emails              Email[]
+  webhooks            WebhookSubscription[]
+  suppressions        Suppression[]
+
+  @@map("domains")
+}
+
+model ApiKey {
+  id         String    @id @default(uuid())
+  name       String
+  keyPrefix  String
+  keyHash    String    @unique
+  secretHash String?   @unique
+  scopes     String[]  @default(["email:send"])
+  domainId   String?
+  domain     Domain?   @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  isActive   Boolean   @default(true)
+  lastUsedAt DateTime?
+  expiresAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@map("api_keys")
+}
+
+model Email {
+  id                String      @id @default(uuid())
+  domainId          String
+  domain            Domain      @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  from              String
+  to                String[]
+  subject           String
+  htmlContent       String?     @db.Text
+  textContent       String?     @db.Text
+  replyTo           String?
+  cc                String[]    @default([])
+  bcc               String[]    @default([])
+  headers           Json?
+  attachments       Json?
+  listUnsubscribe   Json?
+  status            EmailStatus @default(QUEUED)
+  messageId         String?     @unique
+  deliveryAttempts  Int         @default(0)
+  lastError         String?     @db.Text
+  suppressionReason String?     @db.Text
+  sentAt            DateTime?
+  bouncedAt         DateTime?
+  bounceReason      String?     @db.Text
+  bounceType        String?     // "hard" | "soft"
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  @@index([domainId, status])
+  @@index([status, createdAt])
+  @@map("emails")
+}
+
+model Suppression {
+  id        String            @id @default(uuid())
+  domainId  String?
+  domain    Domain?           @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  email     String
+  reason    SuppressionReason
+  details   String?           @db.Text
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@unique([domainId, email])
+  @@index([email])
+  @@index([domainId, reason])
+  @@map("suppressions")
+}
+
+model WebhookSubscription {
+  id         String            @id @default(uuid())
+  domainId   String?
+  domain     Domain?           @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  url        String
+  events     String[]          // e.g. ["email.delivered", "email.bounced", "email.complaint", "email.suppressed", "email.unsubscribed"]
+  secret     String            // HMAC signing secret
+  isActive   Boolean           @default(true)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  deliveries WebhookDelivery[]
+
+  @@map("webhook_subscriptions")
+}
+
+model WebhookDelivery {
+  id             String              @id @default(uuid())
+  subscriptionId String
+  subscription   WebhookSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  event          String
+  payload        Json
+  statusCode     Int?
+  responseBody   String?             @db.Text
+  attempts       Int                 @default(0)
+  success        Boolean             @default(false)
+  lastError      String?             @db.Text
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @default(now()) @updatedAt
+
+  @@index([subscriptionId, createdAt])
+  @@map("webhook_deliveries")
+}
