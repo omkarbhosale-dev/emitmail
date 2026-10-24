@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum DomainStatus {
+  PENDING
+  VERIFIED
+  FAILED
+}
+
+model ServerConfig {
+  id                 String   @id @default("master")
+  mailServerHostname String   @default("mail.yourdomain.com")
+  spfIncludeDomain   String   @default("_spf.yourdomain.com")
+  vpsPublicIpv4      String?  @default("0.0.0.0")
+  isConfigured       Boolean  @default(false)
+  updatedAt          DateTime @updatedAt
+
+  @@map("server_config")
+}
+
+model User {
+  id                 String   @id @default(uuid())
+  username           String   @unique @default("admin")
+  email              String?  @unique
+  fullName           String?  @default("EmitMail Administrator")
+  passwordHash       String
+  mustChangePassword Boolean  @default(true)
+  timezone           String   @default("UTC")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Domain {
+  id                  String       @id @default(uuid())
+  domainName          String       @unique
+  status              DomainStatus @default(PENDING)
+  dkimSelector        String       @default("esp")
+  dkimPublicKey       String       @db.Text
+  dkimPrivateKeyEnc   String       @db.Text
+  returnPathSubdomain String       @default("send")
+  dmarcPolicy         String       @default("v=DMARC1; p=quarantine; pct=100;")
+  dnsRecords          Json
+  dkimVerified        Boolean      @default(false)
+  spfVerified         Boolean      @default(false)
+  mxVerified          Boolean      @default(false)
+  dmarcVerified       Boolean      @default(false)
+  lastVerifiedAt      DateTime?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  apiKeys             ApiKey[]
+
+  @@map("domains")
+}
+
+model ApiKey {
+  id         String    @id @default(uuid())
+  name       String
+  keyPrefix  String
+  keyHash    String    @unique
+  secretHash String    @unique
+  domainId   String?
+  domain     Domain?   @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  isActive   Boolean   @default(true)
+  lastUsedAt DateTime?
+  expiresAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@map("api_keys")
+}

@@ -1,0 +1,17 @@
+{
+  "name": "emitmail-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "EmitMail - Open-source, self-hosted Email Service Provider (ESP)",
+  "scripts": {
+    "dev:docker": "docker compose -f docker-compose.dev.yml up -d",
+    "dev:docker:down": "docker compose -f docker-compose.dev.yml down",
+    "dev:api": "pnpm --filter emitmail-api dev",
+    "build:api": "pnpm --filter emitmail-api build",
+    "db:generate": "pnpm --filter emitmail-api db:generate",
+    "db:push": "pnpm --filter emitmail-api db:push",
+    "db:migrate": "pnpm --filter emitmail-api db:migrate",
+    "db:seed": "pnpm --filter emitmail-api db:seed",
+    "test:workflow": "pnpm --filter emitmail-api test:workflow"
+  }
+}

@@ -1,0 +1,598 @@
+{
+  "info": {
+    "_postman_id": "7b8e1f02-a123-4567-89bc-emitmailcore01",
+    "name": "EmitMail Core API",
+    "description": "Production Postman Collection for EmitMail - Self-hosted Email Service Provider (ESP)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:4000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "domainId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "keyId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "apiKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "apiSecret",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. System Health",
+      "item": [
+        {
+          "name": "Health Check (DB + Redis)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "Check connection status of PostgreSQL and Redis."
+          },
+          "response": []
+        },
+        {
+          "name": "Check System Version & Updates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/system/version",
+              "host": ["{{baseUrl}}"],
+              "path": ["system", "version"]
+            },
+            "description": "Returns current running EmitMail server version, checks for newer GitHub releases, analyzes semver major/minor status, and provides docker update command."
+          },
+          "response": []
+        },
+        {
+          "name": "Check System Version (Force GitHub Refresh)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/system/version?force=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["system", "version"],
+              "query": [
+                {
+                  "key": "force",
+                  "value": "true",
+                  "description": "Bypass Redis cache (21,600s TTL) and query GitHub API immediately"
+                }
+              ]
+            },
+            "description": "Bypasses the 6-hour Redis cache and forces an immediate check against the GitHub API."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Authentication",
+      "item": [
+        {
+          "name": "Login (Default Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.success && response.data && response.data.accessToken) {",
+                  "    pm.collectionVariables.set('accessToken', response.data.accessToken);",
+                  "    console.log('Stored accessToken in collection variables');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"emitmail\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Authenticates with username and password. Default: admin / emitmail."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Profile (Me)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
+            },
+            "description": "Returns authenticated admin profile."
+          },
+          "response": []
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"emitmail\",\n  \"newPassword\": \"NewSecurePass#2026\",\n  \"confirmPassword\": \"NewSecurePass#2026\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/change-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "change-password"]
+            },
+            "description": "Updates password and sets mustChangePassword to false."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Server Configuration & Pre-Flight Checks",
+      "item": [
+        {
+          "name": "Get Master Server Config & DNS Checklist",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/server-config",
+              "host": ["{{baseUrl}}"],
+              "path": ["server-config"]
+            },
+            "description": "Fetches current MTA hostname, SPF domain, VPS IP, and the Master DNS Checklist (A, TXT, PTR) required before adding sender domains."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Master Server Config",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mailServerHostname\": \"mail.yourdomain.com\",\n  \"spfIncludeDomain\": \"_spf.yourdomain.com\",\n  \"vpsPublicIpv4\": \"198.51.100.1\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/server-config",
+              "host": ["{{baseUrl}}"],
+              "path": ["server-config"]
+            },
+            "description": "Updates master MTA server hostname, SPF include domain, and VPS public IP. Automatically refreshes DNS records of any PENDING domains."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. User Settings",
+      "item": [
+        {
+          "name": "Get User Settings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/settings",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "settings"]
+            },
+            "description": "Fetches administrator settings."
+          },
+          "response": []
+        },
+        {
+          "name": "Update User Settings",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"EmitMail Admin\",\n  \"email\": \"admin@example.com\",\n  \"timezone\": \"Asia/Kolkata\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/settings",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "settings"]
+            },
+            "description": "Updates profile details like email, fullName, timezone."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. Domains",
+      "item": [
+        {
+          "name": "Register Domain",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.success && response.data && response.data.id) {",
+                  "    pm.collectionVariables.set('domainId', response.data.id);",
+                  "    console.log('Stored domainId in collection variables:', response.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"domainName\": \"example.com\",\n  \"dkimSelector\": \"esp\",\n  \"returnPathSubdomain\": \"send\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/domains",
+              "host": ["{{baseUrl}}"],
+              "path": ["domains"]
+            },
+            "description": "Registers a new sending domain, generates 2048-bit RSA keys, and outputs DNS records using tenant ServerConfig."
+          },
+          "response": []
+        },
+        {
+          "name": "List Domains",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/domains?status=PENDING",
+              "host": ["{{baseUrl}}"],
+              "path": ["domains"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PENDING",
+                  "description": "Optional: PENDING, VERIFIED, FAILED"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Optional search term"
+                }
+              ]
+            },
+            "description": "Lists all registered domains."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Domain by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/domains/{{domainId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["domains", "{{domainId}}"]
+            },
+            "description": "Retrieves domain details including DNS checklist array."
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Domain DNS",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/domains/{{domainId}}/verify",
+              "host": ["{{baseUrl}}"],
+              "path": ["domains", "{{domainId}}", "verify"]
+            },
+            "description": "Live uncached DNS verification against Cloudflare (1.1.1.1) and Google (8.8.8.8) using dynamic tenant ServerConfig."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Domain",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/domains/{{domainId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["domains", "{{domainId}}"]
+            },
+            "description": "Deletes domain and cascades associated API keys."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "6. API Keys",
+      "item": [
+        {
+          "name": "Create API Key (Global Access)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.success && response.data) {",
+                  "    if (response.data.id) pm.collectionVariables.set('keyId', response.data.id);",
+                  "    if (response.data.apiKey) pm.collectionVariables.set('apiKey', response.data.apiKey);",
+                  "    if (response.data.apiSecret) pm.collectionVariables.set('apiSecret', response.data.apiSecret);",
+                  "    console.log('Saved keyId, apiKey, apiSecret to collection variables');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Production Backend Server\",\n  \"domainId\": null,\n  \"expiresAt\": null\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api-keys",
+              "host": ["{{baseUrl}}"],
+              "path": ["api-keys"]
+            },
+            "description": "Generates API Key + Secret with global access to all verified domains."
+          },
+          "response": []
+        },
+        {
+          "name": "Create API Key (Scoped to Domain)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Example Domain Mailer\",\n  \"domainId\": \"{{domainId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api-keys",
+              "host": ["{{baseUrl}}"],
+              "path": ["api-keys"]
+            },
+            "description": "Generates API key scoped strictly to a single domain."
+          },
+          "response": []
+        },
+        {
+          "name": "List API Keys",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api-keys",
+              "host": ["{{baseUrl}}"],
+              "path": ["api-keys"]
+            },
+            "description": "Lists all API keys without exposing secrets or hashes."
+          },
+          "response": []
+        },
+        {
+          "name": "Toggle API Key Active/Paused",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api-keys/{{keyId}}/toggle",
+              "host": ["{{baseUrl}}"],
+              "path": ["api-keys", "{{keyId}}", "toggle"]
+            },
+            "description": "Toggles active status of an API key."
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Credentials (SDK Header Style)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "x-api-secret",
+                "value": "{{apiSecret}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api-keys/verify-credentials",
+              "host": ["{{baseUrl}}"],
+              "path": ["api-keys", "verify-credentials"]
+            },
+            "description": "SDK handshake route using x-api-key and x-api-secret headers."
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Credentials (Bearer Style)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}:{{apiSecret}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api-keys/verify-credentials",
+              "host": ["{{baseUrl}}"],
+              "path": ["api-keys", "verify-credentials"]
+            },
+            "description": "SDK handshake route using Authorization: Bearer <key>:<secret>."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete API Key",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api-keys/{{keyId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api-keys", "{{keyId}}"]
+            },
+            "description": "Permanently revokes and deletes the API key."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
