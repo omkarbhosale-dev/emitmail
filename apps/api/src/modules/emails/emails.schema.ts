@@ -28,6 +28,20 @@ export const sendEmailSchema = z
     bcc: z.union([z.string(), z.array(z.string())]).optional(),
     headers: z.record(z.string()).optional(),
     attachments: z.array(emailAttachmentSchema).optional(),
+    listUnsubscribe: z
+      .object({
+        url: z.string().optional(),
+        email: z.string().optional(),
+      })
+      .optional(),
+    list_unsubscribe: z
+      .object({
+        url: z.string().optional(),
+        email: z.string().optional(),
+      })
+      .optional(),
+    unsubscribeMode: z.enum(['one-click', 'standard']).optional(),
+    unsubscribe_mode: z.enum(['one-click', 'standard']).optional(),
   })
   .refine((data) => data.html || data.text, {
     message: 'At least one of "html" or "text" content must be provided',

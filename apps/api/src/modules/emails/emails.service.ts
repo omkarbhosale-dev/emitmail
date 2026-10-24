@@ -2,6 +2,8 @@ import { prisma } from '../../config/db.js';
 import { env } from '../../config/env.js';
 import { enqueueEmailDispatch } from '../../queues/emailDispatch.queue.js';
 import { SendEmailInput } from './emails.schema.js';
+import { SuppressionsService } from '../suppressions/suppressions.service.js';
+import { generateUnsubscribeToken } from '../../utils/crypto.js';
 import { Domain, DomainStatus, EmailStatus, Prisma } from '@prisma/client';
 import crypto from 'node:crypto';
 
@@ -73,29 +75,85 @@ export class EmailsService {
     const messageId = `<${generatedId}-${uniqueToken}@${targetDomain.domainName}>`;
 
     // Normalize recipients, cc, bcc, and reply-to
-    const toRecipients = Array.isArray(input.to) ? input.to : [input.to];
+    const rawToRecipients = Array.isArray(input.to) ? input.to : [input.to];
+    const rawCcRecipients = Array.isArray(input.cc) ? input.cc : (input.cc ? [input.cc] : []);
+    const rawBccRecipients = Array.isArray(input.bcc) ? input.bcc : (input.bcc ? [input.bcc] : []);
     const rawReplyTo = (input as any).reply_to || input.replyTo;
     const replyTo = Array.isArray(rawReplyTo) ? rawReplyTo[0] : rawReplyTo || null;
-    const ccRecipients = Array.isArray(input.cc) ? input.cc : (input.cc ? [input.cc] : []);
-    const bccRecipients = Array.isArray(input.bcc) ? input.bcc : (input.bcc ? [input.bcc] : []);
 
-    // 4. Create Email record in database with status: QUEUED
+    // 4. Suppression List Pre-Flight Interceptor (Global + Domain-scoped)
+    const allRecipients = [...rawToRecipients, ...rawCcRecipients, ...rawBccRecipients];
+    const suppressedMatches = await SuppressionsService.findSuppressedRecipients(
+      allRecipients,
+      targetDomain.id
+    );
+
+    const suppressedEmailsSet = new Set(suppressedMatches.map((s) => s.email.toLowerCase().trim()));
+    const activeToRecipients = rawToRecipients.filter((e) => !suppressedEmailsSet.has(e.toLowerCase().trim()));
+    const activeCcRecipients = rawCcRecipients.filter((e) => !suppressedEmailsSet.has(e.toLowerCase().trim()));
+    const activeBccRecipients = rawBccRecipients.filter((e) => !suppressedEmailsSet.has(e.toLowerCase().trim()));
+
+    const isCompletelySuppressed = activeToRecipients.length === 0;
+    const suppressionDetails = suppressedMatches
+      .map((s) => `${s.email} (${s.reason})`)
+      .join(', ');
+    const suppressionReason = suppressedMatches.length > 0
+      ? `Suppressed recipient(s): ${suppressionDetails}`
+      : null;
+
+    // 5. RFC 8058 One-Click Unsubscribe Header Generation
+    const rawListUnsub = (input as any).list_unsubscribe || input.listUnsubscribe;
+    const unsubMode = (input as any).unsubscribe_mode || input.unsubscribeMode;
+    let listUnsubscribeMetadata: any = undefined;
+    const mergedHeaders: Record<string, string> = { ...((input.headers as Record<string, string>) || {}) };
+
+    if (rawListUnsub || unsubMode === 'one-click') {
+      const primaryRecipient = activeToRecipients[0] || rawToRecipients[0];
+      const unsubToken = generateUnsubscribeToken({
+        domainId: targetDomain.id,
+        email: primaryRecipient,
+        messageId,
+      });
+
+      const apiBase = env.NEXT_PUBLIC_API_URL.replace(/\/api\/v1\/?$/, '');
+      const defaultHttpsUrl = `${apiBase}/api/v1/unsubscribe/one-click/${unsubToken}`;
+      const defaultMailto = `unsubscribe@${targetDomain.domainName}`;
+
+      const httpsUrl = rawListUnsub?.url || defaultHttpsUrl;
+      const mailtoAddr = rawListUnsub?.email || defaultMailto;
+
+      mergedHeaders['List-Unsubscribe'] = `<${httpsUrl}>, <mailto:${mailtoAddr}?subject=unsubscribe>`;
+      mergedHeaders['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click';
+
+      listUnsubscribeMetadata = {
+        url: httpsUrl,
+        email: mailtoAddr,
+        mode: unsubMode || 'one-click',
+        token: unsubToken,
+      } as Prisma.InputJsonObject;
+    }
+
+    // 6. Create Email record in database
+    const emailStatus = isCompletelySuppressed ? EmailStatus.SUPPRESSED : EmailStatus.QUEUED;
+
     const email = await prisma.email.create({
       data: {
         id: generatedId,
         domainId: targetDomain.id,
         from: input.from,
-        to: toRecipients,
+        to: isCompletelySuppressed ? rawToRecipients : activeToRecipients,
         subject: input.subject,
         htmlContent: input.html || null,
         textContent: input.text || null,
         replyTo,
-        cc: ccRecipients,
-        bcc: bccRecipients,
-        headers: input.headers ? (input.headers as Prisma.InputJsonValue) : Prisma.DbNull,
+        cc: isCompletelySuppressed ? rawCcRecipients : activeCcRecipients,
+        bcc: isCompletelySuppressed ? rawBccRecipients : activeBccRecipients,
+        headers: Object.keys(mergedHeaders).length ? (mergedHeaders as Prisma.InputJsonValue) : Prisma.DbNull,
         attachments: input.attachments ? (input.attachments as unknown as Prisma.InputJsonValue) : Prisma.DbNull,
-        status: EmailStatus.QUEUED,
+        listUnsubscribe: listUnsubscribeMetadata,
+        status: emailStatus,
         messageId,
+        suppressionReason,
       },
       select: {
         id: true,
@@ -104,19 +162,24 @@ export class EmailsService {
         subject: true,
         status: true,
         messageId: true,
+        suppressionReason: true,
         createdAt: true,
       },
     });
 
-    // 5. Push to Redis BullMQ Delivery Queue (Fast Non-blocking Ingestion)
-    await enqueueEmailDispatch(email.id, {
-      emailId: email.id,
-      domainId: targetDomain.id,
-      from: email.from,
-      to: toRecipients,
-      subject: email.subject,
-      messageId,
-    });
+    // 7. Push to Redis Delivery Queue ONLY if not suppressed
+    if (!isCompletelySuppressed) {
+      await enqueueEmailDispatch(email.id, {
+        emailId: email.id,
+        domainId: targetDomain.id,
+        from: email.from,
+        to: activeToRecipients,
+        subject: email.subject,
+        messageId,
+      });
+    } else {
+      console.log(`🛑 [EmailsService] Email ${email.id} suppressed before queueing: ${suppressionReason}`);
+    }
 
     return email;
   }

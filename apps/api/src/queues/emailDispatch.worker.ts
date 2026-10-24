@@ -11,6 +11,7 @@ import {
 } from './emailDispatch.queue.js';
 import { enqueueWebhookDispatch } from './webhookDispatch.queue.js';
 import { EmailStatus } from '@prisma/client';
+import { MtaStsService } from '../services/mtaSts.service.js';
 
 export const processEmailDispatchJob = async (
   job: Job<EmailDispatchJobData>
@@ -49,21 +50,32 @@ export const processEmailDispatchJob = async (
       env.ENCRYPTION_KEY
     );
 
-    // 2. Prepare DKIM signature options
+    // 2. Prepare DKIM signature options (including RFC 8058 one-click unsubscribe headers)
     const dkimOptions = {
       domainName: email.domain.domainName,
       keySelector: email.domain.dkimSelector,
       privateKey: dkimPrivateKey,
+      headerFieldNames:
+        'from:to:cc:subject:date:message-id:list-unsubscribe:list-unsubscribe-post:mime-version',
     };
 
-    // 3. Prepare Transporter: Upstream SMTP Relay or Direct MX Delivery
+    // 3. Prepare Transporter: Upstream SMTP Relay or Direct MX Delivery with MTA-STS
     let transporter: any;
+
+    const tlsCiphers = 'HIGH:!aNULL:!MD5:!3DES:!CAMELLIA';
+    const minTlsVersion = 'TLSv1.2';
 
     if (env.SMTP_RELAY_HOST) {
       transporter = nodemailer.createTransport({
         host: env.SMTP_RELAY_HOST,
         port: env.SMTP_RELAY_PORT,
         secure: env.SMTP_RELAY_SECURE,
+        requireTLS: true,
+        tls: {
+          ciphers: tlsCiphers,
+          minVersion: minTlsVersion,
+          rejectUnauthorized: true,
+        },
         auth:
           env.SMTP_RELAY_USER && env.SMTP_RELAY_PASS
             ? {
@@ -76,19 +88,56 @@ export const processEmailDispatchJob = async (
     } else {
       // Direct Outbound MX routing or test transport
       const firstRecipient = email.to[0];
-      const recipientDomain = firstRecipient.split('@')[1];
+      const recipientDomain = firstRecipient ? firstRecipient.split('@')[1] : '';
 
       let targetHost = '127.0.0.1';
       let targetPort = 25;
 
-      try {
-        const mxList = await dns.resolveMx(recipientDomain);
-        if (mxList && mxList.length > 0) {
-          const sorted = mxList.sort((a, b) => a.priority - b.priority);
-          targetHost = sorted[0].exchange;
+      if (recipientDomain) {
+        try {
+          const mxList = await dns.resolveMx(recipientDomain);
+          if (mxList && mxList.length > 0) {
+            const sorted = mxList.sort((a, b) => a.priority - b.priority);
+            targetHost = sorted[0].exchange;
+          }
+        } catch {
+          // In local/test environment or missing MX, fallback to loopback or simulated delivery
         }
-      } catch {
-        // In local/test environment or missing MX, fallback to loopback or simulated delivery
+      }
+
+      // MTA-STS (RFC 8461) Resolution and Policy Enforcement
+      let requireTls = true;
+      let rejectUnauthorized = true;
+
+      if (recipientDomain) {
+        try {
+          const mtaStsPolicy = await MtaStsService.resolvePolicy(recipientDomain);
+          if (mtaStsPolicy && mtaStsPolicy.mode === 'enforce') {
+            const isMxMatch = mtaStsPolicy.mx.some((pattern) =>
+              MtaStsService.matchMxHost(targetHost, pattern)
+            );
+            if (!isMxMatch) {
+              throw new Error(
+                `MTA_STS_POLICY_VIOLATION: Destination MX "${targetHost}" does not match MTA-STS policy for "${recipientDomain}"`
+              );
+            }
+            requireTls = true;
+            rejectUnauthorized = true;
+          } else if (mtaStsPolicy && mtaStsPolicy.mode === 'testing') {
+            requireTls = true;
+            rejectUnauthorized = false;
+          } else {
+            // Mode is 'none' or unconfigured: fallback to domain's tlsPolicy
+            const isDomainEnforced = email.domain.tlsPolicy === 'enforce';
+            requireTls = isDomainEnforced;
+            rejectUnauthorized = isDomainEnforced;
+          }
+        } catch (policyErr) {
+          if (policyErr instanceof Error && policyErr.message.includes('MTA_STS_POLICY_VIOLATION')) {
+            throw policyErr;
+          }
+          console.warn(`[EmailDispatchWorker] MTA-STS check warning for ${recipientDomain}:`, policyErr);
+        }
       }
 
       // If in test or dev without outbound port 25 access, simulate successful delivery
@@ -103,7 +152,12 @@ export const processEmailDispatchJob = async (
           port: targetPort,
           secure: false,
           ignoreTLS: false,
-          requireTLS: false,
+          requireTLS: requireTls,
+          tls: {
+            ciphers: tlsCiphers,
+            minVersion: minTlsVersion,
+            rejectUnauthorized,
+          },
           dkim: dkimOptions,
         } as any);
       }

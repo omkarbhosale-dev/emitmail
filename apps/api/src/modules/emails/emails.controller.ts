@@ -8,14 +8,20 @@ export const sendEmail = async (req: Request, res: Response): Promise<void> => {
     const input = req.body as SendEmailInput;
     const email = await EmailsService.submitEmail(input, req.domain || null);
 
+    const isSuppressed = email.status === 'SUPPRESSED';
+
     // Fast Non-blocking Resend SDK + EmitMail dual compliant response (<50ms)
     res.status(200).json({
       id: email.id,
       from: email.from,
       to: email.to,
       created_at: email.createdAt.toISOString(),
-      status: 'queued',
-      message: 'Email successfully accepted and queued for delivery',
+      status: isSuppressed ? 'suppressed' : 'queued',
+      message: isSuppressed
+        ? `Email blocked by suppression list: ${email.suppressionReason || 'Recipient is suppressed'}`
+        : 'Email successfully accepted and queued for delivery',
+      suppressed: isSuppressed,
+      suppressionReason: email.suppressionReason || null,
       success: true,
       data: {
         id: email.id,
@@ -23,6 +29,7 @@ export const sendEmail = async (req: Request, res: Response): Promise<void> => {
         to: email.to,
         status: email.status,
         messageId: email.messageId,
+        suppressionReason: email.suppressionReason || null,
         createdAt: email.createdAt.toISOString(),
       },
     });

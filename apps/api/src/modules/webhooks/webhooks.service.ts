@@ -5,7 +5,8 @@ import {
   CreateWebhookSubscriptionInput,
   InboundBounceInput,
 } from './webhooks.schema.js';
-import { EmailStatus } from '@prisma/client';
+import { EmailStatus, SuppressionReason } from '@prisma/client';
+import { SuppressionsService } from '../suppressions/suppressions.service.js';
 
 export class WebhooksService {
   /**
@@ -124,20 +125,49 @@ export class WebhooksService {
       });
     }
 
+    // Check if hard bounce (5.x.x or hard) or complaint for auto-suppression
+    const isComplaint =
+      input.bounceType === 'complaint' ||
+      input.bounceType === 'abuse' ||
+      /complaint|abuse|feedback loop|spam/i.test(input.diagnosticCode);
+
+    const isHardBounce =
+      input.bounceType === 'hard' ||
+      /\b5\.\d+\.\d+\b|\b55\d\b|user unknown|mailbox unavailable|does not exist/i.test(
+        input.diagnosticCode
+      );
+
+    let suppressionRecord = null;
+    if (isComplaint || isHardBounce) {
+      const reason = isComplaint ? SuppressionReason.COMPLAINT : SuppressionReason.HARD_BOUNCE;
+      try {
+        suppressionRecord = await SuppressionsService.createSuppression({
+          domainId: email?.domainId || null,
+          email: input.recipient,
+          reason,
+          details: input.diagnosticCode || `Inbound bounce DSN: ${input.bounceType}`,
+        });
+      } catch (err) {
+        console.warn(`⚠️ [InboundBounce] Suppression insertion failed for ${input.recipient}:`, err);
+      }
+    }
+
     if (!email) {
-      // If email record cannot be located, we still queue a generic bounce event
+      // If email record cannot be located, we still queue a generic bounce/complaint event
       console.warn(
         `⚠️ [InboundBounce] Received bounce for unknown messageId "${cleanMessageId}" / recipient "${input.recipient}"`
       );
 
+      const eventType = isComplaint ? 'email.complaint' : 'email.bounced';
       await enqueueWebhookDispatch(
-        'email.bounced',
+        eventType as any,
         {
           messageId: cleanMessageId || null,
           recipient: input.recipient,
           bounceType: input.bounceType,
           diagnosticCode: input.diagnosticCode,
           source: input.source,
+          suppressed: !!suppressionRecord,
           bouncedAt: new Date().toISOString(),
         },
         null
@@ -148,6 +178,7 @@ export class WebhooksService {
         matched: false,
         recipient: input.recipient,
         bounceType: input.bounceType,
+        suppressed: !!suppressionRecord,
       };
     }
 
@@ -163,8 +194,9 @@ export class WebhooksService {
     });
 
     // Enqueue webhook notification
+    const eventType = isComplaint ? 'email.complaint' : 'email.bounced';
     await enqueueWebhookDispatch(
-      'email.bounced',
+      eventType as any,
       {
         emailId: email.id,
         messageId: email.messageId,
@@ -176,6 +208,7 @@ export class WebhooksService {
         bounceType: input.bounceType,
         diagnosticCode: input.diagnosticCode,
         source: input.source,
+        suppressed: !!suppressionRecord,
         bouncedAt: updated.bouncedAt?.toISOString() || new Date().toISOString(),
       },
       email.domainId
@@ -188,6 +221,7 @@ export class WebhooksService {
       messageId: email.messageId,
       status: EmailStatus.BOUNCED,
       bounceType: input.bounceType,
+      suppressed: !!suppressionRecord,
     };
   }
 }

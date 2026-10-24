@@ -20,6 +20,14 @@ enum EmailStatus {
   DELIVERED
   BOUNCED
   FAILED
+  SUPPRESSED
+}
+
+enum SuppressionReason {
+  HARD_BOUNCE
+  COMPLAINT
+  UNSUBSCRIBE
+  MANUAL
 }
 
 model ServerConfig {
@@ -63,6 +71,7 @@ model Domain {
   dmarcVerified       Boolean      @default(false)
   verificationRetries Int          @default(0)
   verificationErrors  Json?
+  tlsPolicy           String       @default("enforce") // "enforce" | "opportunistic"
   lastVerifiedAt      DateTime?
   createdAt           DateTime     @default(now())
   updatedAt           DateTime     @updatedAt
@@ -70,6 +79,7 @@ model Domain {
   apiKeys             ApiKey[]
   emails              Email[]
   webhooks            WebhookSubscription[]
+  suppressions        Suppression[]
 
   @@map("domains")
 }
@@ -93,33 +103,51 @@ model ApiKey {
 }
 
 model Email {
-  id               String      @id @default(uuid())
-  domainId         String
-  domain           Domain      @relation(fields: [domainId], references: [id], onDelete: Cascade)
-  from             String
-  to               String[]
-  subject          String
-  htmlContent      String?     @db.Text
-  textContent      String?     @db.Text
-  replyTo          String?
-  cc               String[]    @default([])
-  bcc              String[]    @default([])
-  headers          Json?
-  attachments      Json?
-  status           EmailStatus @default(QUEUED)
-  messageId        String?     @unique
-  deliveryAttempts Int         @default(0)
-  lastError        String?     @db.Text
-  sentAt           DateTime?
-  bouncedAt        DateTime?
-  bounceReason     String?     @db.Text
-  bounceType       String?     // "hard" | "soft"
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
+  id                String      @id @default(uuid())
+  domainId          String
+  domain            Domain      @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  from              String
+  to                String[]
+  subject           String
+  htmlContent       String?     @db.Text
+  textContent       String?     @db.Text
+  replyTo           String?
+  cc                String[]    @default([])
+  bcc               String[]    @default([])
+  headers           Json?
+  attachments       Json?
+  listUnsubscribe   Json?
+  status            EmailStatus @default(QUEUED)
+  messageId         String?     @unique
+  deliveryAttempts  Int         @default(0)
+  lastError         String?     @db.Text
+  suppressionReason String?     @db.Text
+  sentAt            DateTime?
+  bouncedAt         DateTime?
+  bounceReason      String?     @db.Text
+  bounceType        String?     // "hard" | "soft"
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
 
   @@index([domainId, status])
   @@index([status, createdAt])
   @@map("emails")
+}
+
+model Suppression {
+  id        String            @id @default(uuid())
+  domainId  String?
+  domain    Domain?           @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  email     String
+  reason    SuppressionReason
+  details   String?           @db.Text
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@unique([domainId, email])
+  @@index([email])
+  @@index([domainId, reason])
+  @@map("suppressions")
 }
 
 model WebhookSubscription {
@@ -127,7 +155,7 @@ model WebhookSubscription {
   domainId   String?
   domain     Domain?           @relation(fields: [domainId], references: [id], onDelete: Cascade)
   url        String
-  events     String[]          // e.g. ["email.delivered", "email.bounced", "email.complaint"]
+  events     String[]          // e.g. ["email.delivered", "email.bounced", "email.complaint", "email.suppressed", "email.unsubscribed"]
   secret     String            // HMAC signing secret
   isActive   Boolean           @default(true)
   createdAt  DateTime          @default(now())
@@ -149,6 +177,7 @@ model WebhookDelivery {
   success        Boolean             @default(false)
   lastError      String?             @db.Text
   createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @default(now()) @updatedAt
 
   @@index([subscriptionId, createdAt])
   @@map("webhook_deliveries")

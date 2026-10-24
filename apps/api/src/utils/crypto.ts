@@ -161,3 +161,60 @@ export const generateWebhookSecret = (): string => {
   return `whsec_${crypto.randomBytes(24).toString('hex')}`;
 };
 
+export interface UnsubscribeTokenPayload {
+  domainId: string;
+  email: string;
+  messageId?: string;
+  iat?: number;
+}
+
+/**
+ * Generates a tamper-proof RFC 8058 unsubscribe token signed with HMAC-SHA256.
+ */
+export const generateUnsubscribeToken = (
+  payload: { domainId: string; email: string; messageId?: string },
+  secret: string = env.JWT_SECRET
+): string => {
+  const data = JSON.stringify({
+    ...payload,
+    email: payload.email.toLowerCase().trim(),
+    iat: Math.floor(Date.now() / 1000),
+  });
+  const dataB64 = Buffer.from(data, 'utf8').toString('base64url');
+  const signature = crypto.createHmac('sha256', secret).update(dataB64).digest('base64url');
+  return `${dataB64}.${signature}`;
+};
+
+/**
+ * Verifies and decodes an RFC 8058 unsubscribe token.
+ */
+export const verifyUnsubscribeToken = (
+  token: string,
+  secret: string = env.JWT_SECRET
+): { domainId: string; email: string; messageId?: string } | null => {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 2) return null;
+    const [dataB64, signature] = parts;
+    const expectedSig = crypto.createHmac('sha256', secret).update(dataB64).digest('base64url');
+
+    const sigBuf = Buffer.from(signature);
+    const expBuf = Buffer.from(expectedSig);
+    if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
+      return null;
+    }
+
+    const dataStr = Buffer.from(dataB64, 'base64url').toString('utf8');
+    const parsed = JSON.parse(dataStr);
+    if (!parsed.domainId || !parsed.email) return null;
+
+    return {
+      domainId: parsed.domainId,
+      email: parsed.email.toLowerCase().trim(),
+      messageId: parsed.messageId,
+    };
+  } catch {
+    return null;
+  }
+};
+

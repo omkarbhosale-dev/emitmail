@@ -345,6 +345,7 @@ async function run() {
   }
 
   log(`\n📄 Execution log written to: ${logFile}`);
+  process.exit(failedCount === 0 ? 0 : 1);
 }
 
 run().catch((err) => {

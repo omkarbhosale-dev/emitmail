@@ -6,6 +6,7 @@ import { prisma } from '../config/db.js';
 import { env } from '../config/env.js';
 import { decryptAes256Gcm } from '../utils/crypto.js';
 import { EmailStatus } from '@prisma/client';
+import { MtaStsService } from '../services/mtaSts.service.js';
 
 export interface EmailDeliveryJobData {
   emailId: string;
@@ -56,21 +57,32 @@ export const processEmailDeliveryJob = async (
       env.ENCRYPTION_KEY
     );
 
-    // 3. Prepare DKIM signature options
+    // 3. Prepare DKIM signature options (including RFC 8058 one-click unsubscribe headers)
     const dkimOptions = {
       domainName: email.domain.domainName,
       keySelector: email.domain.dkimSelector,
       privateKey: dkimPrivateKey,
+      headerFieldNames:
+        'from:to:cc:subject:date:message-id:list-unsubscribe:list-unsubscribe-post:mime-version',
     };
 
-    // 4. Configure Transporter: Upstream SMTP Relay or Direct MX Delivery
+    // 4. Configure Transporter: Upstream SMTP Relay or Direct MX Delivery with MTA-STS & TLS Policies
     let transporter: any;
+
+    const tlsCiphers = 'HIGH:!aNULL:!MD5:!3DES:!CAMELLIA';
+    const minTlsVersion = 'TLSv1.2';
 
     if (env.SMTP_HOST) {
       transporter = nodemailer.createTransport({
         host: env.SMTP_HOST,
         port: env.SMTP_PORT,
         secure: env.SMTP_SECURE,
+        requireTLS: true,
+        tls: {
+          ciphers: tlsCiphers,
+          minVersion: minTlsVersion,
+          rejectUnauthorized: true,
+        },
         auth:
           env.SMTP_USER && env.SMTP_PASS
             ? {
@@ -99,6 +111,41 @@ export const processEmailDeliveryJob = async (
         }
       }
 
+      // MTA-STS (RFC 8461) Resolution and Policy Enforcement
+      let requireTls = true;
+      let rejectUnauthorized = true;
+
+      if (recipientDomain) {
+        try {
+          const mtaStsPolicy = await MtaStsService.resolvePolicy(recipientDomain);
+          if (mtaStsPolicy && mtaStsPolicy.mode === 'enforce') {
+            const isMxMatch = mtaStsPolicy.mx.some((pattern) =>
+              MtaStsService.matchMxHost(targetHost, pattern)
+            );
+            if (!isMxMatch) {
+              throw new Error(
+                `MTA_STS_POLICY_VIOLATION: Destination MX "${targetHost}" does not match MTA-STS policy for "${recipientDomain}"`
+              );
+            }
+            requireTls = true;
+            rejectUnauthorized = true;
+          } else if (mtaStsPolicy && mtaStsPolicy.mode === 'testing') {
+            requireTls = true;
+            rejectUnauthorized = false;
+          } else {
+            // Mode is 'none' or unconfigured: fallback to domain's tlsPolicy
+            const isDomainEnforced = email.domain.tlsPolicy === 'enforce';
+            requireTls = isDomainEnforced;
+            rejectUnauthorized = isDomainEnforced;
+          }
+        } catch (policyErr) {
+          if (policyErr instanceof Error && policyErr.message.includes('MTA_STS_POLICY_VIOLATION')) {
+            throw policyErr;
+          }
+          console.warn(`[DeliveryWorker] MTA-STS check warning for ${recipientDomain}:`, policyErr);
+        }
+      }
+
       if (env.NODE_ENV === 'test' || env.NODE_ENV === 'development' || targetHost === '127.0.0.1') {
         transporter = nodemailer.createTransport({
           jsonTransport: true,
@@ -110,7 +157,12 @@ export const processEmailDeliveryJob = async (
           port: targetPort,
           secure: false,
           ignoreTLS: false,
-          requireTLS: false,
+          requireTLS: requireTls,
+          tls: {
+            ciphers: tlsCiphers,
+            minVersion: minTlsVersion,
+            rejectUnauthorized,
+          },
           dkim: dkimOptions,
         } as any);
       }

@@ -21,7 +21,8 @@
     "db:migrate": "pnpm --filter emitmail-api db:migrate",
     "db:seed": "pnpm --filter emitmail-api db:seed",
     "test:workflow": "pnpm --filter emitmail-api test:workflow",
-    "test:resend-worker": "dotenv -e .env -- tsx scripts/test-resend-queue-worker.ts"
+    "test:resend-worker": "dotenv -e .env -- tsx scripts/test-resend-queue-worker.ts",
+    "test:deliverability": "dotenv -e .env -- tsx scripts/test-deliverability-security.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",

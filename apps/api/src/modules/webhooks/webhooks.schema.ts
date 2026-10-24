@@ -4,6 +4,8 @@ export const allowedWebhookEvents = [
   'email.delivered',
   'email.bounced',
   'email.complaint',
+  'email.suppressed',
+  'email.unsubscribed',
   'domain.verified',
   'domain.failed',
 ] as const;
@@ -34,7 +36,7 @@ export const inboundBounceSchema = z.object({
   messageId: z.string().optional(),
   emailId: z.string().uuid().optional(),
   recipient: z.string().email('Invalid recipient email address'),
-  bounceType: z.enum(['hard', 'soft']).default('hard'),
+  bounceType: z.enum(['hard', 'soft', 'complaint', 'abuse']).default('hard'),
   diagnosticCode: z.string().min(1, 'Diagnostic code or bounce reason is required'),
   source: z.string().default('mta-inbound-pipe'),
   rawDsn: z.string().optional(),
