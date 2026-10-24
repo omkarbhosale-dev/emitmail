@@ -30,3 +30,8 @@ logs/
 Thumbs.db
 .vscode/
 .idea/
+
+# Local production testing guides
+production-test.Readme
+production-test.README*
+production-test.md
