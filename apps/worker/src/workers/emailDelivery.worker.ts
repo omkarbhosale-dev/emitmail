@@ -146,7 +146,11 @@ export const processEmailDeliveryJob = async (
         }
       }
 
-      if (env.NODE_ENV === 'test' || env.NODE_ENV === 'development' || targetHost === '127.0.0.1') {
+      const shouldUseJsonTransport =
+        (env.NODE_ENV === 'test' && !env.DIRECT_MX_FALLBACK) ||
+        (targetHost === '127.0.0.1' && !env.SMTP_HOST);
+
+      if (shouldUseJsonTransport) {
         transporter = nodemailer.createTransport({
           jsonTransport: true,
           dkim: dkimOptions,
