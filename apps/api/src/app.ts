@@ -17,12 +17,24 @@ import { emailRoutes } from './modules/emails/emails.routes.js';
 import { webhookRoutes } from './modules/webhooks/webhooks.routes.js';
 import { suppressionRoutes } from './modules/suppressions/suppressions.routes.js';
 import { unsubscribeRoutes } from './modules/unsubscribe/unsubscribe.routes.js';
+import path from 'node:path';
+import fs from 'node:fs';
+
+const publicDir = fs.existsSync(path.resolve(__dirname, '../public'))
+  ? path.resolve(__dirname, '../public')
+  : (fs.existsSync(path.resolve(process.cwd(), 'apps/api/public'))
+    ? path.resolve(process.cwd(), 'apps/api/public')
+    : path.resolve(process.cwd(), 'public'));
 
 export const createApp = (): Express => {
   const app = express();
 
-  // Security & Utility Middlewares
-  app.use(helmet());
+  // Security & Utility Middlewares (relaxed CSP for dashboard console)
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+    })
+  );
   app.use(
     cors({
       origin: '*',
@@ -100,6 +112,34 @@ export const createApp = (): Express => {
   // Root endpoint aliases for convenience
   app.use('/domains', domainRoutes);
   app.use('/api-keys', apiKeyRoutes);
+
+  // Serve Built-in Testing UI
+  app.use(express.static(publicDir));
+  app.get(
+    ['/', '/dashboard', '/dashboard/*', '/admin', '/admin/*'],
+    (_req: Request, res: Response) => {
+      const candidatePaths = [
+        path.join(publicDir, 'index.html'),
+        path.resolve(process.cwd(), 'apps/api/public/index.html'),
+        path.resolve(process.cwd(), 'public/index.html'),
+        path.resolve(__dirname, '../public/index.html'),
+        path.resolve(__dirname, '../../public/index.html'),
+      ];
+
+      for (const p of candidatePaths) {
+        if (fs.existsSync(p)) {
+          return res.sendFile(p);
+        }
+      }
+
+      res
+        .status(200)
+        .type('html')
+        .send(
+          '<!DOCTYPE html><html><head><title>EmitMail</title></head><body style="background:#0a0d14;color:#f8fafc;font-family:sans-serif;padding:40px;"><h2>EmitMail Engine Online</h2><p>UI file index.html is being initialized.</p></body></html>'
+        );
+    }
+  );
 
   // 404 Route Handler
   app.use((req: Request, res: Response) => {
