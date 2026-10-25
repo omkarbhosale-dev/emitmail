@@ -81,3 +81,8 @@ temp/
 production-test.Readme
 production-test.README*
 production-test.md
+
+#postman
+.postman/
+postman/
+AGENTS.md
