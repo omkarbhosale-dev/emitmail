@@ -190,6 +190,9 @@ export const processEmailDeliveryJob = async (
             .trim()
         : undefined);
 
+    const returnPathDomain = `${email.domain.returnPathSubdomain || 'send'}.${email.domain.domainName}`;
+    const bounceAddress = `bounces@${returnPathDomain}`;
+
     const mailOptions: any = {
       from: email.from,
       to: email.to,
@@ -206,8 +209,16 @@ export const processEmailDeliveryJob = async (
         'X-Priority': '3',
         ...((email.headers as Record<string, string>) || {}),
       },
+      envelope: {
+        from: bounceAddress,
+        to: Array.isArray(email.to) ? email.to : [email.to],
+      },
       attachments: (email.attachments as any[]) || undefined,
     };
+
+    console.log(
+      `🚀 [DeliveryWorker] Dispatching email "${emailId}" via SMTP | MAIL FROM: <${bounceAddress}> | From: ${email.from} | DKIM: d=${email.domain.domainName}`
+    );
 
     const sendResult = await transporter.sendMail(mailOptions);
     const finalMessageId = sendResult.messageId || email.messageId;

@@ -74,9 +74,21 @@ export class DomainsService {
         type: 'TXT',
         host: returnPathSubdomain,
         fqdn: `${returnPathSubdomain}.${domainName}`,
-        value: `v=spf1 include:${spfIncludeDomain} ~all`,
+        value: serverConfig.vpsPublicIpv4 && serverConfig.vpsPublicIpv4 !== '0.0.0.0'
+          ? `v=spf1 ip4:${serverConfig.vpsPublicIpv4} ~all`
+          : `v=spf1 include:${spfIncludeDomain} ~all`,
         status: 'PENDING',
-        reason: 'Awaiting DNS TXT publication for return-path SPF',
+        reason: 'Awaiting DNS TXT publication for return-path SPF (Method A - Default)',
+      },
+      {
+        type: 'TXT',
+        host: '@',
+        fqdn: domainName,
+        value: serverConfig.vpsPublicIpv4 && serverConfig.vpsPublicIpv4 !== '0.0.0.0'
+          ? `v=spf1 ip4:${serverConfig.vpsPublicIpv4} ~all`
+          : `v=spf1 include:${spfIncludeDomain} ~all`,
+        status: 'PENDING',
+        reason: 'Root domain SPF authorization (Method B - Optional)',
       },
       {
         type: 'MX',
