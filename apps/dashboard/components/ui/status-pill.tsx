@@ -6,13 +6,16 @@ interface StatusPillProps {
   status: DomainStatus | string;
 }
 
+const BASE =
+  "inline-flex h-7 items-center gap-1.5 rounded-[9999px] border px-2.5 text-meta font-medium whitespace-nowrap";
+
 export function StatusPill({ status }: StatusPillProps) {
   const norm = status.toUpperCase();
 
   if (norm === "VERIFIED") {
     return (
-      <span className="inline-flex items-center gap-1 rounded-[9999px] border border-[#d1fae5] bg-[#ecfdf5] px-2 py-0.5 text-[11px] font-medium text-[#065f46]">
-        <CheckCircle size={13} weight="bold" />
+      <span className={`${BASE} border-[#a7f3d0] bg-[#ecfdf5] text-[#065f46]`}>
+        <CheckCircle size={16} weight="bold" aria-hidden="true" />
         <span>Verified</span>
       </span>
     );
@@ -20,16 +23,16 @@ export function StatusPill({ status }: StatusPillProps) {
 
   if (norm === "PENDING" || norm === "VERIFYING") {
     return (
-      <span className="inline-flex items-center gap-1 rounded-[9999px] border border-[#fef3c7] bg-[#fffbeb] px-2 py-0.5 text-[11px] font-medium text-[#92400e]">
-        <Clock size={13} weight="bold" />
+      <span className={`${BASE} border-[#fde68a] bg-[#fffbeb] text-[#92400e]`}>
+        <Clock size={16} weight="bold" aria-hidden="true" />
         <span>{norm === "VERIFYING" ? "Verifying" : "Pending"}</span>
       </span>
     );
   }
 
   return (
-    <span className="inline-flex items-center gap-1 rounded-[9999px] border border-[#fee2e2] bg-[#fef2f2] px-2 py-0.5 text-[11px] font-medium text-[#991b1b]">
-      <XCircle size={13} weight="bold" />
+    <span className={`${BASE} border-[#fecaca] bg-[#fef2f2] text-[#991b1b]`}>
+      <XCircle size={16} weight="bold" aria-hidden="true" />
       <span>Failed</span>
     </span>
   );

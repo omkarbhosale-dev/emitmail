@@ -154,3 +154,121 @@ This is a critical issue: white text on the orange accent is difficult for users
 - **Focus indicator:** Implement a 2px outline with 2px offset on all interactive elements. The current token set does not define a focus ring explicitly; this should be added (recommend a 2px solid #ff5e1f or #262626 outline with -2px offset to maintain tightness).
 - **Color alone should not convey meaning:** The orange accent is used for CTAs and emphasis. Pair with icons, text labels, or patterns to ensure information is not lost for colorblind users.
 - **Motion:** Respect prefers-reduced-motion by honoring 200ms or instantaneous transitions for users who opt out; do not enforce the 1500ms base duration for critical interactions.
+
+---
+
+## EmitMail Dashboard — Implemented Design Standards
+
+This section documents the design system **as implemented** in `apps/dashboard`. It reflects the approved typography/readability pass and **takes precedence over any conflicting value earlier in this file** (the YAML tokens and the Cloudflare-derived prose above). Where this section is silent, the earlier sections still apply.
+
+The single implementation source is `apps/dashboard/app/globals.css` (`@theme` tokens plus the `.btn*` / `.link-action` component classes). If you change a value there, change it here in the same PR.
+
+### Known deviations from the sections above
+
+| Topic | Earlier value | Implemented value |
+|---|---|---|
+| Font family | FT Kunst Grotesk | **Inter** (via `next/font/google`, variable `--font-inter`) |
+| Monospace | Apercu Mono Pro | System monospace stack (`--font-mono`) |
+| Body size / line height | 14px / 1.15 | **15px / 1.55** |
+| Letter spacing | -0.14px body, -0.8px display | `0` body; `-0.02em` on page title and metric only |
+| Text on orange (`#ff5e1f`) | `#ffffff` (3.8:1, fails AA) | **`#262626`** (≈5:1, passes AA) |
+| Secondary text | not defined (`text-muted` is `#ffffff`) | **`#595959`** (≈7:1 on white) |
+| Cards | off-white + glow shadow | **Flat white, 1px `#e5e5e5` border, no shadow** |
+
+Never use the `text-muted` token (`#ffffff`) for text on a white surface; use `#595959`.
+
+### Typography scale
+
+Defined as Tailwind theme tokens, so each role is a single utility class. Sizes are fixed (not fluid) and identical at every breakpoint.
+
+| Role | Class | Size | Weight | Line height | Letter spacing |
+|---|---|---|---|---|---|
+| Page title (`<h1>`) | `text-page-title` | 34px | 600 | 1.15 | -0.02em |
+| Section / card heading (`<h2>`) | `text-section` | 20px | 600 | 1.3 | -0.01em |
+| Metric value | `text-metric` | 34px | 600 | 1.1 | -0.02em |
+| Body | `text-body` | 15px | 400 | 1.55 | 0 |
+| Table content | `text-table` | 14px | 400 | 1.45 | 0 |
+| Supporting text, descriptions | `text-support` | 14px | 400 | 1.5 | 0 |
+| Metadata, captions, badges | `text-meta` | 13px | 400 (500 for badges) | 1.45 | 0 |
+| Uppercase labels, table headers | `text-label` + `uppercase` | 13px | 500 | 1.3 | 0.04em |
+| Sidebar navigation | `text-nav` | 15px | 500 (600 when active) | 1.3 | 0 |
+| Buttons and link-actions | `text-control` / `.btn` | 14px | 500 | 1.25 | 0 |
+| Brand wordmark | `text-brand` | 18px | 600 | 1.2 | -0.01em |
+
+Hierarchy rules:
+
+- One `<h1>` per page (`text-page-title`), followed by a `text-body` description in `#595959`.
+- Primary data (names, values, headings) is `#262626` at 500–600 weight; descriptions and metadata are `#595959` at 400.
+- Monospace (`font-mono`) is used for domains, hostnames, IPs, key prefixes, and code, at the size of the surrounding role (`text-table` or `text-meta`).
+- Do not use `text-[Npx]`, `tracking-[...]`, or `leading-[...]` in components. Use a role from the table; if none fits, propose a new token (see "Consistency rules").
+
+### Color tokens (as used)
+
+| Purpose | Value |
+|---|---|
+| Primary text | `#262626` |
+| Secondary text | `#595959` |
+| Primary action fill / hover | `#ff5e1f` / `#ff7038`, text `#262626` |
+| Page / card background | `#ffffff` |
+| Sidebar background (surface) | `#f0f0f0` |
+| Subtle inset panel | `#fafafa` |
+| Card, table and header borders | `#e5e5e5` |
+| Table row dividers | `#eeeeee` |
+| Strong dividers, secondary-button border, link underline | `#d4d4d4` |
+| Form input border | `#a3a3a3` |
+| Focus ring | 2px solid `#262626`, 2px offset (global `:focus-visible`) |
+
+Status badges (`StatusPill`): Verified = bg `#ecfdf5` / border `#a7f3d0` / text `#065f46`; Pending/Verifying = `#fffbeb` / `#fde68a` / `#92400e`; Failed = `#fef2f2` / `#fecaca` / `#991b1b`. Every status also carries an icon and a text label — never color alone.
+
+Orange is never used for body-size text on white (it fails contrast). Links use an underline whose color changes to orange on hover instead.
+
+### Spacing, radius, and sizing
+
+| Item | Value |
+|---|---|
+| Card / panel padding | 20px (`p-5`) |
+| Panel header | title + optional 14px description; 16px bottom padding, 20px gap before content, 1px bottom border |
+| Gap between page sections | 24px (`space-y-6`) |
+| KPI grid gap | 16px; 1 column → 2 (`sm`) → 4 (`lg`) |
+| Main content padding | 16px → 24px (`sm`) → 32px (`lg`); max width 1280px |
+| Card radius | 4px |
+| Button, input, small inset panel radius | 2px |
+| Pill / badge radius | 9999px |
+| Header height | 56px |
+| Sidebar width | 256px (desktop `md`+); off-canvas drawer below `md` |
+| Sidebar nav row | min 44px high, 20px icon, 3px orange left bar when active |
+| Buttons | 44px high below `sm`, 40px from `sm` up; 16px horizontal padding; 14px/500 |
+| Text inputs | 44px high, 15px text |
+| Status badge | 28px high, 16px icon, 13px/500 text |
+| DNS check indicator | 24px box, 14px icon |
+| Table | header cell `py-3`, body cell `py-3.5`, 14px text; rows are 48–56px |
+| Icon sizes | 20px navigation and KPI icons; 16–18px inline/button icons; 32–36px empty-state icons |
+
+Shared button styles live in `globals.css`: `.btn` (base), `.btn-primary`, `.btn-secondary`, and `.link-action` (card-header text links). Do not rebuild these with ad-hoc utilities.
+
+### Components
+
+- **Panel** (`components/ui/panel.tsx`): the only card container; owns padding, border, and header typography.
+- **StatCard**: 13px uppercase label, 34px metric value, 14px supporting text, 20px decorative icon (`aria-hidden`).
+- **StatusPill / CheckIndicator**: see sizes above; `CheckIndicator` exposes its state through `aria-label`.
+- **Tables**: wrapped in a focusable, labelled `role="region"` scroll container with `min-w-[640px]` so narrow screens scroll the table, not the page. Column headers use `scope="col"`.
+- **Sidebar / header / user menu**: nav, user-menu trigger and sign-out are at least 44px tall.
+- **Unbuilt pages** (`/domains`, `/api-keys`, `/webhooks`, `/settings`) render `ComingSoon`, which uses the same title, body, and button tokens as built pages.
+
+### Responsive and accessibility expectations
+
+- The dashboard uses Tailwind's default breakpoints (`sm` 640, `md` 768, `lg` 1024). The breakpoint list in the YAML front matter (400/426/550/768) is not wired into the dashboard; the type scale does not change between breakpoints.
+- Touch targets are at least 44×44px on small screens (buttons, nav rows, form inputs, menu triggers, hamburger and close buttons).
+- Body and secondary text must meet WCAG AA (4.5:1) on their background; the documented text colors do.
+- Decorative icons are `aria-hidden`; informative icons or dots have a text alternative.
+- A skip-to-content link is the first focusable element in the app shell; forms associate errors with inputs via `aria-describedby` and `role="alert"`.
+- `prefers-reduced-motion` is honored globally. Hover/color transitions are 150ms with the project easing curve.
+
+### Consistency rules for future UI work
+
+1. Reuse `Panel`, `StatCard`, `StatusPill`, `CheckIndicator`, `ComingSoon`, and the `.btn*` / `.link-action` classes before writing new markup.
+2. Pick a role from the typography table. Do not add arbitrary font sizes, tracking, or line heights.
+3. Use the documented colors, borders, radii, and spacing. Do not introduce new gray, border, or status colors without adding them here.
+4. New pages (Domains, API Keys, Webhooks, Settings, and later pages) must follow the same page structure: `text-page-title` heading, `text-body` description, `Panel`-based sections with 24px spacing, and the same table, badge, and button patterns as Overview.
+5. Handle loading, empty, and error states with the existing patterns (`loading.tsx`, `error.tsx`, in-panel empty states).
+6. Any approved change to a token, scale value, or component size must update both `globals.css` and this section in the same change.

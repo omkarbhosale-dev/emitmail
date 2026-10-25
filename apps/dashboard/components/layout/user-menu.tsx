@@ -25,18 +25,18 @@ export function UserMenu({ user }: UserMenuProps) {
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className="flex w-full items-center justify-between gap-2 rounded-[2px] p-2 text-left text-[12px] text-[#262626] transition-colors hover:bg-white"
+        className="flex min-h-[44px] w-full items-center justify-between gap-2 rounded-[2px] p-2 text-left text-support text-[#262626] transition-colors hover:bg-white"
         aria-expanded={isOpen}
         aria-haspopup="menu"
         aria-label={`User options for ${displayName}`}
       >
-        <div className="flex items-center gap-2 overflow-hidden">
-          <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-[2px] bg-white text-[#595959]">
-            <User size={14} />
+        <div className="flex items-center gap-2.5 overflow-hidden">
+          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[2px] bg-white text-[#595959]" aria-hidden="true">
+            <User size={18} />
           </div>
           <div className="truncate">
             <p className="truncate font-medium">{displayName}</p>
-            <p className="truncate text-[11px] text-[#595959]">{email}</p>
+            <p className="truncate text-meta text-[#595959]">{email}</p>
           </div>
         </div>
       </button>
@@ -52,9 +52,9 @@ export function UserMenu({ user }: UserMenuProps) {
             <form action={logoutAction}>
               <button
                 type="submit"
-                className="flex w-full items-center gap-2 rounded-[2px] px-3 py-2 text-[12px] text-[#991b1b] transition-colors hover:bg-[#fef2f2]"
+                className="flex min-h-[44px] w-full items-center gap-2 rounded-[2px] px-3 py-2 text-support font-medium text-[#991b1b] transition-colors hover:bg-[#fef2f2]"
               >
-                <SignOut size={14} />
+                <SignOut size={18} aria-hidden="true" />
                 <span>Sign out</span>
               </button>
             </form>

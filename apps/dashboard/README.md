@@ -2,23 +2,21 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+First, run the development server from the repository root (this repo uses pnpm only):
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm --filter emitmail-dashboard dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The dashboard overview lives in `app/(dashboard)/page.tsx`, and the login page in `app/login/page.tsx`. The page auto-updates as you edit the file.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## UI conventions
+
+- Design tokens (Inter font via `next/font`, typography scale, colors, button classes) are defined in `app/globals.css`.
+- The documented standards are in the **"EmitMail Dashboard — Implemented Design Standards"** section of the root `Design.md`. Follow them and update both together when a token or component size changes.
+- Reuse the shared components in `components/ui` and `components/layout`, and the typography utilities (`text-page-title`, `text-section`, `text-metric`, `text-body`, `text-table`, `text-support`, `text-meta`, `text-label`, `text-nav`, `text-control`). Avoid arbitrary font sizes and one-off spacing or colors.
 
 ## Learn More
 

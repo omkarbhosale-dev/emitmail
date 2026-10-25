@@ -28,7 +28,7 @@ export function KpiGrid({ domains, apiKeys, webhooks }: KpiGridProps) {
             ? `${domainStats.pending} pending verification`
             : "All domains processed"
         }
-        icon={<Globe size={18} />}
+        icon={<Globe size={20} />}
       />
 
       <StatCard
@@ -39,7 +39,7 @@ export function KpiGrid({ domains, apiKeys, webhooks }: KpiGridProps) {
             ? `${domainStats.failed} failed verification`
             : "100% DNS readiness"
         }
-        icon={<CheckCircle size={18} />}
+        icon={<CheckCircle size={20} />}
       />
 
       <StatCard
@@ -50,7 +50,7 @@ export function KpiGrid({ domains, apiKeys, webhooks }: KpiGridProps) {
             ? `${apiKeyStats.paused} key${apiKeyStats.paused > 1 ? "s" : ""} paused`
             : "All credentials active"
         }
-        icon={<Key size={18} />}
+        icon={<Key size={20} />}
       />
 
       <StatCard
@@ -59,7 +59,7 @@ export function KpiGrid({ domains, apiKeys, webhooks }: KpiGridProps) {
         secondaryText={`${webhookStats.total} registered subscription${
           webhookStats.total === 1 ? "" : "s"
         }`}
-        icon={<WebhooksLogo size={18} />}
+        icon={<WebhooksLogo size={20} />}
       />
     </div>
   );

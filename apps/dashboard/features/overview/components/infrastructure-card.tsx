@@ -22,86 +22,111 @@ export function InfrastructureCard({
   return (
     <Panel
       title="Cluster & Mail Infrastructure"
-      description="MTA server hostnames, DNS prerequisite checklist, and cluster connectivity"
+      description="MTA hostnames, DNS checklist, and cluster connectivity"
     >
-      <div className="space-y-4">
+      <div className="space-y-5">
         {/* MTA Hostnames */}
-        <div className="rounded-[2px] border border-[#f0f0f0] bg-[#fafafa] p-3 text-[12px]">
-          <div className="flex items-center justify-between">
-            <span className="text-[#595959]">Mail Server Hostname</span>
-            <span className="font-mono text-[#262626]">
+        <dl className="rounded-[2px] border border-[#e5e5e5] bg-[#fafafa] p-4 text-support">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+            <dt className="text-[#595959]">Mail Server Hostname</dt>
+            <dd className="break-all font-mono font-medium text-[#262626]">
               {config?.mailServerHostname || "mail.yourdomain.com"}
-            </span>
+            </dd>
           </div>
-          <div className="mt-2 flex items-center justify-between border-t border-[#f0f0f0] pt-2">
-            <span className="text-[#595959]">VPS Public IPv4</span>
-            <span className="font-mono text-[#262626]">
+          <div className="mt-3 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-t border-[#e5e5e5] pt-3">
+            <dt className="text-[#595959]">VPS Public IPv4</dt>
+            <dd className="font-mono font-medium text-[#262626]">
               {config?.vpsPublicIpv4 || "Not configured"}
-            </span>
+            </dd>
           </div>
-        </div>
+        </dl>
 
         {/* Master DNS Prerequisites */}
         <div>
-          <div className="mb-2 flex items-center justify-between text-[11px] font-medium uppercase tracking-wider text-[#595959]">
-            <span>Master DNS Checklist</span>
-            <Link href="/settings" className="text-[#262626] hover:text-[#ff5e1f]">
-              Review (3) ›
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h3 className="text-label uppercase text-[#595959]">Master DNS Checklist</h3>
+            <Link href="/settings" className="link-action">
+              Review ({checklist.length})
             </Link>
           </div>
-          <div className="space-y-1.5">
+          <ul className="space-y-2">
             {checklist.map((item, idx) => (
-              <div
+              <li
                 key={idx}
-                className="flex items-center justify-between rounded-[2px] border border-[#f0f0f0] px-2.5 py-1.5 text-[12px]"
+                className="flex min-h-[44px] items-center justify-between gap-3 rounded-[2px] border border-[#e5e5e5] px-3 py-2 text-support"
               >
-                <div className="flex items-center gap-2">
-                  <span className="rounded-[1px] bg-[#f0f0f0] px-1 py-0.5 font-mono text-[10px] font-medium text-[#262626]">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="rounded-[2px] bg-[#f0f0f0] px-1.5 py-0.5 font-mono text-meta font-semibold text-[#262626]">
                     {item.type}
                   </span>
                   <span className="text-[#262626]">{item.purpose}</span>
                 </div>
                 {config?.isConfigured ? (
-                  <Check size={13} weight="bold" className="text-[#059669]" />
+                  <Check
+                    size={18}
+                    weight="bold"
+                    className="flex-shrink-0 text-[#059669]"
+                    aria-label="Configured"
+                  />
                 ) : (
-                  <Warning size={13} weight="bold" className="text-[#d97706]" />
+                  <Warning
+                    size={18}
+                    weight="bold"
+                    className="flex-shrink-0 text-[#b45309]"
+                    aria-label="Action required"
+                  />
                 )}
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
 
         {/* Database & Redis status */}
-        <div className="border-t border-[#f0f0f0] pt-3">
-          <div className="grid grid-cols-2 gap-2 text-[12px]">
-            <div className="flex items-center gap-2 rounded-[2px] border border-[#f0f0f0] p-2">
-              <Database size={15} className="text-[#595959]" />
-              <div>
-                <p className="text-[10px] uppercase text-[#595959]">PostgreSQL</p>
-                <p className={`font-medium ${dbConnected ? "text-[#059669]" : "text-[#dc2626]"}`}>
-                  {dbConnected ? "Connected" : "Disconnected"}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 rounded-[2px] border border-[#f0f0f0] p-2">
-              <HardDrives size={15} className="text-[#595959]" />
-              <div>
-                <p className="text-[10px] uppercase text-[#595959]">Redis Broker</p>
-                <p className={`font-medium ${redisConnected ? "text-[#059669]" : "text-[#dc2626]"}`}>
-                  {redisConnected ? "Connected" : "Disconnected"}
-                </p>
-              </div>
-            </div>
-          </div>
+        <div className="grid grid-cols-1 gap-3 border-t border-[#e5e5e5] pt-5 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+          <ServiceStatus
+            icon={<Database size={22} aria-hidden="true" />}
+            label="PostgreSQL"
+            connected={dbConnected}
+          />
+          <ServiceStatus
+            icon={<HardDrives size={22} aria-hidden="true" />}
+            label="Redis Broker"
+            connected={redisConnected}
+          />
         </div>
 
         {/* Running Engine Version */}
-        <div className="flex items-center justify-between text-[11px] text-[#595959]">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-meta text-[#595959]">
           <span>Engine Version: v{version?.currentVersion || "1.0.0"}</span>
           <span className="font-mono">{version?.hasUpdate ? "Update available" : "Up to date"}</span>
         </div>
       </div>
     </Panel>
+  );
+}
+
+function ServiceStatus({
+  icon,
+  label,
+  connected,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  connected: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-[2px] border border-[#e5e5e5] p-3">
+      <span className="text-[#595959]">{icon}</span>
+      <div>
+        <p className="text-meta uppercase tracking-wide text-[#595959]">{label}</p>
+        <p
+          className={`text-support font-semibold ${
+            connected ? "text-[#047857]" : "text-[#b91c1c]"
+          }`}
+        >
+          {connected ? "Connected" : "Disconnected"}
+        </p>
+      </div>
+    </div>
   );
 }

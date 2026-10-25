@@ -13,10 +13,8 @@ export default async function OverviewPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-[32px] font-medium leading-none tracking-[-0.8px] text-[#262626]">
-          Overview
-        </h1>
-        <p className="mt-1.5 text-[14px] text-[#595959]">
+        <h1 className="text-page-title text-[#262626]">Overview</h1>
+        <p className="mt-2 text-body text-[#595959]">
           Platform health, verified sender domains, and operational status.
         </p>
       </div>

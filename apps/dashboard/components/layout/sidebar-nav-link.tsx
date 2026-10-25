@@ -18,19 +18,22 @@ export function SidebarNavLink({ href, label, icon }: SidebarNavLinkProps) {
     <Link
       href={href}
       aria-current={isActive ? "page" : undefined}
-      className={`group relative flex min-h-[40px] md:min-h-[36px] items-center gap-3 px-3 text-[13px] font-normal transition-colors ${
+      className={`group relative flex min-h-[44px] items-center gap-3 px-5 text-nav transition-colors ${
         isActive
-          ? "bg-white font-medium text-[#262626]"
-          : "text-[#595959] hover:bg-white hover:text-[#262626]"
+          ? "bg-white font-semibold text-[#262626]"
+          : "font-medium text-[#595959] hover:bg-white hover:text-[#262626]"
       }`}
     >
       {isActive && (
         <span
-          className="absolute left-0 top-0 bottom-0 w-[2px] bg-[#ff5e1f]"
+          className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#ff5e1f]"
           aria-hidden="true"
         />
       )}
-      <span className={isActive ? "text-[#ff5e1f]" : "text-[#595959] group-hover:text-[#262626]"}>
+      <span
+        aria-hidden="true"
+        className={isActive ? "text-[#ff5e1f]" : "text-[#595959] group-hover:text-[#262626]"}
+      >
         {icon}
       </span>
       <span>{label}</span>

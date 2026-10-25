@@ -23,7 +23,7 @@ export function MobileNav({ user, version }: MobileNavProps) {
         aria-expanded={isOpen}
         aria-controls="mobile-nav-drawer"
       >
-        <List size={20} aria-hidden="true" />
+        <List size={22} aria-hidden="true" />
       </button>
 
       {isOpen && (
@@ -39,16 +39,16 @@ export function MobileNav({ user, version }: MobileNavProps) {
             onClick={() => setIsOpen(false)}
             aria-hidden="true"
           />
-          <div className="relative z-10 flex h-full w-[260px] flex-col bg-white shadow-xl">
-            <div className="flex h-12 items-center justify-between border-b border-[#f0f0f0] px-4">
-              <span className="text-[14px] font-medium text-[#262626]">Menu</span>
+          <div className="relative z-10 flex h-full w-[256px] flex-col bg-white shadow-xl">
+            <div className="flex h-14 items-center justify-between border-b border-[#e5e5e5] px-5">
+              <span className="text-body font-semibold text-[#262626]">Menu</span>
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
                 className="flex h-11 w-11 -mr-2 items-center justify-center text-[#595959]"
                 aria-label="Close navigation menu"
               >
-                <X size={18} aria-hidden="true" />
+                <X size={20} aria-hidden="true" />
               </button>
             </div>
             <div className="flex-1 overflow-y-auto" onClick={() => setIsOpen(false)}>

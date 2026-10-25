@@ -9,18 +9,16 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-white px-4 py-12">
-      <div className="w-full max-w-sm rounded-[4px] border border-[#f0f0f0] bg-white p-6 sm:p-8">
+      <div className="w-full max-w-md rounded-[4px] border border-[#e5e5e5] bg-white p-6 sm:p-8">
         <div className="mb-6">
           <div className="flex items-center gap-2">
-            <span className="h-3 w-3 rounded-[1px] bg-[#ff5e1f]" />
-            <span className="text-[18px] font-medium tracking-tight text-[#262626]">
+            <span className="h-3.5 w-3.5 rounded-[2px] bg-[#ff5e1f]" aria-hidden="true" />
+            <span className="text-brand text-[#262626]">
               EmitMail
             </span>
           </div>
-          <h1 className="mt-4 text-[22px] font-normal tracking-[-0.6px] text-[#262626]">
-            Sign in to Console
-          </h1>
-          <p className="mt-1 text-[13px] text-[#595959]">
+          <h1 className="mt-5 text-page-title text-[#262626]">Sign in to Console</h1>
+          <p className="mt-2 text-body text-[#595959]">
             Self-hosted email deliverability dashboard
           </p>
         </div>
@@ -29,9 +27,9 @@ export default function LoginPage() {
           <div
             id="login-error-message"
             role="alert"
-            className="mb-4 flex items-center gap-2 rounded-[2px] border border-[#fee2e2] bg-[#fef2f2] p-3 text-[13px] text-[#991b1b]"
+            className="mb-4 flex items-start gap-2 rounded-[2px] border border-[#fecaca] bg-[#fef2f2] p-3 text-support text-[#991b1b]"
           >
-            <WarningCircle size={16} weight="bold" className="flex-shrink-0" aria-hidden="true" />
+            <WarningCircle size={18} weight="bold" className="mt-0.5 flex-shrink-0" aria-hidden="true" />
             <span>{state.error}</span>
           </div>
         )}
@@ -40,7 +38,7 @@ export default function LoginPage() {
           <div>
             <label
               htmlFor="username"
-              className="block text-[12px] font-medium uppercase tracking-wider text-[#595959]"
+              className="block text-label uppercase text-[#595959]"
             >
               Username or Email
             </label>
@@ -52,14 +50,14 @@ export default function LoginPage() {
               required
               aria-describedby={state?.error ? "login-error-message" : undefined}
               defaultValue="admin"
-              className="mt-1 block h-10 sm:h-9 w-full rounded-[2px] border border-[#f0f0f0] bg-white px-3 text-[14px] text-[#262626] transition-colors focus:border-[#ff5e1f] focus:outline-none"
+              className="mt-1.5 block h-11 w-full rounded-[2px] border border-[#a3a3a3] bg-white px-3 text-body text-[#262626] transition-colors focus:border-[#ff5e1f] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#262626]"
             />
           </div>
 
           <div>
             <label
               htmlFor="password"
-              className="block text-[12px] font-medium uppercase tracking-wider text-[#595959]"
+              className="block text-label uppercase text-[#595959]"
             >
               Password
             </label>
@@ -71,20 +69,20 @@ export default function LoginPage() {
               required
               aria-describedby={state?.error ? "login-error-message" : undefined}
               defaultValue="emitmail"
-              className="mt-1 block h-10 sm:h-9 w-full rounded-[2px] border border-[#f0f0f0] bg-white px-3 text-[14px] text-[#262626] transition-colors focus:border-[#ff5e1f] focus:outline-none"
+              className="mt-1.5 block h-11 w-full rounded-[2px] border border-[#a3a3a3] bg-white px-3 text-body text-[#262626] transition-colors focus:border-[#ff5e1f] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#262626]"
             />
           </div>
 
           <button
             type="submit"
             disabled={isPending}
-            className="mt-6 flex h-10 sm:h-9 w-full items-center justify-center rounded-[2px] bg-[#ff5e1f] px-4 text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#ff7038] disabled:cursor-not-allowed disabled:opacity-60"
+            className="btn btn-primary mt-6 w-full"
           >
             {isPending ? "Authenticating..." : "Sign in"}
           </button>
         </form>
 
-        <div className="mt-6 border-t border-[#f0f0f0] pt-4 text-center text-[11px] text-[#595959]">
+        <div className="mt-6 border-t border-[#e5e5e5] pt-4 text-center text-meta text-[#595959]">
           Default credentials: <code className="font-mono text-[#262626]">admin</code> /{" "}
           <code className="font-mono text-[#262626]">emitmail</code>
         </div>

@@ -10,22 +10,22 @@ export function CheckIndicator({ verified, name }: CheckIndicatorProps) {
   if (verified) {
     return (
       <span
-        className="inline-flex h-5 w-5 items-center justify-center rounded-[2px] bg-[#ecfdf5] text-[#059669]"
+        className="inline-flex h-6 w-6 items-center justify-center rounded-[2px] bg-[#ecfdf5] text-[#059669]"
         title={`${name}: Verified`}
         aria-label={`${name}: Verified`}
       >
-        <Check size={12} weight="bold" aria-hidden="true" />
+        <Check size={14} weight="bold" aria-hidden="true" />
       </span>
     );
   }
 
   return (
     <span
-      className="inline-flex h-5 w-5 items-center justify-center rounded-[2px] bg-[#fef2f2] text-[#dc2626]"
+      className="inline-flex h-6 w-6 items-center justify-center rounded-[2px] bg-[#fef2f2] text-[#dc2626]"
       title={`${name}: Not verified`}
       aria-label={`${name}: Not verified`}
     >
-      <X size={12} weight="bold" aria-hidden="true" />
+      <X size={14} weight="bold" aria-hidden="true" />
     </span>
   );
 }
