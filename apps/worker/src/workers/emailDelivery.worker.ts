@@ -72,8 +72,13 @@ export const processEmailDeliveryJob = async (
     const tlsCiphers = 'HIGH:!aNULL:!MD5:!3DES:!CAMELLIA';
     const minTlsVersion = 'TLSv1.2';
 
+    // Retrieve master server configuration for proper FQDN HELO/EHLO handshake
+    const serverConfig = await prisma.serverConfig.findUnique({ where: { id: 'master' } });
+    const mailServerHostname = serverConfig?.mailServerHostname || `mail.${email.domain.domainName}`;
+
     if (env.SMTP_HOST) {
       transporter = nodemailer.createTransport({
+        name: mailServerHostname,
         host: env.SMTP_HOST,
         port: env.SMTP_PORT,
         secure: env.SMTP_SECURE,
@@ -146,13 +151,18 @@ export const processEmailDeliveryJob = async (
         }
       }
 
-      if (env.NODE_ENV === 'test' || env.NODE_ENV === 'development' || targetHost === '127.0.0.1') {
+      const shouldUseJsonTransport =
+        (env.NODE_ENV === 'test' && !env.DIRECT_MX_FALLBACK) ||
+        (targetHost === '127.0.0.1' && !env.SMTP_HOST);
+
+      if (shouldUseJsonTransport) {
         transporter = nodemailer.createTransport({
           jsonTransport: true,
           dkim: dkimOptions,
         } as any);
       } else {
         transporter = nodemailer.createTransport({
+          name: mailServerHostname,
           host: targetHost,
           port: targetPort,
           secure: false,
@@ -168,20 +178,47 @@ export const processEmailDeliveryJob = async (
       }
     }
 
-    // 5. Construct RFC 5322 Payload
+    // 5. Construct RFC 5322 Payload (include plain-text multipart fallback to avoid spam filter penalty)
+    const plainTextFallback =
+      email.textContent ||
+      (email.htmlContent
+        ? email.htmlContent
+            .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+            .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+            .replace(/<[^>]+>/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim()
+        : undefined);
+
+    const returnPathDomain = `${email.domain.returnPathSubdomain || 'send'}.${email.domain.domainName}`;
+    const bounceAddress = `bounces@${returnPathDomain}`;
+
     const mailOptions: any = {
       from: email.from,
       to: email.to,
       subject: email.subject,
       html: email.htmlContent || undefined,
-      text: email.textContent || undefined,
+      text: plainTextFallback,
       replyTo: email.replyTo || undefined,
       cc: email.cc?.length ? email.cc : undefined,
       bcc: email.bcc?.length ? email.bcc : undefined,
       messageId: email.messageId || undefined,
-      headers: (email.headers as Record<string, string>) || undefined,
+      date: email.createdAt || new Date(),
+      headers: {
+        'X-Mailer': 'EmitMail Deliverability Engine/1.0',
+        'X-Priority': '3',
+        ...((email.headers as Record<string, string>) || {}),
+      },
+      envelope: {
+        from: bounceAddress,
+        to: Array.isArray(email.to) ? email.to : [email.to],
+      },
       attachments: (email.attachments as any[]) || undefined,
     };
+
+    console.log(
+      `🚀 [DeliveryWorker] Dispatching email "${emailId}" via SMTP | MAIL FROM: <${bounceAddress}> | From: ${email.from} | DKIM: d=${email.domain.domainName}`
+    );
 
     const sendResult = await transporter.sendMail(mailOptions);
     const finalMessageId = sendResult.messageId || email.messageId;

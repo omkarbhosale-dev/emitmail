@@ -673,6 +673,56 @@
           </button>
         </div>
 
+        <!-- Base URL & Resend SDK Drop-in Integration Box -->
+        <div class="card" style="margin-bottom: 24px; border-color: rgba(99, 102, 241, 0.3); background: rgba(99, 102, 241, 0.04);">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px; margin-bottom:14px;">
+            <div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span class="brand-tag" style="background:rgba(99,102,241,0.2);">Resend SDK Drop-In Compatible</span>
+                <span style="font-size:12px; color:var(--text-dim);">REST API v1</span>
+              </div>
+              <h2 class="card-title" style="font-size: 16px; margin-top: 6px;">API Base URL & Resend Client Configuration</h2>
+              <p class="card-subtitle" style="font-size: 13px;">
+                Use this Base URL in your application, Postman, or standard Resend SDK client.
+              </p>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <button class="btn btn-secondary btn-sm" onclick="toggleSdkGuide()">Toggle Code Snippet</button>
+            </div>
+          </div>
+
+          <!-- Base URL Display Box -->
+          <div style="background: var(--bg-base); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px 16px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+            <div>
+              <span style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-dim); font-weight:600;">Active Base URL</span>
+              <div id="display-base-url" style="font-family:var(--font-mono); font-size:15px; font-weight:600; color:#38bdf8; margin-top:2px;">http://localhost:4000</div>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button class="copy-pill" onclick="copyBaseUrl()">Copy Base URL</button>
+              <button class="copy-pill" onclick="copyCurlExample()">Copy cURL Example</button>
+            </div>
+          </div>
+
+          <!-- Collapsible Resend SDK Code Snippet -->
+          <div id="sdk-guide-box" style="margin-top: 14px; display:block;">
+            <div style="font-size:12px; font-weight:600; color:var(--text-muted); margin-bottom:6px;">Node.js / TypeScript (Resend SDK):</div>
+            <pre style="background: #060910; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; font-family: var(--font-mono); font-size: 12px; color: #cbd5e1; overflow-x: auto; line-height: 1.6;"><code>import { Resend } from 'resend';
+
+// Initialize with your EmitMail API Key and Base URL
+const resend = new Resend('em_live_your_key_here', {
+  baseUrl: '<span class="dynamic-base-url">http://localhost:4000</span>',
+});
+
+// Dispatch real email with 100% Resend API compatibility
+await resend.emails.send({
+  from: 'Support &lt;hello@yourdomain.com&gt;',
+  to: 'recipient@example.com',
+  subject: 'Hello from EmitMail',
+  html: '&lt;p&gt;Sent seamlessly via EmitMail engine!&lt;/p&gt;',
+});</code></pre>
+          </div>
+        </div>
+
         <!-- One-Time Raw Key Display Banner -->
         <div id="raw-key-banner" class="card" style="display:none; background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.4);">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
@@ -720,6 +770,25 @@
           <!-- Left: Sender Form -->
           <div class="card" style="margin-bottom: 0;">
             <form id="form-send-email" onsubmit="handleSendEmail(event)">
+              <div class="form-group">
+                <label class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
+                  <span>API Key / Sender Authentication</span>
+                  <span id="send-auth-badge" class="badge badge-success" style="font-size:11px;">Admin Session Active</span>
+                </label>
+                <select id="send-auth-mode" class="form-control" onchange="handleAuthModeChange(this)">
+                  <option value="admin_jwt" selected>👑 Dashboard Administrator Session (Direct JWT)</option>
+                  <option value="custom">✏️ Enter Custom API Key (em_live_...)</option>
+                </select>
+              </div>
+
+              <div id="custom-api-key-group" class="form-group" style="display:none;">
+                <label class="form-label">Custom API Key</label>
+                <div style="display:flex; gap:8px;">
+                  <input type="text" id="custom-api-key-input" class="form-control" placeholder="em_live_..." style="font-family:var(--font-mono); font-size:13px;">
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="copyCustomKeyFromInput()">Copy</button>
+                </div>
+              </div>
+
               <div class="form-group">
                 <label class="form-label">Active Sender Domain</label>
                 <select id="send-domain-select" class="form-control" onchange="handleDomainSelectChange(this)" required>
@@ -841,12 +910,47 @@
         </div>
 
         <div class="card">
-          <h2 class="card-title" style="font-size: 16px; margin-bottom: 12px;">Server & Host Network Topology</h2>
+          <div class="card-header" style="margin-bottom: 12px;">
+            <div>
+              <h2 class="card-title" style="font-size: 16px;">Server & Host Network Topology</h2>
+              <p class="card-subtitle">Host FQDN, public IP address, and SPF inclusion domain for mail routing</p>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="openEditServerConfigModal()">Configure Host Settings</button>
+          </div>
           <div class="dns-box" id="server-config-box">Loading server configuration...</div>
         </div>
       </section>
 
     </main>
+  </div>
+
+  <!-- Modal: Edit Server Configuration -->
+  <div id="modal-edit-server-config" class="modal-backdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="card-title">Configure Host & Mail Server Settings</h3>
+        <button class="modal-close" onclick="closeModal('modal-edit-server-config')">&times;</button>
+      </div>
+      <form id="form-edit-server-config" onsubmit="handleSaveServerConfig(event)">
+        <div class="form-group">
+          <label class="form-label">Mail Server FQDN (Hostname)</label>
+          <input type="text" id="cfg-mail-hostname" class="form-control" placeholder="mail.yourdomain.com" required>
+          <span style="font-size:12px; color:var(--text-dim); margin-top:4px; display:block;">The reverse DNS (rDNS) / PTR name of your VPS (e.g. mail.example.com)</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">VPS Public IPv4 Address</label>
+          <input type="text" id="cfg-vps-ip" class="form-control" placeholder="123.45.67.89" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">SPF Include Domain</label>
+          <input type="text" id="cfg-spf-domain" class="form-control" placeholder="_spf.yourdomain.com" required>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px;">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-edit-server-config')">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-cfg">Save Configuration</button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <!-- Modal: Add Domain -->
@@ -988,12 +1092,50 @@
     }
 
     async function initDashboard() {
+      updateBaseUrlDisplay();
       await Promise.all([
         loadDomains(),
         loadApiKeys(),
         loadSuppressions(),
         loadSystemInfo(),
       ]);
+    }
+
+    function updateBaseUrlDisplay() {
+      const origin = window.location.origin;
+      const displayEl = document.getElementById('display-base-url');
+      if (displayEl) displayEl.textContent = origin;
+      document.querySelectorAll('.dynamic-base-url').forEach((el) => {
+        el.textContent = origin;
+      });
+    }
+
+    function copyBaseUrl() {
+      copyText(window.location.origin);
+      showToast('Base URL copied: ' + window.location.origin, 'success');
+    }
+
+    function copyCurlExample() {
+      const saved = getSavedApiKeys();
+      const firstKey = Object.values(saved)[0]?.rawToken || 'em_live_your_api_key';
+      const curlCmd = `curl -X POST "${window.location.origin}/emails" \\
+  -H "Authorization: Bearer ${firstKey}" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "from": "Support <hello@yourdomain.com>",
+    "to": ["recipient@example.com"],
+    "subject": "Testing EmitMail API",
+    "html": "<h1>It works!</h1><p>Dispatched through EmitMail</p>"
+  }'`;
+      copyText(curlCmd);
+      showToast('cURL example copied to clipboard!', 'success');
+    }
+
+    function toggleSdkGuide() {
+      const box = document.getElementById('sdk-guide-box');
+      if (box) {
+        box.style.display = box.style.display === 'none' ? 'block' : 'none';
+      }
     }
 
     // Navigation Tabs Switcher
@@ -1077,45 +1219,95 @@
       document.getElementById('dns-domain-name').textContent = domain.domainName;
       const box = document.getElementById('dns-records-container');
 
-      const dkimTxt = `v=DKIM1; k=rsa; p=${domain.dkimPublicKey}`;
-      const spfTxt = `v=spf1 include:${domain.spfIncludeDomain || '_spf.' + domain.domainName} ~all`;
+      const dkimSelector = domain.dkimSelector || 'em';
+      const dkimShortHost = `${dkimSelector}._domainkey`;
+      const dkimFqdn = `${dkimShortHost}.${domain.domainName}`;
+      const vpsIp = (currentServerConfig && currentServerConfig.vpsPublicIpv4 && currentServerConfig.vpsPublicIpv4 !== '0.0.0.0')
+        ? currentServerConfig.vpsPublicIpv4
+        : '201.18.193.73';
+
+      const spfTxt = `v=spf1 ip4:${vpsIp} ~all`;
       const dmarcTxt = domain.dmarcPolicy || 'v=DMARC1; p=none; sp=none; aspf=r; adkim=r;';
+      const returnPathSub = domain.returnPathSubdomain || 'send';
+      const mailTarget = `mail.${domain.domainName}`;
 
       box.innerHTML = `
-        <div class="dns-row">
-          <div>
-            <div style="font-size:12px; font-weight:600; color:var(--text-muted);">1. DKIM Public Key (TXT)</div>
-            <div class="dns-field">${domain.dkimSelector || 'em'}._domainkey.${domain.domainName}</div>
-            <div style="font-size:12px; color:var(--text-dim); margin-top:4px;">Value: ${dkimTxt.slice(0, 70)}...</div>
-          </div>
-          <button class="copy-pill" onclick="copyText('${dkimTxt}')">Copy TXT Value</button>
+        <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: #a5b4fc;">
+          <strong>💡 DNS Registrar Tips (Cloudflare, Namecheap, GoDaddy):</strong> Most DNS providers automatically append your domain name. In Cloudflare / Namecheap, enter only the <strong>Short Host</strong> in the "Name" field, and ensure the proxy status is <strong>DNS Only (Grey Cloud)</strong>.
         </div>
 
-        <div class="dns-row">
-          <div>
-            <div style="font-size:12px; font-weight:600; color:var(--text-muted);">2. SPF Record (TXT)</div>
-            <div class="dns-field">${domain.domainName}</div>
-            <div style="font-size:12px; color:var(--text-dim); margin-top:4px;">Value: ${spfTxt}</div>
+        <!-- 1. DKIM -->
+        <div class="dns-row" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+            <div style="font-size: 13px; font-weight: 700; color: #38bdf8;">1. DKIM Public Key (Type: TXT)</div>
+            <div style="display: flex; gap: 6px;">
+              <button class="copy-pill" onclick="copyText('${dkimShortHost}')">Copy Short Host (${dkimShortHost})</button>
+              <button class="copy-pill" onclick="copyText('${dkimFqdn}')">Copy Full FQDN</button>
+            </div>
           </div>
-          <button class="copy-pill" onclick="copyText('${spfTxt}')">Copy SPF Value</button>
+          <div style="font-size: 12px; color: var(--text-dim);">
+            <strong>Host/Name:</strong> <code style="color:var(--text-main); font-family:var(--font-mono);">${dkimShortHost}</code> (or <code>${dkimFqdn}</code>)
+          </div>
+          <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; background: rgba(0,0,0,0.25); padding: 8px 12px; border-radius: 6px;">
+            <span style="font-family:var(--font-mono); font-size: 12px; color: #f8fafc; word-break: break-all;">${dkimTxt.slice(0, 80)}...</span>
+            <button class="copy-pill" onclick="copyText('${dkimTxt}')">Copy DKIM Value</button>
+          </div>
         </div>
 
-        <div class="dns-row">
-          <div>
-            <div style="font-size:12px; font-weight:600; color:var(--text-muted);">3. DMARC Alignment Policy (TXT)</div>
-            <div class="dns-field">_dmarc.${domain.domainName}</div>
-            <div style="font-size:12px; color:var(--text-dim); margin-top:4px;">Value: ${dmarcTxt}</div>
+        <!-- 2. SPF (Method A: Return-Path Subdomain & Method B: Apex Fallback) -->
+        <div class="dns-row" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+            <div style="font-size: 13px; font-weight: 700; color: #34d399;">2. SPF Authorization Record (Type: TXT)</div>
+            <div style="display: flex; gap: 6px;">
+              <button class="copy-pill" onclick="copyText('${returnPathSub}')">Copy Host (${returnPathSub})</button>
+              <button class="copy-pill" onclick="copyText('${spfTxt}')">Copy SPF Value</button>
+            </div>
           </div>
-          <button class="copy-pill" onclick="copyText('${dmarcTxt}')">Copy DMARC Value</button>
+          <div style="font-size: 12px; color: var(--text-dim);">
+            <strong>Method A (Default - Return-Path Subdomain):</strong> Host: <code style="color:var(--text-main); font-family:var(--font-mono);">${returnPathSub}</code> (or <code>${returnPathSub}.${domain.domainName}</code>)
+          </div>
+          <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; background: rgba(0,0,0,0.25); padding: 8px 12px; border-radius: 6px;">
+            <span style="font-family:var(--font-mono); font-size: 12px; color: #34d399; font-weight:600;">${spfTxt}</span>
+            <button class="copy-pill" onclick="copyText('${spfTxt}')">Copy SPF Value</button>
+          </div>
+          <div style="font-size: 12px; color: var(--text-dim); margin-top: 4px;">
+            <strong>Method B (Optional - Root Domain Fallback):</strong> Host: <code style="color:var(--text-main); font-family:var(--font-mono);">@</code> (or <code>${domain.domainName}</code>) | Value: <code style="color:var(--text-main); font-family:var(--font-mono);">${spfTxt}</code>
+          </div>
+          <div style="font-size: 11px; color: var(--text-muted);">
+            ✓ Uses direct <code>ip4:${vpsIp}</code> authorization to guarantee 100% Google &amp; Outlook SPF PASS without <code>permerror</code>.
+          </div>
         </div>
 
-        <div class="dns-row">
-          <div>
-            <div style="font-size:12px; font-weight:600; color:var(--text-muted);">4. Return-Path Subdomain (CNAME / MX)</div>
-            <div class="dns-field">${domain.returnPathSubdomain || 'send'}.${domain.domainName}</div>
-            <div style="font-size:12px; color:var(--text-dim); margin-top:4px;">Target: mail.${domain.domainName}</div>
+        <!-- 3. MX Return-Path -->
+        <div class="dns-row" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+            <div style="font-size: 13px; font-weight: 700; color: #a855f7;">3. Return-Path Bounce Router (Type: MX, Priority: 10)</div>
+            <div style="display: flex; gap: 6px;">
+              <button class="copy-pill" onclick="copyText('${returnPathSub}')">Copy Host (${returnPathSub})</button>
+              <button class="copy-pill" onclick="copyText('${mailTarget}')">Copy Mail Server</button>
+            </div>
           </div>
-          <button class="copy-pill" onclick="copyText('mail.${domain.domainName}')">Copy Target</button>
+          <div style="font-size: 12px; color: var(--text-dim);">
+            <strong>Host/Name:</strong> <code style="color:var(--text-main); font-family:var(--font-mono);">${returnPathSub}</code> | <strong>Mail Server:</strong> <code style="color:var(--text-main); font-family:var(--font-mono);">${mailTarget}</code> (Priority 10)
+          </div>
+        </div>
+
+        <!-- 4. DMARC -->
+        <div class="dns-row" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+            <div style="font-size: 13px; font-weight: 700; color: #fbbf24;">4. DMARC Policy Alignment (Type: TXT)</div>
+            <div style="display: flex; gap: 6px;">
+              <button class="copy-pill" onclick="copyText('_dmarc')">Copy Host (_dmarc)</button>
+              <button class="copy-pill" onclick="copyText('${dmarcTxt}')">Copy DMARC Value</button>
+            </div>
+          </div>
+          <div style="font-size: 12px; color: var(--text-dim);">
+            <strong>Host/Name:</strong> <code style="color:var(--text-main); font-family:var(--font-mono);">_dmarc</code> (or <code>_dmarc.${domain.domainName}</code>)
+          </div>
+          <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; background: rgba(0,0,0,0.25); padding: 8px 12px; border-radius: 6px;">
+            <span style="font-family:var(--font-mono); font-size: 12px; color: #f8fafc;">${dmarcTxt}</span>
+            <button class="copy-pill" onclick="copyText('${dmarcTxt}')">Copy DMARC Value</button>
+          </div>
         </div>
       `;
 
@@ -1209,8 +1401,22 @@
     }
 
     // ----------------------------------------------------
-    // API Keys Management
+    // API Keys Management & Local Key Persistence
     // ----------------------------------------------------
+    function getSavedApiKeys() {
+      try {
+        return JSON.parse(localStorage.getItem('emitmail_saved_keys') || '{}');
+      } catch {
+        return {};
+      }
+    }
+
+    function saveApiKeyLocally(keyObj) {
+      const keys = getSavedApiKeys();
+      keys[keyObj.id] = keyObj;
+      localStorage.setItem('emitmail_saved_keys', JSON.stringify(keys));
+    }
+
     async function loadApiKeys() {
       try {
         const res = await fetch('/api/v1/api-keys', {
@@ -1219,6 +1425,7 @@
         const json = await res.json();
         keysCache = json.data || [];
         renderKeysTable(keysCache);
+        populateSendAuthOptions();
       } catch (err) {
         showToast('Failed to load API keys: ' + err.message, 'error');
       }
@@ -1231,23 +1438,63 @@
         return;
       }
 
-      tbody.innerHTML = keys.map((k) => `
-        <tr>
-          <td><strong style="color:var(--text-main); font-size:14px;">${k.name}</strong></td>
-          <td><code style="font-family:var(--font-mono); color:#38bdf8;">${k.keyPrefix}...</code></td>
-          <td>${k.domain ? k.domain.domainName : '<span style="color:var(--text-dim)">Global</span>'}</td>
-          <td><span class="badge ${k.isActive ? 'badge-success' : 'badge-danger'}">${k.isActive ? 'Active' : 'Revoked'}</span></td>
-          <td>${new Date(k.createdAt).toLocaleDateString()}</td>
-          <td style="text-align: right;">
-            <button class="btn btn-danger btn-sm" onclick="deleteApiKey('${k.id}')">Revoke</button>
-          </td>
-        </tr>
-      `).join('');
+      const saved = getSavedApiKeys();
+
+      tbody.innerHTML = keys.map((k) => {
+        const hasSaved = Boolean(saved[k.id]?.rawToken);
+        const copyBtn = `
+          <button class="btn btn-secondary btn-sm" onclick="copySavedKey('${k.id}', '${k.name}')" title="Copy full API Key to clipboard">
+            <svg style="width:13px;height:13px;display:inline-block;vertical-align:-1px;margin-right:4px;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+            </svg>
+            ${hasSaved ? 'Copy Key' : 'Copy Key'}
+          </button>
+        `;
+
+        return `
+          <tr>
+            <td>
+              <strong style="color:var(--text-main); font-size:14px;">${k.name}</strong>
+              ${hasSaved ? `<span style="margin-left:6px; font-size:11px; color:#34d399; background:rgba(16,185,129,0.1); padding:2px 6px; border-radius:4px;">✓ Active in Browser</span>` : ''}
+            </td>
+            <td><code style="font-family:var(--font-mono); color:#38bdf8;">${k.keyPrefix}...</code></td>
+            <td>${k.domain ? k.domain.domainName : '<span style="color:var(--text-dim)">Global</span>'}</td>
+            <td><span class="badge ${k.isActive ? 'badge-success' : 'badge-danger'}">${k.isActive ? 'Active' : 'Revoked'}</span></td>
+            <td>${new Date(k.createdAt).toLocaleDateString()}</td>
+            <td style="text-align: right; display: flex; gap: 6px; justify-content: flex-end;">
+              ${copyBtn}
+              <button class="btn btn-danger btn-sm" onclick="deleteApiKey('${k.id}')">Revoke</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function copySavedKey(keyId, keyName) {
+      const saved = getSavedApiKeys();
+      if (saved[keyId]?.rawToken) {
+        copyText(saved[keyId].rawToken);
+        showToast(`API Key "${keyName || 'EmitMail'}" copied to clipboard!`, 'success');
+      } else {
+        const inputKey = prompt(`Enter your raw API key for "${keyName || keyId}" to save it to this browser for 1-click copying:`);
+        if (inputKey && inputKey.trim()) {
+          saveApiKeyLocally({
+            id: keyId,
+            name: keyName || 'API Key',
+            rawToken: inputKey.trim(),
+            keyPrefix: inputKey.trim().substring(0, 14),
+          });
+          copyText(inputKey.trim());
+          showToast('API Key saved and copied to clipboard!', 'success');
+          renderKeysTable(keysCache);
+          populateSendAuthOptions();
+        }
+      }
     }
 
     function openCreateKeyModal() {
       const select = document.getElementById('new-key-domain');
-      select.innerHTML = '<option value="">Select scoped domain...</option>' +
+      select.innerHTML = '<option value="">Select scoped domain (or Global)...</option>' +
         domainsCache.map((d) => `<option value="${d.id}">${d.domainName} (${d.status})</option>`).join('');
 
       document.getElementById('modal-create-key').style.display = 'flex';
@@ -1273,16 +1520,24 @@
 
         closeModal('modal-create-key');
         document.getElementById('form-create-key').reset();
-        await loadApiKeys();
 
-        // Show raw token banner
         const rawToken = json.data.rawToken || json.data.key;
         if (rawToken) {
+          saveApiKeyLocally({
+            id: json.data.id,
+            name,
+            rawToken,
+            keyPrefix: rawToken.substring(0, 14),
+            domainId: domainId || null,
+          });
+
           document.getElementById('raw-key-input').value = rawToken;
           document.getElementById('raw-key-banner').style.display = 'block';
           document.getElementById('raw-key-banner').scrollIntoView({ behavior: 'smooth' });
         }
-        showToast('API key created successfully', 'success');
+
+        await loadApiKeys();
+        showToast('API key created and saved for testing', 'success');
       } catch (err) {
         showToast(err.message, 'error');
       }
@@ -1296,6 +1551,11 @@
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw new Error('Failed to revoke API key');
+
+        const saved = getSavedApiKeys();
+        delete saved[keyId];
+        localStorage.setItem('emitmail_saved_keys', JSON.stringify(saved));
+
         showToast('API key revoked', 'success');
         await loadApiKeys();
       } catch (err) {
@@ -1312,10 +1572,57 @@
     // ----------------------------------------------------
     // Live Outbound Email Sender
     // ----------------------------------------------------
+    function populateSendAuthOptions() {
+      const select = document.getElementById('send-auth-mode');
+      if (!select) return;
+
+      const saved = getSavedApiKeys();
+      const savedKeysList = Object.values(saved);
+
+      let optionsHtml = `<option value="admin_jwt" selected>👑 Dashboard Administrator Session (Direct JWT)</option>`;
+      savedKeysList.forEach((k) => {
+        optionsHtml += `<option value="${k.id}">🔑 ${k.name} (${k.keyPrefix}...)</option>`;
+      });
+      optionsHtml += `<option value="custom">✏️ Enter Custom API Key (em_live_...)</option>`;
+
+      select.innerHTML = optionsHtml;
+      handleAuthModeChange(select);
+    }
+
+    function handleAuthModeChange(select) {
+      const val = select.value;
+      const customGroup = document.getElementById('custom-api-key-group');
+      const badge = document.getElementById('send-auth-badge');
+
+      if (val === 'custom') {
+        customGroup.style.display = 'block';
+        badge.textContent = 'Custom API Key';
+        badge.className = 'badge badge-info';
+      } else if (val === 'admin_jwt') {
+        customGroup.style.display = 'none';
+        badge.textContent = 'Admin JWT Session Active';
+        badge.className = 'badge badge-success';
+      } else {
+        customGroup.style.display = 'none';
+        badge.textContent = 'Stored API Key Selected';
+        badge.className = 'badge badge-success';
+      }
+    }
+
+    function copyCustomKeyFromInput() {
+      const val = document.getElementById('custom-api-key-input').value.trim();
+      if (val) {
+        copyText(val);
+        showToast('Key copied to clipboard', 'info');
+      }
+    }
+
     function populateSendDomainOptions() {
       const select = document.getElementById('send-domain-select');
       select.innerHTML = '<option value="">Select a registered domain...</option>' +
         domainsCache.map((d) => `<option value="${d.id}" data-domain="${d.domainName}">${d.domainName} (${d.status})</option>`).join('');
+
+      populateSendAuthOptions();
     }
 
     function handleDomainSelectChange(select) {
@@ -1340,11 +1647,23 @@
       const latencyBadge = document.getElementById('send-latency-badge');
       const btn = document.getElementById('btn-submit-send');
 
-      // Find an active API key for this domain, or use admin token
-      const matchingKey = keysCache.find((k) => k.domainId === domainId && k.isActive);
-      const authHeader = matchingKey && matchingKey.rawToken
-        ? `Bearer ${matchingKey.rawToken}`
-        : `Bearer ${token}`;
+      // Determine authorization header based on selected authentication mode
+      const authMode = document.getElementById('send-auth-mode').value;
+      let authHeader = `Bearer ${token}`;
+
+      if (authMode === 'custom') {
+        const customKey = document.getElementById('custom-api-key-input').value.trim();
+        if (!customKey) {
+          showToast('Please enter your API Key in the field below', 'error');
+          return;
+        }
+        authHeader = `Bearer ${customKey}`;
+      } else if (authMode !== 'admin_jwt') {
+        const saved = getSavedApiKeys();
+        if (saved[authMode]?.rawToken) {
+          authHeader = `Bearer ${saved[authMode].rawToken}`;
+        }
+      }
 
       btn.disabled = true;
       btn.innerHTML = `<span class="spinner"></span> Dispatching to Outbound Worker...`;
@@ -1483,6 +1802,8 @@
     // ----------------------------------------------------
     // System & Server Information
     // ----------------------------------------------------
+    let currentServerConfig = {};
+
     async function loadSystemInfo() {
       try {
         const [healthRes, configRes] = await Promise.all([
@@ -1502,20 +1823,81 @@
 
         const config = await configRes.json();
         if (config.data) {
+          const sc = config.data?.serverConfig || config.data || {};
+          currentServerConfig = sc;
+
+          const hostFqdn = sc.mailServerHostname || 'mail.yourdomain.com';
+          const vpsIp = sc.vpsPublicIpv4 || '0.0.0.0';
+          const spfDomain = sc.spfIncludeDomain || '_spf.yourdomain.com';
+
           document.getElementById('server-config-box').innerHTML = `
             <div class="dns-row">
-              <div><span style="color:var(--text-dim);">Mail Server FQDN:</span> <strong style="color:var(--text-main); font-family:var(--font-mono);">${config.data.mailServerHostname}</strong></div>
+              <div>
+                <span style="color:var(--text-dim); font-size:12px;">Mail Server FQDN:</span>
+                <div style="color:var(--text-main); font-family:var(--font-mono); font-size:14px; font-weight:600; margin-top:2px;">${hostFqdn}</div>
+              </div>
+              <button class="copy-pill" onclick="copyText('${hostFqdn}')">Copy FQDN</button>
             </div>
             <div class="dns-row">
-              <div><span style="color:var(--text-dim);">VPS Public IPv4:</span> <strong style="color:var(--text-main); font-family:var(--font-mono);">${config.data.vpsPublicIpv4 || '0.0.0.0'}</strong></div>
+              <div>
+                <span style="color:var(--text-dim); font-size:12px;">VPS Public IPv4:</span>
+                <div style="color:var(--text-main); font-family:var(--font-mono); font-size:14px; font-weight:600; margin-top:2px;">${vpsIp}</div>
+              </div>
+              <button class="copy-pill" onclick="copyText('${vpsIp}')">Copy IP</button>
             </div>
             <div class="dns-row">
-              <div><span style="color:var(--text-dim);">SPF Include Domain:</span> <strong style="color:var(--text-main); font-family:var(--font-mono);">${config.data.spfIncludeDomain}</strong></div>
+              <div>
+                <span style="color:var(--text-dim); font-size:12px;">SPF Include Domain:</span>
+                <div style="color:var(--text-main); font-family:var(--font-mono); font-size:14px; font-weight:600; margin-top:2px;">${spfDomain}</div>
+              </div>
+              <button class="copy-pill" onclick="copyText('${spfDomain}')">Copy SPF Domain</button>
             </div>
           `;
         }
       } catch (err) {
         console.warn('System info load error:', err);
+      }
+    }
+
+    function openEditServerConfigModal() {
+      document.getElementById('cfg-mail-hostname').value = currentServerConfig.mailServerHostname || 'mail.yourdomain.com';
+      document.getElementById('cfg-vps-ip').value = currentServerConfig.vpsPublicIpv4 || '';
+      document.getElementById('cfg-spf-domain').value = currentServerConfig.spfIncludeDomain || '_spf.yourdomain.com';
+      document.getElementById('modal-edit-server-config').style.display = 'flex';
+      document.getElementById('cfg-mail-hostname').focus();
+    }
+
+    async function handleSaveServerConfig(e) {
+      e.preventDefault();
+      const mailServerHostname = document.getElementById('cfg-mail-hostname').value.trim();
+      const vpsPublicIpv4 = document.getElementById('cfg-vps-ip').value.trim();
+      const spfIncludeDomain = document.getElementById('cfg-spf-domain').value.trim();
+      const btn = document.getElementById('btn-save-cfg');
+
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner"></span> Saving...`;
+
+      try {
+        const res = await fetch('/api/v1/server-config', {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ mailServerHostname, vpsPublicIpv4, spfIncludeDomain }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.message || 'Failed to update configuration');
+
+        closeModal('modal-edit-server-config');
+        showToast('Server configuration updated successfully', 'success');
+        await loadSystemInfo();
+        await loadDomains();
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'Save Configuration';
       }
     }
 
