@@ -44,6 +44,8 @@ services:
     restart: unless-stopped
     ports:
       - "4000:4000"
+    env_file:
+      - .env
     environment:
       NODE_ENV: production
       PORT: 4000
@@ -51,8 +53,11 @@ services:
       DATABASE_URL: postgresql://emitmail:emitmail_pass@emitmail-postgres:5432/emitmail?schema=public
       REDIS_URL: redis://emitmail-redis:6379
       REDIS_PASSWORD: emitmail_redis_pass
-      JWT_SECRET: emitmail_super_secret_jwt_key_change_in_prod_2026
-      ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      JWT_SECRET: ${JWT_SECRET:-emitmail_super_secret_jwt_key_change_in_prod_2026}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
+      MAIL_SERVER_HOSTNAME: ${MAIL_SERVER_HOSTNAME:-mail.yourdomain.com}
+      SPF_INCLUDE_DOMAIN: ${SPF_INCLUDE_DOMAIN:-_spf.yourdomain.com}
+      VPS_PUBLIC_IPV4: ${VPS_PUBLIC_IPV4:-0.0.0.0}
       START_WORKERS: "false"
       EMAIL_QUEUE_NAME: email-delivery-queue
       ALLOW_PENDING_DOMAIN_API_KEYS: "true"
@@ -77,12 +82,17 @@ services:
       dockerfile: docker/Dockerfile.worker
     container_name: emitmail-worker
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       NODE_ENV: production
       DATABASE_URL: postgresql://emitmail:emitmail_pass@emitmail-postgres:5432/emitmail?schema=public
       REDIS_URL: redis://emitmail-redis:6379
       REDIS_PASSWORD: emitmail_redis_pass
-      ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
+      MAIL_SERVER_HOSTNAME: ${MAIL_SERVER_HOSTNAME:-mail.yourdomain.com}
+      SPF_INCLUDE_DOMAIN: ${SPF_INCLUDE_DOMAIN:-_spf.yourdomain.com}
+      VPS_PUBLIC_IPV4: ${VPS_PUBLIC_IPV4:-0.0.0.0}
       EMAIL_QUEUE_NAME: email-delivery-queue
       WORKER_CONCURRENCY: 10
       DIRECT_MX_FALLBACK: "true"
