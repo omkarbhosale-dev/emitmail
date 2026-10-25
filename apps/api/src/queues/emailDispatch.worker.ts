@@ -65,8 +65,13 @@ export const processEmailDispatchJob = async (
     const tlsCiphers = 'HIGH:!aNULL:!MD5:!3DES:!CAMELLIA';
     const minTlsVersion = 'TLSv1.2';
 
+    // Retrieve master server configuration for proper FQDN HELO/EHLO handshake
+    const serverConfig = await prisma.serverConfig.findUnique({ where: { id: 'master' } });
+    const mailServerHostname = serverConfig?.mailServerHostname || `mail.${email.domain.domainName}`;
+
     if (env.SMTP_RELAY_HOST) {
       transporter = nodemailer.createTransport({
+        name: mailServerHostname,
         host: env.SMTP_RELAY_HOST,
         port: env.SMTP_RELAY_PORT,
         secure: env.SMTP_RELAY_SECURE,
@@ -148,6 +153,7 @@ export const processEmailDispatchJob = async (
         } as any);
       } else {
         transporter = nodemailer.createTransport({
+          name: mailServerHostname,
           host: targetHost,
           port: targetPort,
           secure: false,
@@ -163,18 +169,34 @@ export const processEmailDispatchJob = async (
       }
     }
 
-    // 4. Construct RFC 5322 Payload
+    // 4. Construct RFC 5322 Payload (include plain-text multipart fallback)
+    const plainTextFallback =
+      email.textContent ||
+      (email.htmlContent
+        ? email.htmlContent
+            .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+            .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+            .replace(/<[^>]+>/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim()
+        : undefined);
+
     const mailOptions: any = {
       from: email.from,
       to: email.to,
       subject: email.subject,
       html: email.htmlContent || undefined,
-      text: email.textContent || undefined,
+      text: plainTextFallback,
       replyTo: email.replyTo || undefined,
       cc: email.cc?.length ? email.cc : undefined,
       bcc: email.bcc?.length ? email.bcc : undefined,
       messageId: email.messageId || undefined,
-      headers: (email.headers as Record<string, string>) || undefined,
+      date: email.createdAt || new Date(),
+      headers: {
+        'X-Mailer': 'EmitMail Deliverability Engine/1.0',
+        'X-Priority': '3',
+        ...((email.headers as Record<string, string>) || {}),
+      },
       attachments: (email.attachments as any[]) || undefined,
     };
 

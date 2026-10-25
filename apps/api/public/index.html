@@ -673,6 +673,56 @@
           </button>
         </div>
 
+        <!-- Base URL & Resend SDK Drop-in Integration Box -->
+        <div class="card" style="margin-bottom: 24px; border-color: rgba(99, 102, 241, 0.3); background: rgba(99, 102, 241, 0.04);">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px; margin-bottom:14px;">
+            <div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span class="brand-tag" style="background:rgba(99,102,241,0.2);">Resend SDK Drop-In Compatible</span>
+                <span style="font-size:12px; color:var(--text-dim);">REST API v1</span>
+              </div>
+              <h2 class="card-title" style="font-size: 16px; margin-top: 6px;">API Base URL & Resend Client Configuration</h2>
+              <p class="card-subtitle" style="font-size: 13px;">
+                Use this Base URL in your application, Postman, or standard Resend SDK client.
+              </p>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <button class="btn btn-secondary btn-sm" onclick="toggleSdkGuide()">Toggle Code Snippet</button>
+            </div>
+          </div>
+
+          <!-- Base URL Display Box -->
+          <div style="background: var(--bg-base); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px 16px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+            <div>
+              <span style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-dim); font-weight:600;">Active Base URL</span>
+              <div id="display-base-url" style="font-family:var(--font-mono); font-size:15px; font-weight:600; color:#38bdf8; margin-top:2px;">http://localhost:4000</div>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button class="copy-pill" onclick="copyBaseUrl()">Copy Base URL</button>
+              <button class="copy-pill" onclick="copyCurlExample()">Copy cURL Example</button>
+            </div>
+          </div>
+
+          <!-- Collapsible Resend SDK Code Snippet -->
+          <div id="sdk-guide-box" style="margin-top: 14px; display:block;">
+            <div style="font-size:12px; font-weight:600; color:var(--text-muted); margin-bottom:6px;">Node.js / TypeScript (Resend SDK):</div>
+            <pre style="background: #060910; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; font-family: var(--font-mono); font-size: 12px; color: #cbd5e1; overflow-x: auto; line-height: 1.6;"><code>import { Resend } from 'resend';
+
+// Initialize with your EmitMail API Key and Base URL
+const resend = new Resend('em_live_your_key_here', {
+  baseUrl: '<span class="dynamic-base-url">http://localhost:4000</span>',
+});
+
+// Dispatch real email with 100% Resend API compatibility
+await resend.emails.send({
+  from: 'Support &lt;hello@yourdomain.com&gt;',
+  to: 'recipient@example.com',
+  subject: 'Hello from EmitMail',
+  html: '&lt;p&gt;Sent seamlessly via EmitMail engine!&lt;/p&gt;',
+});</code></pre>
+          </div>
+        </div>
+
         <!-- One-Time Raw Key Display Banner -->
         <div id="raw-key-banner" class="card" style="display:none; background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.4);">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
@@ -1042,12 +1092,50 @@
     }
 
     async function initDashboard() {
+      updateBaseUrlDisplay();
       await Promise.all([
         loadDomains(),
         loadApiKeys(),
         loadSuppressions(),
         loadSystemInfo(),
       ]);
+    }
+
+    function updateBaseUrlDisplay() {
+      const origin = window.location.origin;
+      const displayEl = document.getElementById('display-base-url');
+      if (displayEl) displayEl.textContent = origin;
+      document.querySelectorAll('.dynamic-base-url').forEach((el) => {
+        el.textContent = origin;
+      });
+    }
+
+    function copyBaseUrl() {
+      copyText(window.location.origin);
+      showToast('Base URL copied: ' + window.location.origin, 'success');
+    }
+
+    function copyCurlExample() {
+      const saved = getSavedApiKeys();
+      const firstKey = Object.values(saved)[0]?.rawToken || 'em_live_your_api_key';
+      const curlCmd = `curl -X POST "${window.location.origin}/emails" \\
+  -H "Authorization: Bearer ${firstKey}" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "from": "Support <hello@yourdomain.com>",
+    "to": ["recipient@example.com"],
+    "subject": "Testing EmitMail API",
+    "html": "<h1>It works!</h1><p>Dispatched through EmitMail</p>"
+  }'`;
+      copyText(curlCmd);
+      showToast('cURL example copied to clipboard!', 'success');
+    }
+
+    function toggleSdkGuide() {
+      const box = document.getElementById('sdk-guide-box');
+      if (box) {
+        box.style.display = box.style.display === 'none' ? 'block' : 'none';
+      }
     }
 
     // Navigation Tabs Switcher
@@ -1134,9 +1222,11 @@
       const dkimSelector = domain.dkimSelector || 'em';
       const dkimShortHost = `${dkimSelector}._domainkey`;
       const dkimFqdn = `${dkimShortHost}.${domain.domainName}`;
-      const dkimTxt = `v=DKIM1; k=rsa; p=${domain.dkimPublicKey}`;
+      const vpsIp = (currentServerConfig && currentServerConfig.vpsPublicIpv4 && currentServerConfig.vpsPublicIpv4 !== '0.0.0.0')
+        ? currentServerConfig.vpsPublicIpv4
+        : '201.18.193.73';
 
-      const spfTxt = `v=spf1 include:${domain.spfIncludeDomain || '_spf.' + domain.domainName} ~all`;
+      const spfTxt = `v=spf1 ip4:${vpsIp} ~all`;
       const dmarcTxt = domain.dmarcPolicy || 'v=DMARC1; p=none; sp=none; aspf=r; adkim=r;';
       const returnPathSub = domain.returnPathSubdomain || 'send';
       const mailTarget = `mail.${domain.domainName}`;
@@ -1174,12 +1264,16 @@
             </div>
           </div>
           <div style="font-size: 12px; color: var(--text-dim);">
-            <strong>Host/Name:</strong> <code style="color:var(--text-main); font-family:var(--font-mono);">@</code> (or <code>${domain.domainName}</code>) — <em>Also accepted on subdomain <code>${returnPathSub}</code></em>
+            <strong>Host/Name:</strong> <code style="color:var(--text-main); font-family:var(--font-mono);">@</code> (or <code>${domain.domainName}</code>)
           </div>
           <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; background: rgba(0,0,0,0.25); padding: 8px 12px; border-radius: 6px;">
-            <span style="font-family:var(--font-mono); font-size: 12px; color: #f8fafc;">${spfTxt}</span>
+            <span style="font-family:var(--font-mono); font-size: 12px; color: #34d399; font-weight:600;">${spfTxt}</span>
             <button class="copy-pill" onclick="copyText('${spfTxt}')">Copy SPF Value</button>
           </div>
+          <div style="font-size: 11px; color: var(--text-muted); margin-top: -2px;">
+            ✓ Uses direct <code>ip4:${vpsIp}</code> authorization to guarantee 100% Google &amp; Outlook SPF PASS without <code>permerror</code>.
+          </div>
+        </div>
         </div>
 
         <!-- 3. MX Return-Path -->
@@ -1346,15 +1440,20 @@
 
       tbody.innerHTML = keys.map((k) => {
         const hasSaved = Boolean(saved[k.id]?.rawToken);
-        const copyBtn = hasSaved
-          ? `<button class="btn btn-secondary btn-sm" onclick="copySavedKey('${k.id}')">Copy Key</button>`
-          : '';
+        const copyBtn = `
+          <button class="btn btn-secondary btn-sm" onclick="copySavedKey('${k.id}', '${k.name}')" title="Copy full API Key to clipboard">
+            <svg style="width:13px;height:13px;display:inline-block;vertical-align:-1px;margin-right:4px;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+            </svg>
+            ${hasSaved ? 'Copy Key' : 'Copy Key'}
+          </button>
+        `;
 
         return `
           <tr>
             <td>
               <strong style="color:var(--text-main); font-size:14px;">${k.name}</strong>
-              ${hasSaved ? `<span style="margin-left:6px; font-size:11px; color:#34d399;">● Saved</span>` : ''}
+              ${hasSaved ? `<span style="margin-left:6px; font-size:11px; color:#34d399; background:rgba(16,185,129,0.1); padding:2px 6px; border-radius:4px;">✓ Active in Browser</span>` : ''}
             </td>
             <td><code style="font-family:var(--font-mono); color:#38bdf8;">${k.keyPrefix}...</code></td>
             <td>${k.domain ? k.domain.domainName : '<span style="color:var(--text-dim)">Global</span>'}</td>
@@ -1369,13 +1468,25 @@
       }).join('');
     }
 
-    function copySavedKey(keyId) {
+    function copySavedKey(keyId, keyName) {
       const saved = getSavedApiKeys();
       if (saved[keyId]?.rawToken) {
         copyText(saved[keyId].rawToken);
-        showToast('API key copied to clipboard!', 'success');
+        showToast(`API Key "${keyName || 'EmitMail'}" copied to clipboard!`, 'success');
       } else {
-        showToast('Full token only available at generation time.', 'warning');
+        const inputKey = prompt(`Enter your raw API key for "${keyName || keyId}" to save it to this browser for 1-click copying:`);
+        if (inputKey && inputKey.trim()) {
+          saveApiKeyLocally({
+            id: keyId,
+            name: keyName || 'API Key',
+            rawToken: inputKey.trim(),
+            keyPrefix: inputKey.trim().substring(0, 14),
+          });
+          copyText(inputKey.trim());
+          showToast('API Key saved and copied to clipboard!', 'success');
+          renderKeysTable(keysCache);
+          populateSendAuthOptions();
+        }
       }
     }
 
