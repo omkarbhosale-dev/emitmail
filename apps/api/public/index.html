@@ -1346,15 +1346,20 @@
 
       tbody.innerHTML = keys.map((k) => {
         const hasSaved = Boolean(saved[k.id]?.rawToken);
-        const copyBtn = hasSaved
-          ? `<button class="btn btn-secondary btn-sm" onclick="copySavedKey('${k.id}')">Copy Key</button>`
-          : '';
+        const copyBtn = `
+          <button class="btn btn-secondary btn-sm" onclick="copySavedKey('${k.id}', '${k.name}')" title="Copy full API Key to clipboard">
+            <svg style="width:13px;height:13px;display:inline-block;vertical-align:-1px;margin-right:4px;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+            </svg>
+            ${hasSaved ? 'Copy Key' : 'Copy Key'}
+          </button>
+        `;
 
         return `
           <tr>
             <td>
               <strong style="color:var(--text-main); font-size:14px;">${k.name}</strong>
-              ${hasSaved ? `<span style="margin-left:6px; font-size:11px; color:#34d399;">● Saved</span>` : ''}
+              ${hasSaved ? `<span style="margin-left:6px; font-size:11px; color:#34d399; background:rgba(16,185,129,0.1); padding:2px 6px; border-radius:4px;">✓ Active in Browser</span>` : ''}
             </td>
             <td><code style="font-family:var(--font-mono); color:#38bdf8;">${k.keyPrefix}...</code></td>
             <td>${k.domain ? k.domain.domainName : '<span style="color:var(--text-dim)">Global</span>'}</td>
@@ -1369,13 +1374,25 @@
       }).join('');
     }
 
-    function copySavedKey(keyId) {
+    function copySavedKey(keyId, keyName) {
       const saved = getSavedApiKeys();
       if (saved[keyId]?.rawToken) {
         copyText(saved[keyId].rawToken);
-        showToast('API key copied to clipboard!', 'success');
+        showToast(`API Key "${keyName || 'EmitMail'}" copied to clipboard!`, 'success');
       } else {
-        showToast('Full token only available at generation time.', 'warning');
+        const inputKey = prompt(`Enter your raw API key for "${keyName || keyId}" to save it to this browser for 1-click copying:`);
+        if (inputKey && inputKey.trim()) {
+          saveApiKeyLocally({
+            id: keyId,
+            name: keyName || 'API Key',
+            rawToken: inputKey.trim(),
+            keyPrefix: inputKey.trim().substring(0, 14),
+          });
+          copyText(inputKey.trim());
+          showToast('API Key saved and copied to clipboard!', 'success');
+          renderKeysTable(keysCache);
+          populateSendAuthOptions();
+        }
       }
     }
 
