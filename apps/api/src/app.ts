@@ -115,9 +115,31 @@ export const createApp = (): Express => {
 
   // Serve Built-in Testing UI
   app.use(express.static(publicDir));
-  app.get(['/', '/dashboard', '/admin'], (_req: Request, res: Response) => {
-    res.sendFile(path.join(publicDir, 'index.html'));
-  });
+  app.get(
+    ['/', '/dashboard', '/dashboard/*', '/admin', '/admin/*'],
+    (_req: Request, res: Response) => {
+      const candidatePaths = [
+        path.join(publicDir, 'index.html'),
+        path.resolve(process.cwd(), 'apps/api/public/index.html'),
+        path.resolve(process.cwd(), 'public/index.html'),
+        path.resolve(__dirname, '../public/index.html'),
+        path.resolve(__dirname, '../../public/index.html'),
+      ];
+
+      for (const p of candidatePaths) {
+        if (fs.existsSync(p)) {
+          return res.sendFile(p);
+        }
+      }
+
+      res
+        .status(200)
+        .type('html')
+        .send(
+          '<!DOCTYPE html><html><head><title>EmitMail</title></head><body style="background:#0a0d14;color:#f8fafc;font-family:sans-serif;padding:40px;"><h2>EmitMail Engine Online</h2><p>UI file index.html is being initialized.</p></body></html>'
+        );
+    }
+  );
 
   // 404 Route Handler
   app.use((req: Request, res: Response) => {
