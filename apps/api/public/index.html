@@ -1,0 +1,1549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EmitMail — Production Testing Console & Mail Engine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base: #0a0d14;
+      --bg-surface: #111726;
+      --bg-surface-elevated: #182238;
+      --bg-hover: #1e2b47;
+      --border: #23314d;
+      --border-focus: #4f46e5;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --primary-glow: rgba(99, 102, 241, 0.25);
+      --success: #10b981;
+      --success-glow: rgba(16, 185, 129, 0.2);
+      --warning: #f59e0b;
+      --warning-glow: rgba(245, 158, 11, 0.2);
+      --danger: #ef4444;
+      --danger-glow: rgba(239, 68, 68, 0.2);
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      line-height: 1.5;
+    }
+
+    /* Top Navigation Bar */
+    header {
+      background: rgba(17, 23, 38, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 28px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 40;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text-main);
+    }
+    .brand-logo {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, #6366f1, #3b82f6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 16px var(--primary-glow);
+    }
+    .brand-logo svg { width: 18px; height: 18px; fill: white; }
+    .brand-title {
+      font-weight: 700;
+      font-size: 17px;
+      letter-spacing: -0.02em;
+    }
+    .brand-tag {
+      font-size: 11px;
+      background: var(--bg-surface-elevated);
+      color: var(--primary);
+      border: 1px solid var(--border);
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .system-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 8px var(--success);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(0.9); }
+    }
+
+    /* Main Container & Sidebar */
+    .app-layout {
+      display: flex;
+      flex: 1;
+      height: calc(100vh - 64px);
+    }
+
+    aside {
+      width: 250px;
+      background: var(--bg-surface);
+      border-right: 1px solid var(--border);
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .nav-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 8px 12px 4px 12px;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: var(--radius-md);
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.15s ease;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+    .nav-item:hover {
+      background: var(--bg-hover);
+      color: var(--text-main);
+    }
+    .nav-item.active {
+      background: var(--bg-surface-elevated);
+      color: var(--text-main);
+      border-color: var(--border);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    }
+    .nav-item svg {
+      width: 18px;
+      height: 18px;
+      stroke-width: 2;
+    }
+
+    .main-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 32px 40px;
+      background: radial-gradient(circle at 10% 10%, rgba(99, 102, 241, 0.03) 0%, transparent 60%);
+    }
+
+    /* Common Card Styles */
+    .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .card-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+    .card-subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      border: 1px solid transparent;
+      outline: none;
+      text-decoration: none;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 2px 10px var(--primary-glow);
+    }
+    .btn-primary:hover {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+    .btn-secondary {
+      background: var(--bg-surface-elevated);
+      color: var(--text-main);
+      border-color: var(--border);
+    }
+    .btn-secondary:hover {
+      background: var(--bg-hover);
+      border-color: var(--text-dim);
+    }
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--danger);
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+    .btn-danger:hover {
+      background: var(--danger);
+      color: white;
+    }
+    .btn-sm {
+      padding: 5px 10px;
+      font-size: 12px;
+      border-radius: var(--radius-sm);
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 18px;
+      margin-bottom: 28px;
+    }
+    .stat-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      position: relative;
+      overflow: hidden;
+    }
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--primary), #a855f7);
+    }
+    .stat-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .stat-sub {
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    /* Tables */
+    .table-responsive {
+      overflow-x: auto;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 14px;
+    }
+    th {
+      background: var(--bg-surface-elevated);
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-main);
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255, 255, 255, 0.015); }
+
+    /* Status Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 10px;
+      border-radius: 14px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .badge-success {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .badge-warning {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    .badge-danger {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    .badge-info {
+      background: rgba(99, 102, 241, 0.15);
+      color: #818cf8;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+    }
+
+    /* Forms & Inputs */
+    .form-group {
+      margin-bottom: 18px;
+    }
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+    .form-control {
+      width: 100%;
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 14px;
+      transition: all 0.15s ease;
+    }
+    .form-control:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-glow);
+    }
+    textarea.form-control { resize: vertical; min-height: 100px; }
+
+    /* Code & DNS Blocks */
+    .dns-box {
+      background: #06090f;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      margin-top: 14px;
+    }
+    .dns-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .dns-row:last-child { border-bottom: none; }
+    .dns-field {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: #38bdf8;
+      word-break: break-all;
+    }
+    .copy-pill {
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .copy-pill:hover {
+      background: var(--primary);
+      color: white;
+    }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 20px;
+    }
+    .modal {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 580px;
+      padding: 28px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+      animation: modalFade 0.2s ease;
+    }
+    @keyframes modalFade {
+      from { opacity: 0; transform: scale(0.96); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      font-size: 22px;
+      cursor: pointer;
+    }
+
+    /* Toast Notifications */
+    #toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 200;
+    }
+    .toast {
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border);
+      padding: 14px 20px;
+      border-radius: var(--radius-md);
+      color: var(--text-main);
+      font-size: 14px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      animation: slideIn 0.25s ease;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 300px;
+    }
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    .toast-success { border-left: 4px solid var(--success); }
+    .toast-error { border-left: 4px solid var(--danger); }
+    .toast-info { border-left: 4px solid var(--primary); }
+
+    /* Raw API Output Inspector */
+    .inspector {
+      background: #050811;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: #38bdf8;
+      max-height: 280px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    /* Spinner */
+    .spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation -->
+  <header>
+    <a href="#" class="brand">
+      <div class="brand-logo">
+        <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      </div>
+      <span class="brand-title">EmitMail</span>
+      <span class="brand-tag">Production Engine</span>
+    </a>
+
+    <div class="top-actions">
+      <div class="system-badge">
+        <span class="status-dot"></span>
+        <span id="system-status-text">Engine Online</span>
+      </div>
+      <button class="btn btn-secondary btn-sm" id="btn-logout" onclick="logout()">Logout</button>
+    </div>
+  </header>
+
+  <!-- Login Modal Overlay (Shown if unauthenticated) -->
+  <div id="login-modal" class="modal-backdrop" style="display: none;">
+    <div class="modal" style="max-width: 420px;">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <div class="brand-logo" style="margin: 0 auto 16px auto; width: 44px; height: 44px;">
+          <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+        </div>
+        <h2 style="font-size: 20px; font-weight: 700;">Administrator Access</h2>
+        <p style="color: var(--text-muted); font-size: 13px; margin-top: 4px;">Sign in to manage domains, API keys, and outbound queues</p>
+      </div>
+      <form id="form-login" onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label class="form-label">Username</label>
+          <input type="text" id="login-username" class="form-control" value="admin" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" id="login-password" class="form-control" value="emitmail" required>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; margin-top: 10px;">
+          Authenticate
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Main Application Body -->
+  <div class="app-layout" id="app-body">
+    <!-- Left Navigation Sidebar -->
+    <aside>
+      <div class="nav-label">Management</div>
+      <a class="nav-item active" id="nav-domains" onclick="switchTab('domains')">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/></svg>
+        Domain Config
+      </a>
+      <a class="nav-item" id="nav-apikeys" onclick="switchTab('apikeys')">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+        API Keys
+      </a>
+      <a class="nav-item" id="nav-sendtest" onclick="switchTab('sendtest')">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+        Live Email Tester
+      </a>
+      <a class="nav-item" id="nav-suppressions" onclick="switchTab('suppressions')">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+        Suppression List
+      </a>
+
+      <div class="nav-label" style="margin-top: 18px;">Diagnostics</div>
+      <a class="nav-item" id="nav-system" onclick="switchTab('system')">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        Server Status
+      </a>
+    </aside>
+
+    <!-- Main Workspace Content -->
+    <main class="main-content">
+
+      <!-- ========================================== -->
+      <!-- TAB 1: DOMAIN CONFIG                       -->
+      <!-- ========================================== -->
+      <section id="tab-domains">
+        <div class="card-header">
+          <div>
+            <h1 class="card-title">Registered Sender Domains</h1>
+            <p class="card-subtitle">Manage DKIM 2048-bit signing keys, SPF, DMARC, and DNS verification records</p>
+          </div>
+          <button class="btn btn-primary" onclick="openAddDomainModal()">
+            <svg style="width:16px;height:16px" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Add Domain
+          </button>
+        </div>
+
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Domain Name</th>
+                <th>Status</th>
+                <th>DKIM</th>
+                <th>SPF</th>
+                <th>MX</th>
+                <th>DMARC</th>
+                <th>TLS Policy</th>
+                <th style="text-align: right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="domains-table-body">
+              <tr><td colspan="8" style="text-align:center; padding: 30px; color: var(--text-dim);">Loading domains...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- DNS Setup Drawer (Populated dynamically) -->
+        <div id="dns-instructions-card" class="card" style="display: none; margin-top: 28px;">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">DNS Setup Records for <span id="dns-domain-name" style="color: var(--primary);"></span></h2>
+              <p class="card-subtitle">Publish these records in your DNS registrar (Cloudflare: set proxy to DNS Only / Grey Cloud)</p>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="document.getElementById('dns-instructions-card').style.display='none'">Close</button>
+          </div>
+          <div class="dns-box" id="dns-records-container"></div>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- TAB 2: API KEYS                            -->
+      <!-- ========================================== -->
+      <section id="tab-apikeys" style="display: none;">
+        <div class="card-header">
+          <div>
+            <h1 class="card-title">Domain-Scoped API Keys</h1>
+            <p class="card-subtitle">Generate high-entropy Bearer tokens for SDK and REST email dispatching</p>
+          </div>
+          <button class="btn btn-primary" onclick="openCreateKeyModal()">
+            <svg style="width:16px;height:16px" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Generate Key
+          </button>
+        </div>
+
+        <!-- One-Time Raw Key Display Banner -->
+        <div id="raw-key-banner" class="card" style="display:none; background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.4);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <strong style="color:#34d399; font-size:15px;">✓ New API Key Generated Successfully!</strong>
+            <button class="btn btn-secondary btn-sm" onclick="document.getElementById('raw-key-banner').style.display='none'">Dismiss</button>
+          </div>
+          <p style="font-size:13px; color:var(--text-muted); margin-bottom:12px;">Make sure to copy this key now. You will not be able to view it again!</p>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <input type="text" id="raw-key-input" class="form-control" readonly style="font-family:var(--font-mono); font-size:14px; color:#38bdf8;">
+            <button class="btn btn-primary" onclick="copyRawKey()">Copy</button>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Key Name</th>
+                <th>Prefix</th>
+                <th>Scoped Domain</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th style="text-align: right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="keys-table-body">
+              <tr><td colspan="6" style="text-align:center; padding: 30px; color: var(--text-dim);">Loading API keys...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- TAB 3: LIVE EMAIL TESTER                   -->
+      <!-- ========================================== -->
+      <section id="tab-sendtest" style="display: none;">
+        <div class="card-header">
+          <div>
+            <h1 class="card-title">Live Outbound Email Dispatcher</h1>
+            <p class="card-subtitle">Dispatch real test emails directly through the BullMQ worker and MTA-STS TLS pipeline</p>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+          <!-- Left: Sender Form -->
+          <div class="card" style="margin-bottom: 0;">
+            <form id="form-send-email" onsubmit="handleSendEmail(event)">
+              <div class="form-group">
+                <label class="form-label">Active Sender Domain</label>
+                <select id="send-domain-select" class="form-control" onchange="handleDomainSelectChange(this)" required>
+                  <option value="">Select a registered domain...</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">From Address</label>
+                <input type="email" id="send-from" class="form-control" placeholder="Support <hello@yourdomain.com>" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">To Recipient</label>
+                <input type="email" id="send-to" class="form-control" placeholder="your-email@gmail.com" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Subject</label>
+                <input type="text" id="send-subject" class="form-control" value="Live Production Test from EmitMail" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">HTML Content</label>
+                <textarea id="send-html" class="form-control" rows="5"><h1>EmitMail Production Test</h1><p>This message was DKIM signed and dispatched through the EmitMail engine.</p></textarea>
+              </div>
+
+              <div class="form-group" style="display:flex; align-items:center; gap:8px;">
+                <input type="checkbox" id="send-unsub-check" checked style="accent-color: var(--primary); width:16px; height:16px;">
+                <label for="send-unsub-check" style="font-size:13px; color:var(--text-muted); cursor:pointer;">
+                  Inject RFC 8058 One-Click Unsubscribe headers
+                </label>
+              </div>
+
+              <button type="submit" class="btn btn-primary" id="btn-submit-send" style="width: 100%; justify-content: center;">
+                <span>Dispatch Live Email</span>
+              </button>
+            </form>
+          </div>
+
+          <!-- Right: Real-time Response Inspector -->
+          <div class="card" style="margin-bottom: 0;">
+            <div class="card-header" style="margin-bottom: 12px;">
+              <span class="card-title" style="font-size: 15px;">API Execution Inspector</span>
+              <span id="send-latency-badge" class="badge badge-info" style="display:none;">0ms</span>
+            </div>
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">
+              Shows immediate acknowledgment from <code>POST /emails</code> and worker delivery status.
+            </p>
+            <div id="inspector-output" class="inspector">// Ready. Configure and click "Dispatch Live Email".</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- TAB 4: SUPPRESSION LIST                    -->
+      <!-- ========================================== -->
+      <section id="tab-suppressions" style="display: none;">
+        <div class="card-header">
+          <div>
+            <h1 class="card-title">Deliverability Suppression Guardrails</h1>
+            <p class="card-subtitle">Recipients blocked by hard bounces, spam complaints, or one-click unsubscriptions</p>
+          </div>
+          <button class="btn btn-primary" onclick="openAddSuppressionModal()">Add Suppression</button>
+        </div>
+
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Email Address</th>
+                <th>Reason</th>
+                <th>Domain Scoping</th>
+                <th>Details / Diagnostic</th>
+                <th>Created</th>
+                <th style="text-align: right;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="suppressions-table-body">
+              <tr><td colspan="6" style="text-align:center; padding: 30px; color: var(--text-dim);">Loading suppressions...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- TAB 5: SYSTEM & SERVER STATUS              -->
+      <!-- ========================================== -->
+      <section id="tab-system" style="display: none;">
+        <div class="card-header">
+          <div>
+            <h1 class="card-title">EmitMail System Engine Status</h1>
+            <p class="card-subtitle">Live health status, database connection, Redis broker, and host environment</p>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="loadSystemInfo()">Refresh</button>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <span class="stat-label">System Health</span>
+            <span class="stat-value" id="sys-health-val" style="color: #34d399;">Online</span>
+            <span class="stat-sub" id="sys-uptime-val">Uptime: 0m</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">PostgreSQL DB</span>
+            <span class="stat-value" id="sys-db-val" style="font-size: 20px; color: #38bdf8;">Connected</span>
+            <span class="stat-sub">Prisma ORM Client</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Redis BullMQ Broker</span>
+            <span class="stat-value" id="sys-redis-val" style="font-size: 20px; color: #a855f7;">Connected</span>
+            <span class="stat-sub">Queue: email-delivery-queue</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Outbound TLS / MTA-STS</span>
+            <span class="stat-value" style="font-size: 20px; color: #34d399;">Enforced</span>
+            <span class="stat-sub">RFC 8461 Caching Active</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="card-title" style="font-size: 16px; margin-bottom: 12px;">Server & Host Network Topology</h2>
+          <div class="dns-box" id="server-config-box">Loading server configuration...</div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Modal: Add Domain -->
+  <div id="modal-add-domain" class="modal-backdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="card-title">Add Sender Domain</h3>
+        <button class="modal-close" onclick="closeModal('modal-add-domain')">&times;</button>
+      </div>
+      <form id="form-add-domain" onsubmit="handleAddDomain(event)">
+        <div class="form-group">
+          <label class="form-label">Domain Name</label>
+          <input type="text" id="new-domain-name" class="form-control" placeholder="yourdomain.com" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Outbound TLS Policy</label>
+          <select id="new-domain-tls" class="form-control">
+            <option value="enforce" selected>Enforce (Strict TLSv1.2+ and MTA-STS rejection)</option>
+            <option value="opportunistic">Opportunistic (Fallback if recipient MX has no TLS)</option>
+          </select>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px;">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-add-domain')">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-domain">Save Domain</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Create API Key -->
+  <div id="modal-create-key" class="modal-backdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="card-title">Generate API Key</h3>
+        <button class="modal-close" onclick="closeModal('modal-create-key')">&times;</button>
+      </div>
+      <form id="form-create-key" onsubmit="handleCreateKey(event)">
+        <div class="form-group">
+          <label class="form-label">Key Friendly Name</label>
+          <input type="text" id="new-key-name" class="form-control" placeholder="Production Mailer Key" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Scope to Domain</label>
+          <select id="new-key-domain" class="form-control" required>
+            <option value="">Select domain...</option>
+          </select>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px;">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-create-key')">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-key">Generate Key</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Add Suppression -->
+  <div id="modal-add-suppression" class="modal-backdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="card-title">Add Email to Suppression List</h3>
+        <button class="modal-close" onclick="closeModal('modal-add-suppression')">&times;</button>
+      </div>
+      <form id="form-add-suppression" onsubmit="handleAddSuppression(event)">
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <input type="email" id="suppress-email" class="form-control" placeholder="user@target.com" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Reason</label>
+          <select id="suppress-reason" class="form-control">
+            <option value="MANUAL" selected>Manual Admin Block</option>
+            <option value="HARD_BOUNCE">Hard Bounce (5.x.x)</option>
+            <option value="COMPLAINT">Spam Complaint</option>
+            <option value="UNSUBSCRIBE">Unsubscribe</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Details / Diagnostic Reason</label>
+          <input type="text" id="suppress-details" class="form-control" placeholder="Manually added by administrator">
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px;">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-add-suppression')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Add Suppression</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container"></div>
+
+  <!-- Application Logic -->
+  <script>
+    let token = localStorage.getItem('emitmail_token') || '';
+    let domainsCache = [];
+    let keysCache = [];
+
+    // Initialize application on load
+    window.addEventListener('DOMContentLoaded', async () => {
+      if (!token) {
+        showLogin();
+      } else {
+        await initDashboard();
+      }
+    });
+
+    function showLogin() {
+      document.getElementById('login-modal').style.display = 'flex';
+    }
+
+    function logout() {
+      localStorage.removeItem('emitmail_token');
+      token = '';
+      location.reload();
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const u = document.getElementById('login-username').value;
+      const p = document.getElementById('login-password').value;
+
+      try {
+        const res = await fetch('/api/v1/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: u, password: p }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.message || 'Authentication failed');
+
+        token = json.data.accessToken;
+        localStorage.setItem('emitmail_token', token);
+        document.getElementById('login-modal').style.display = 'none';
+        showToast('Authenticated successfully', 'success');
+        await initDashboard();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    async function initDashboard() {
+      await Promise.all([
+        loadDomains(),
+        loadApiKeys(),
+        loadSuppressions(),
+        loadSystemInfo(),
+      ]);
+    }
+
+    // Navigation Tabs Switcher
+    function switchTab(tabId) {
+      const tabs = ['domains', 'apikeys', 'sendtest', 'suppressions', 'system'];
+      tabs.forEach((t) => {
+        const section = document.getElementById(`tab-${t}`);
+        const nav = document.getElementById(`nav-${t}`);
+        if (section) section.style.display = t === tabId ? 'block' : 'none';
+        if (nav) nav.classList.toggle('active', t === tabId);
+      });
+
+      if (tabId === 'sendtest') populateSendDomainOptions();
+      if (tabId === 'system') loadSystemInfo();
+    }
+
+    // ----------------------------------------------------
+    // Domains Management
+    // ----------------------------------------------------
+    async function loadDomains() {
+      try {
+        const res = await fetch('/api/v1/domains', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.status === 401) return logout();
+        const json = await res.json();
+        domainsCache = json.data || [];
+        renderDomainsTable(domainsCache);
+      } catch (err) {
+        showToast('Failed to load domains: ' + err.message, 'error');
+      }
+    }
+
+    function renderDomainsTable(domains) {
+      const tbody = document.getElementById('domains-table-body');
+      if (!domains.length) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:32px; color:var(--text-dim);">No domains added yet. Click "Add Domain" above to onboard your domain.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = domains.map((d) => {
+        const statusBadge = d.status === 'VERIFIED'
+          ? `<span class="badge badge-success">✓ Verified</span>`
+          : d.status === 'VERIFYING'
+          ? `<span class="badge badge-info"><span class="spinner"></span> Verifying</span>`
+          : d.status === 'FAILED'
+          ? `<span class="badge badge-danger">Failed</span>`
+          : `<span class="badge badge-warning">Pending</span>`;
+
+        const dkimIcon = d.dkimVerified ? '🟢' : '⚪';
+        const spfIcon = d.spfVerified ? '🟢' : '⚪';
+        const mxIcon = d.mxVerified ? '🟢' : '⚪';
+        const dmarcIcon = d.dmarcVerified ? '🟢' : '⚪';
+
+        return `
+          <tr>
+            <td>
+              <strong style="color:var(--text-main); font-size:15px;">${d.domainName}</strong>
+              <div style="font-size:12px; color:var(--text-dim);">ID: ${d.id}</div>
+            </td>
+            <td>${statusBadge}</td>
+            <td>${dkimIcon}</td>
+            <td>${spfIcon}</td>
+            <td>${mxIcon}</td>
+            <td>${dmarcIcon}</td>
+            <td><span class="badge badge-info">${d.tlsPolicy || 'enforce'}</span></td>
+            <td style="text-align: right;">
+              <button class="btn btn-secondary btn-sm" onclick="showDnsInstructions('${d.id}')">DNS Records</button>
+              <button class="btn btn-primary btn-sm" id="btn-verify-${d.id}" onclick="verifyDomain('${d.id}', this)">Verify Now</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteDomain('${d.id}')">Delete</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function showDnsInstructions(domainId) {
+      const domain = domainsCache.find((d) => d.id === domainId);
+      if (!domain) return;
+
+      document.getElementById('dns-domain-name').textContent = domain.domainName;
+      const box = document.getElementById('dns-records-container');
+
+      const dkimTxt = `v=DKIM1; k=rsa; p=${domain.dkimPublicKey}`;
+      const spfTxt = `v=spf1 include:${domain.spfIncludeDomain || '_spf.' + domain.domainName} ~all`;
+      const dmarcTxt = domain.dmarcPolicy || 'v=DMARC1; p=none; sp=none; aspf=r; adkim=r;';
+
+      box.innerHTML = `
+        <div class="dns-row">
+          <div>
+            <div style="font-size:12px; font-weight:600; color:var(--text-muted);">1. DKIM Public Key (TXT)</div>
+            <div class="dns-field">${domain.dkimSelector || 'em'}._domainkey.${domain.domainName}</div>
+            <div style="font-size:12px; color:var(--text-dim); margin-top:4px;">Value: ${dkimTxt.slice(0, 70)}...</div>
+          </div>
+          <button class="copy-pill" onclick="copyText('${dkimTxt}')">Copy TXT Value</button>
+        </div>
+
+        <div class="dns-row">
+          <div>
+            <div style="font-size:12px; font-weight:600; color:var(--text-muted);">2. SPF Record (TXT)</div>
+            <div class="dns-field">${domain.domainName}</div>
+            <div style="font-size:12px; color:var(--text-dim); margin-top:4px;">Value: ${spfTxt}</div>
+          </div>
+          <button class="copy-pill" onclick="copyText('${spfTxt}')">Copy SPF Value</button>
+        </div>
+
+        <div class="dns-row">
+          <div>
+            <div style="font-size:12px; font-weight:600; color:var(--text-muted);">3. DMARC Alignment Policy (TXT)</div>
+            <div class="dns-field">_dmarc.${domain.domainName}</div>
+            <div style="font-size:12px; color:var(--text-dim); margin-top:4px;">Value: ${dmarcTxt}</div>
+          </div>
+          <button class="copy-pill" onclick="copyText('${dmarcTxt}')">Copy DMARC Value</button>
+        </div>
+
+        <div class="dns-row">
+          <div>
+            <div style="font-size:12px; font-weight:600; color:var(--text-muted);">4. Return-Path Subdomain (CNAME / MX)</div>
+            <div class="dns-field">${domain.returnPathSubdomain || 'send'}.${domain.domainName}</div>
+            <div style="font-size:12px; color:var(--text-dim); margin-top:4px;">Target: mail.${domain.domainName}</div>
+          </div>
+          <button class="copy-pill" onclick="copyText('mail.${domain.domainName}')">Copy Target</button>
+        </div>
+      `;
+
+      document.getElementById('dns-instructions-card').style.display = 'block';
+      document.getElementById('dns-instructions-card').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    async function verifyDomain(domainId, btn) {
+      btn.innerHTML = `<span class="spinner"></span> Checking DNS...`;
+      btn.disabled = true;
+
+      try {
+        const res = await fetch(`/api/v1/domains/${domainId}/verify`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.message || 'Verification failed');
+
+        showToast('DNS verification worker triggered. Polling status...', 'info');
+
+        // Poll for up to 10 seconds to catch quick DNS updates
+        let attempts = 0;
+        const interval = setInterval(async () => {
+          attempts++;
+          await loadDomains();
+          const d = domainsCache.find((item) => item.id === domainId);
+          if (d && (d.status === 'VERIFIED' || d.status === 'FAILED' || attempts >= 5)) {
+            clearInterval(interval);
+            btn.innerHTML = 'Verify Now';
+            btn.disabled = false;
+            if (d && d.status === 'VERIFIED') {
+              showToast(`🎉 Domain "${d.domainName}" is fully VERIFIED!`, 'success');
+            } else if (d && d.status === 'FAILED') {
+              showToast(`DNS check failed. Check DNS propagation.`, 'error');
+            }
+          }
+        }, 2000);
+      } catch (err) {
+        showToast(err.message, 'error');
+        btn.innerHTML = 'Verify Now';
+        btn.disabled = false;
+      }
+    }
+
+    async function deleteDomain(domainId) {
+      if (!confirm('Are you sure you want to delete this domain and all its associated API keys?')) return;
+      try {
+        const res = await fetch(`/api/v1/domains/${domainId}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error('Failed to delete domain');
+        showToast('Domain deleted', 'success');
+        await loadDomains();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    function openAddDomainModal() {
+      document.getElementById('modal-add-domain').style.display = 'flex';
+      document.getElementById('new-domain-name').focus();
+    }
+
+    async function handleAddDomain(e) {
+      e.preventDefault();
+      const domainName = document.getElementById('new-domain-name').value.trim();
+      const tlsPolicy = document.getElementById('new-domain-tls').value;
+
+      try {
+        const res = await fetch('/api/v1/domains', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ domainName, tlsPolicy }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.message || 'Failed to create domain');
+
+        showToast(`Domain "${domainName}" added with 2048-bit DKIM keys`, 'success');
+        closeModal('modal-add-domain');
+        document.getElementById('form-add-domain').reset();
+        await loadDomains();
+        showDnsInstructions(json.data.id);
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    // ----------------------------------------------------
+    // API Keys Management
+    // ----------------------------------------------------
+    async function loadApiKeys() {
+      try {
+        const res = await fetch('/api/v1/api-keys', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const json = await res.json();
+        keysCache = json.data || [];
+        renderKeysTable(keysCache);
+      } catch (err) {
+        showToast('Failed to load API keys: ' + err.message, 'error');
+      }
+    }
+
+    function renderKeysTable(keys) {
+      const tbody = document.getElementById('keys-table-body');
+      if (!keys.length) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:32px; color:var(--text-dim);">No API keys generated yet. Click "Generate Key" to create one.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = keys.map((k) => `
+        <tr>
+          <td><strong style="color:var(--text-main); font-size:14px;">${k.name}</strong></td>
+          <td><code style="font-family:var(--font-mono); color:#38bdf8;">${k.keyPrefix}...</code></td>
+          <td>${k.domain ? k.domain.domainName : '<span style="color:var(--text-dim)">Global</span>'}</td>
+          <td><span class="badge ${k.isActive ? 'badge-success' : 'badge-danger'}">${k.isActive ? 'Active' : 'Revoked'}</span></td>
+          <td>${new Date(k.createdAt).toLocaleDateString()}</td>
+          <td style="text-align: right;">
+            <button class="btn btn-danger btn-sm" onclick="deleteApiKey('${k.id}')">Revoke</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function openCreateKeyModal() {
+      const select = document.getElementById('new-key-domain');
+      select.innerHTML = '<option value="">Select scoped domain...</option>' +
+        domainsCache.map((d) => `<option value="${d.id}">${d.domainName} (${d.status})</option>`).join('');
+
+      document.getElementById('modal-create-key').style.display = 'flex';
+      document.getElementById('new-key-name').focus();
+    }
+
+    async function handleCreateKey(e) {
+      e.preventDefault();
+      const name = document.getElementById('new-key-name').value.trim();
+      const domainId = document.getElementById('new-key-domain').value;
+
+      try {
+        const res = await fetch('/api/v1/api-keys', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ name, domainId: domainId || null }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.message || 'Failed to create key');
+
+        closeModal('modal-create-key');
+        document.getElementById('form-create-key').reset();
+        await loadApiKeys();
+
+        // Show raw token banner
+        const rawToken = json.data.rawToken || json.data.key;
+        if (rawToken) {
+          document.getElementById('raw-key-input').value = rawToken;
+          document.getElementById('raw-key-banner').style.display = 'block';
+          document.getElementById('raw-key-banner').scrollIntoView({ behavior: 'smooth' });
+        }
+        showToast('API key created successfully', 'success');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    async function deleteApiKey(keyId) {
+      if (!confirm('Revoke and delete this API key permanently?')) return;
+      try {
+        const res = await fetch(`/api/v1/api-keys/${keyId}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error('Failed to revoke API key');
+        showToast('API key revoked', 'success');
+        await loadApiKeys();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    function copyRawKey() {
+      const val = document.getElementById('raw-key-input').value;
+      copyText(val);
+      showToast('API key copied to clipboard!', 'success');
+    }
+
+    // ----------------------------------------------------
+    // Live Outbound Email Sender
+    // ----------------------------------------------------
+    function populateSendDomainOptions() {
+      const select = document.getElementById('send-domain-select');
+      select.innerHTML = '<option value="">Select a registered domain...</option>' +
+        domainsCache.map((d) => `<option value="${d.id}" data-domain="${d.domainName}">${d.domainName} (${d.status})</option>`).join('');
+    }
+
+    function handleDomainSelectChange(select) {
+      const selectedOption = select.options[select.selectedIndex];
+      const domainName = selectedOption.getAttribute('data-domain');
+      if (domainName) {
+        document.getElementById('send-from').value = `Support <hello@${domainName}>`;
+      }
+    }
+
+    async function handleSendEmail(e) {
+      e.preventDefault();
+      const select = document.getElementById('send-domain-select');
+      const domainId = select.value;
+      const from = document.getElementById('send-from').value.trim();
+      const to = document.getElementById('send-to').value.trim();
+      const subject = document.getElementById('send-subject').value.trim();
+      const html = document.getElementById('send-html').value;
+      const includeUnsub = document.getElementById('send-unsub-check').checked;
+
+      const inspector = document.getElementById('inspector-output');
+      const latencyBadge = document.getElementById('send-latency-badge');
+      const btn = document.getElementById('btn-submit-send');
+
+      // Find an active API key for this domain, or use admin token
+      const matchingKey = keysCache.find((k) => k.domainId === domainId && k.isActive);
+      const authHeader = matchingKey && matchingKey.rawToken
+        ? `Bearer ${matchingKey.rawToken}`
+        : `Bearer ${token}`;
+
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner"></span> Dispatching to Outbound Worker...`;
+      inspector.textContent = 'Enqueuing email to Redis delivery queue...';
+
+      const payload = {
+        from,
+        to: [to],
+        subject,
+        html,
+        ...(includeUnsub ? {
+          listUnsubscribe: {
+            url: window.location.origin + '/unsubscribe',
+            email: `unsubscribe@${from.split('@')[1] || 'emitmail.local'}`,
+          },
+          unsubscribeMode: 'one-click',
+        } : {}),
+      };
+
+      const startTime = performance.now();
+      try {
+        const res = await fetch('/emails', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: authHeader,
+          },
+          body: JSON.stringify(payload),
+        });
+
+        const duration = Math.round(performance.now() - startTime);
+        latencyBadge.textContent = `${duration}ms Latency`;
+        latencyBadge.style.display = 'inline-block';
+
+        const json = await res.json();
+        inspector.textContent = JSON.stringify(json, null, 2);
+
+        if (json.status === 'suppressed' || json.suppressed) {
+          showToast(`Email suppressed by deliverability guardrail: ${json.suppressionReason}`, 'warning');
+        } else if (res.ok) {
+          showToast(`✓ Email accepted and enqueued! (${duration}ms)`, 'success');
+        } else {
+          showToast(json.message || 'Submission rejected', 'error');
+        }
+      } catch (err) {
+        inspector.textContent = `Error: ${err.message}`;
+        showToast(err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'Dispatch Live Email';
+      }
+    }
+
+    // ----------------------------------------------------
+    // Suppressions Management
+    // ----------------------------------------------------
+    async function loadSuppressions() {
+      try {
+        const res = await fetch('/api/v1/suppressions', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const json = await res.json();
+        renderSuppressionsTable(json.data?.suppressions || []);
+      } catch (err) {
+        console.warn('Failed to load suppressions:', err);
+      }
+    }
+
+    function renderSuppressionsTable(list) {
+      const tbody = document.getElementById('suppressions-table-body');
+      if (!list.length) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:32px; color:var(--text-dim);">No suppressed emails. Delivery guardrails are clean.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = list.map((s) => `
+        <tr>
+          <td><strong style="color:var(--text-main); font-family:var(--font-mono);">${s.email}</strong></td>
+          <td><span class="badge ${s.reason === 'HARD_BOUNCE' ? 'badge-danger' : s.reason === 'COMPLAINT' ? 'badge-warning' : 'badge-info'}">${s.reason}</span></td>
+          <td>${s.domain ? s.domain.domainName : '<span style="color:var(--text-dim)">Global</span>'}</td>
+          <td style="font-size:12px; color:var(--text-muted); max-width:240px; overflow:hidden; text-overflow:ellipsis;">${s.details || '—'}</td>
+          <td>${new Date(s.createdAt).toLocaleDateString()}</td>
+          <td style="text-align: right;">
+            <button class="btn btn-secondary btn-sm" onclick="deleteSuppression('${s.id}')">Unsuppress</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function openAddSuppressionModal() {
+      document.getElementById('modal-add-suppression').style.display = 'flex';
+    }
+
+    async function handleAddSuppression(e) {
+      e.preventDefault();
+      const email = document.getElementById('suppress-email').value.trim();
+      const reason = document.getElementById('suppress-reason').value;
+      const details = document.getElementById('suppress-details').value.trim();
+
+      try {
+        const res = await fetch('/api/v1/suppressions', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email, reason, details }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.message || 'Failed to add suppression');
+
+        closeModal('modal-add-suppression');
+        document.getElementById('form-add-suppression').reset();
+        showToast(`Email ${email} added to suppression list`, 'success');
+        await loadSuppressions();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    async function deleteSuppression(id) {
+      if (!confirm('Remove this email from suppression list?')) return;
+      try {
+        const res = await fetch(`/api/v1/suppressions/${id}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error('Failed to delete suppression');
+        showToast('Suppression removed', 'success');
+        await loadSuppressions();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    // ----------------------------------------------------
+    // System & Server Information
+    // ----------------------------------------------------
+    async function loadSystemInfo() {
+      try {
+        const [healthRes, configRes] = await Promise.all([
+          fetch('/api/v1/health'),
+          fetch('/api/v1/server-config', { headers: { Authorization: `Bearer ${token}` } }),
+        ]);
+
+        const health = await healthRes.json();
+        if (health.data) {
+          const uptimeSec = Math.round(health.data.uptime || 0);
+          const mins = Math.floor(uptimeSec / 60);
+          const hrs = Math.floor(mins / 60);
+          document.getElementById('sys-uptime-val').textContent = `Uptime: ${hrs}h ${mins % 60}m`;
+          document.getElementById('sys-db-val').textContent = health.data.services.database || 'Connected';
+          document.getElementById('sys-redis-val').textContent = health.data.services.redis || 'Connected';
+        }
+
+        const config = await configRes.json();
+        if (config.data) {
+          document.getElementById('server-config-box').innerHTML = `
+            <div class="dns-row">
+              <div><span style="color:var(--text-dim);">Mail Server FQDN:</span> <strong style="color:var(--text-main); font-family:var(--font-mono);">${config.data.mailServerHostname}</strong></div>
+            </div>
+            <div class="dns-row">
+              <div><span style="color:var(--text-dim);">VPS Public IPv4:</span> <strong style="color:var(--text-main); font-family:var(--font-mono);">${config.data.vpsPublicIpv4 || '0.0.0.0'}</strong></div>
+            </div>
+            <div class="dns-row">
+              <div><span style="color:var(--text-dim);">SPF Include Domain:</span> <strong style="color:var(--text-main); font-family:var(--font-mono);">${config.data.spfIncludeDomain}</strong></div>
+            </div>
+          `;
+        }
+      } catch (err) {
+        console.warn('System info load error:', err);
+      }
+    }
+
+    // ----------------------------------------------------
+    // Utilities
+    // ----------------------------------------------------
+    function closeModal(id) {
+      document.getElementById(id).style.display = 'none';
+    }
+
+    function copyText(str) {
+      navigator.clipboard.writeText(str);
+      showToast('Copied to clipboard', 'info');
+    }
+
+    function showToast(msg, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      toast.textContent = msg;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)';
+        toast.style.transition = 'all 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+  </script>
+</body>
+</html>
