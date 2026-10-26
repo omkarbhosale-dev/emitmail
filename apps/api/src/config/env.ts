@@ -67,6 +67,9 @@ const envSchema = z.object({
   START_WORKERS: z
     .preprocess((val) => val === 'true' || val === true || val === '1', z.boolean())
     .default(false),
+  SMTP_EHLO_HOSTNAME: z.string().default('mail.example.com'),
+  SENDING_SERVER_IP: z.string().default('0.0.0.0'),
+  RETURN_PATH_SUBDOMAIN: z.string().default('send'),
 });
 
 const parseEnv = () => {
@@ -97,6 +100,12 @@ const parseEnv = () => {
     PORT: process.env.API_PORT || process.env.PORT || '4000',
     CURRENT_VERSION: process.env.CURRENT_VERSION || packageJsonVersion || '1.0.0',
     GITHUB_REPO: process.env.GITHUB_REPO || 'emitmail/emitmail',
+    SMTP_EHLO_HOSTNAME:
+      process.env.SMTP_EHLO_HOSTNAME ||
+      process.env.MAIL_SERVER_HOSTNAME ||
+      'mail.example.com',
+    SENDING_SERVER_IP: process.env.SENDING_SERVER_IP || process.env.VPS_PUBLIC_IPV4 || '0.0.0.0',
+    RETURN_PATH_SUBDOMAIN: process.env.RETURN_PATH_SUBDOMAIN || 'send',
   };
 
   const result = envSchema.safeParse(rawEnv);

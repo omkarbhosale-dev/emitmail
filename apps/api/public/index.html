@@ -1224,12 +1224,16 @@ await resend.emails.send({
       const dkimFqdn = `${dkimShortHost}.${domain.domainName}`;
       const vpsIp = (currentServerConfig && currentServerConfig.vpsPublicIpv4 && currentServerConfig.vpsPublicIpv4 !== '0.0.0.0')
         ? currentServerConfig.vpsPublicIpv4
-        : '201.18.193.73';
+        : null;
 
-      const spfTxt = `v=spf1 ip4:${vpsIp} ~all`;
-      const dmarcTxt = domain.dmarcPolicy || 'v=DMARC1; p=none; sp=none; aspf=r; adkim=r;';
+      const isPlaceholderHost = (h) => !h || h === 'mail.yourdomain.com' || h === 'mail.example.com' || h === 'localhost';
+      const mailTarget = (currentServerConfig && currentServerConfig.mailServerHostname && !isPlaceholderHost(currentServerConfig.mailServerHostname))
+        ? currentServerConfig.mailServerHostname
+        : `mail.${domain.domainName}`;
+
+      const spfTxt = vpsIp ? `v=spf1 ip4:${vpsIp} a mx ~all` : `v=spf1 a mx ~all`;
+      const dmarcTxt = domain.dmarcPolicy || `v=DMARC1; p=none; rua=mailto:dmarc@${domain.domainName}; aspf=r; adkim=r;`;
       const returnPathSub = domain.returnPathSubdomain || 'send';
-      const mailTarget = `mail.${domain.domainName}`;
 
       box.innerHTML = `
         <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: #a5b4fc;">

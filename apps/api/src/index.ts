@@ -66,6 +66,32 @@ async function startServer(): Promise<void> {
   await ensureDefaultAdminExists();
   await ensureServerConfigExists();
 
+  // Run Pre-Flight Deliverability Check for 10/10 deliverability
+  try {
+    const { runPreflightDeliverabilityCheck } = await import('./utils/deliverabilityCheck.js');
+    const isPlaceholder = (h?: string | null) =>
+      !h || h === 'mail.yourdomain.com' || h === 'mail.example.com' || h === 'localhost';
+    const serverConfig = await prisma.serverConfig.findUnique({ where: { id: 'master' } }).catch(() => null);
+    const activeEhloHostname =
+      (process.env.SMTP_EHLO_HOSTNAME && !isPlaceholder(process.env.SMTP_EHLO_HOSTNAME))
+        ? process.env.SMTP_EHLO_HOSTNAME
+        : (env.SMTP_EHLO_HOSTNAME && !isPlaceholder(env.SMTP_EHLO_HOSTNAME))
+          ? env.SMTP_EHLO_HOSTNAME
+          : (!isPlaceholder(serverConfig?.mailServerHostname)
+              ? serverConfig!.mailServerHostname
+              : 'mail.example.com');
+    const activeSendingIp =
+      process.env.SENDING_SERVER_IP ||
+      (env.SENDING_SERVER_IP && env.SENDING_SERVER_IP !== '0.0.0.0' ? env.SENDING_SERVER_IP : '') ||
+      (serverConfig?.vpsPublicIpv4 && serverConfig.vpsPublicIpv4 !== '0.0.0.0' ? serverConfig.vpsPublicIpv4 : '0.0.0.0');
+
+    if (!isPlaceholder(activeEhloHostname) && activeSendingIp && activeSendingIp !== '0.0.0.0') {
+      await runPreflightDeliverabilityCheck(activeEhloHostname, activeSendingIp).catch(() => {});
+    }
+  } catch {
+    // ignore
+  }
+
   // 4. Start BullMQ Queue Workers (Decoupled: only starts in-process if env.START_WORKERS is enabled)
   let runningWorkers: { closeAll: () => Promise<void> } | null = null;
   if (env.START_WORKERS) {

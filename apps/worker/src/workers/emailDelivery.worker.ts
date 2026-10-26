@@ -1,6 +1,7 @@
 import { Worker, Job } from 'bullmq';
 import nodemailer from 'nodemailer';
 import dns from 'node:dns/promises';
+import crypto from 'node:crypto';
 import { bullmqRedisConnection } from '../config/redis.js';
 import { prisma } from '../config/db.js';
 import { env } from '../config/env.js';
@@ -57,13 +58,13 @@ export const processEmailDeliveryJob = async (
       env.ENCRYPTION_KEY
     );
 
-    // 3. Prepare DKIM signature options (including RFC 8058 one-click unsubscribe headers)
+    // 3. Prepare DKIM signature options (including RFC 8058 one-click unsubscribe headers & content-type)
     const dkimOptions = {
       domainName: email.domain.domainName,
       keySelector: email.domain.dkimSelector,
       privateKey: dkimPrivateKey,
       headerFieldNames:
-        'from:to:cc:subject:date:message-id:list-unsubscribe:list-unsubscribe-post:mime-version',
+        'from:to:cc:subject:date:message-id:feedback-id:list-unsubscribe:list-unsubscribe-post:mime-version:content-type',
     };
 
     // 4. Configure Transporter: Upstream SMTP Relay or Direct MX Delivery with MTA-STS & TLS Policies
@@ -72,9 +73,20 @@ export const processEmailDeliveryJob = async (
     const tlsCiphers = 'HIGH:!aNULL:!MD5:!3DES:!CAMELLIA';
     const minTlsVersion = 'TLSv1.2';
 
-    // Retrieve master server configuration for proper FQDN HELO/EHLO handshake
+    // Retrieve master server configuration for proper FQDN HELO/EHLO handshake (never placeholder)
+    const isPlaceholder = (h?: string | null) =>
+      !h || h === 'mail.yourdomain.com' || h === 'mail.example.com' || h === 'localhost';
     const serverConfig = await prisma.serverConfig.findUnique({ where: { id: 'master' } });
-    const mailServerHostname = serverConfig?.mailServerHostname || `mail.${email.domain.domainName}`;
+    const mailServerHostname =
+      (process.env.SMTP_EHLO_HOSTNAME && !isPlaceholder(process.env.SMTP_EHLO_HOSTNAME))
+        ? process.env.SMTP_EHLO_HOSTNAME
+        : (env.SMTP_EHLO_HOSTNAME && !isPlaceholder(env.SMTP_EHLO_HOSTNAME))
+          ? env.SMTP_EHLO_HOSTNAME
+          : (!isPlaceholder(serverConfig?.mailServerHostname)
+              ? serverConfig!.mailServerHostname
+              : (!isPlaceholder(env.MAIL_SERVER_HOSTNAME)
+                  ? env.MAIL_SERVER_HOSTNAME
+                  : `mail.${email.domain.domainName}`));
 
     if (env.SMTP_HOST) {
       transporter = nodemailer.createTransport({
@@ -186,12 +198,55 @@ export const processEmailDeliveryJob = async (
             .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
             .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
             .replace(/<[^>]+>/g, ' ')
+            .replace(/&nbsp;/gi, ' ')
+            .replace(/&amp;/gi, '&')
+            .replace(/&lt;/gi, '<')
+            .replace(/&gt;/gi, '>')
+            .replace(/&quot;/gi, '"')
             .replace(/\s+/g, ' ')
             .trim()
         : undefined);
 
-    const returnPathDomain = `${email.domain.returnPathSubdomain || 'send'}.${email.domain.domainName}`;
+    const returnPathSub =
+      email.domain.returnPathSubdomain ||
+      process.env.RETURN_PATH_SUBDOMAIN ||
+      env.RETURN_PATH_SUBDOMAIN ||
+      'send';
+    const returnPathDomain =
+      returnPathSub === '@' || returnPathSub === ''
+        ? email.domain.domainName
+        : `${returnPathSub}.${email.domain.domainName}`;
     const bounceAddress = `bounces@${returnPathDomain}`;
+
+    // Deterministic RFC-5322 compliant Message-ID matching sending domain (never leak OS hostname)
+    const deterministicMessageId =
+      email.messageId && email.messageId.includes('@')
+        ? email.messageId.startsWith('<') && email.messageId.endsWith('>')
+          ? email.messageId
+          : `<${email.messageId}>`
+        : `<${emailId || crypto.randomUUID().replace(/-/g, '')}@${email.domain.domainName}>`;
+
+    const existingHeaders = (email.headers as Record<string, any>) || {};
+    const mergedHeaders: Record<string, string> = {
+      'X-Mailer': 'EmitMail Deliverability Engine/1.0',
+      'X-Priority': '3',
+      'Message-ID': deterministicMessageId,
+      'Feedback-ID': existingHeaders['Feedback-ID'] ? String(existingHeaders['Feedback-ID']) : `${email.id}:${email.domain.id}:transactional:EmitMail`,
+    };
+
+    for (const [k, v] of Object.entries(existingHeaders)) {
+      if (v !== undefined && v !== null) {
+        mergedHeaders[k] = String(v);
+      }
+    }
+
+    // Auto-inject RFC-8058 One-Click Unsubscribe headers if provided or configured
+    const rawUnsub = email.listUnsubscribe || existingHeaders['List-Unsubscribe'];
+    if (rawUnsub) {
+      const unsubHeader = String(rawUnsub).trim();
+      mergedHeaders['List-Unsubscribe'] = unsubHeader.startsWith('<') ? unsubHeader : `<${unsubHeader}>`;
+      mergedHeaders['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click';
+    }
 
     const mailOptions: any = {
       from: email.from,
@@ -202,13 +257,9 @@ export const processEmailDeliveryJob = async (
       replyTo: email.replyTo || undefined,
       cc: email.cc?.length ? email.cc : undefined,
       bcc: email.bcc?.length ? email.bcc : undefined,
-      messageId: email.messageId || undefined,
+      messageId: deterministicMessageId,
       date: email.createdAt || new Date(),
-      headers: {
-        'X-Mailer': 'EmitMail Deliverability Engine/1.0',
-        'X-Priority': '3',
-        ...((email.headers as Record<string, string>) || {}),
-      },
+      headers: mergedHeaders,
       envelope: {
         from: bounceAddress,
         to: Array.isArray(email.to) ? email.to : [email.to],
@@ -217,11 +268,11 @@ export const processEmailDeliveryJob = async (
     };
 
     console.log(
-      `🚀 [DeliveryWorker] Dispatching email "${emailId}" via SMTP | MAIL FROM: <${bounceAddress}> | From: ${email.from} | DKIM: d=${email.domain.domainName}`
+      `🚀 [DeliveryWorker] Dispatching email "${emailId}" via SMTP | HELO: ${mailServerHostname} | MAIL FROM: <${bounceAddress}> | From: ${email.from} | Message-ID: ${deterministicMessageId} | DKIM: d=${email.domain.domainName}`
     );
 
     const sendResult = await transporter.sendMail(mailOptions);
-    const finalMessageId = sendResult.messageId || email.messageId;
+    const finalMessageId = sendResult.messageId || deterministicMessageId || email.messageId;
 
     // 6. Transition status: sending -> delivered
     const deliveredAt = new Date();

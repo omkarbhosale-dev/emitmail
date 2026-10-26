@@ -44,6 +44,10 @@ const envSchema = z.object({
   DIRECT_MX_FALLBACK: z
     .preprocess((val) => val === 'true' || val === true || val === '1', z.boolean())
     .default(true),
+  SMTP_EHLO_HOSTNAME: z.string().default('mail.example.com'),
+  MAIL_SERVER_HOSTNAME: z.string().default('mail.example.com'),
+  SENDING_SERVER_IP: z.string().default('0.0.0.0'),
+  RETURN_PATH_SUBDOMAIN: z.string().default('send'),
 });
 
 const parseEnv = () => {
@@ -54,6 +58,16 @@ const parseEnv = () => {
     SMTP_USER: process.env.SMTP_USER || process.env.SMTP_RELAY_USER,
     SMTP_PASS: process.env.SMTP_PASS || process.env.SMTP_RELAY_PASS,
     SMTP_SECURE: process.env.SMTP_SECURE || process.env.SMTP_RELAY_SECURE,
+    SMTP_EHLO_HOSTNAME:
+      process.env.SMTP_EHLO_HOSTNAME ||
+      process.env.MAIL_SERVER_HOSTNAME ||
+      'mail.example.com',
+    MAIL_SERVER_HOSTNAME:
+      process.env.MAIL_SERVER_HOSTNAME ||
+      process.env.SMTP_EHLO_HOSTNAME ||
+      'mail.example.com',
+    SENDING_SERVER_IP: process.env.SENDING_SERVER_IP || process.env.VPS_PUBLIC_IPV4 || '0.0.0.0',
+    RETURN_PATH_SUBDOMAIN: process.env.RETURN_PATH_SUBDOMAIN || 'send',
   };
 
   const result = envSchema.safeParse(rawEnv);
