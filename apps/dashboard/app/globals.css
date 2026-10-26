@@ -1,26 +1,247 @@
 @import "tailwindcss";
+@import "@cloudflare/kumo/styles/tailwind";
+
+/* Scan Kumo compiled components for Tailwind v4 utilities */
+@source "../node_modules/@cloudflare/kumo/dist/**/*.{js,jsx,ts,tsx}";
+
+@theme {
+  --font-bricolage: var(--font-bricolage);
+  
+  /* Surfaces & Backgrounds */
+  --color-kumo-canvas: var(--kumo-canvas);
+  --color-kumo-base: var(--kumo-base);
+  --color-kumo-elevated: var(--kumo-elevated);
+  --color-kumo-recessed: var(--kumo-recessed);
+  --color-kumo-tint: var(--kumo-tint);
+  --color-kumo-control: var(--kumo-control);
+  --color-kumo-interact: var(--kumo-interact);
+  
+  /* Typography & Foreground */
+  --color-kumo-strong: var(--kumo-strong);
+  --color-kumo-default: var(--kumo-default);
+  --color-kumo-subtle: var(--kumo-subtle);
+  --color-kumo-muted: var(--kumo-muted);
+  
+  /* Hairlines & Borders */
+  --color-kumo-hairline: var(--kumo-hairline);
+  --color-kumo-line: var(--kumo-line);
+  --color-kumo-danger: var(--kumo-danger);
+  --color-kumo-danger-tint: var(--kumo-danger-tint);
+
+  /* Cloudflare Brand Tokens */
+  --color-cf-blue: var(--cf-blue);
+  --color-cf-blue-hover: var(--cf-blue-hover);
+  --color-cf-orange: var(--cf-orange);
+  --color-cf-orange-brand: var(--cf-orange-brand);
+  --color-cf-orange-hover: var(--cf-orange-hover);
+  --color-cf-amber: var(--cf-amber);
+  --color-cf-orange-tint: var(--cf-orange-tint);
+  --color-cf-orange-border: var(--cf-orange-border);
+  --color-cf-chart-blue: var(--cf-chart-blue);
+  --color-cf-success: var(--cf-success);
+}
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: dark;
+  
+  /* EmitMail Surfaces (Default Dark Mode - Pitch Black & Charcoal) */
+  --kumo-canvas: #050505;
+  --kumo-base: #0C0C0C;
+  --kumo-elevated: #141414;
+  --kumo-recessed: #080808;
+  --kumo-tint: #161616;
+  --kumo-control: #0F0F0F;
+  --kumo-interact: #262626;
+  
+  /* Typography */
+  --kumo-strong: #FFFFFF;
+  --kumo-default: #E5E5E5;
+  --kumo-subtle: #8E8E93;
+  --kumo-muted: #52525B;
+  
+  /* Borders */
+  --kumo-hairline: #1E1E1E;
+  --kumo-line: #262626;
+  --kumo-danger: #F87171;
+  --kumo-danger-tint: #2B1111;
+
+  /* Cloudflare Action Blue (Primary Buttons) */
+  --cf-blue: #0066FF;
+  --cf-blue-hover: #0052CC;
+  --kumo-button-emphasis-bg: #0066FF;
+  --kumo-button-emphasis-ring: #0066FF;
+
+  /* Cloudflare Brand Colors */
+  --cf-orange: #FF6600;
+  --cf-orange-brand: #F6821F;
+  --cf-orange-hover: #FF7A1A;
+  --cf-amber: #FBBF24;
+  --cf-orange-tint: #2A1205;
+  --cf-orange-border: #5C280B;
+  --cf-chart-blue: #3B82F6;
+  --cf-success: #34D399;
+  --cf-sidebar-active: #1C1C1E;
+  --cf-banner-outer-bg: #080808;
+  --cf-banner-outer-border: #1A1A1A;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+html[data-mode="light"],
+[data-mode="light"] {
+  color-scheme: light;
+  
+  /* EmitMail Surfaces (Light Mode) */
+  --kumo-canvas: #FBFBFB;
+  --kumo-base: #FFFFFF;
+  --kumo-elevated: #F4F4F5;
+  --kumo-recessed: #F2F2F2;
+  --kumo-tint: #F5F5F5;
+  --kumo-control: #FFFFFF;
+  --kumo-interact: #E4E4E7;
+  
+  /* Typography (Light Mode) */
+  --kumo-strong: #111111;
+  --kumo-default: #1F1F1F;
+  --kumo-subtle: #686868;
+  --kumo-muted: #9CA3AF;
+  
+  /* Borders (Light Mode) */
+  --kumo-hairline: #E5E5E5;
+  --kumo-line: #D4D4D8;
+  --kumo-danger: #DC2626;
+  --kumo-danger-tint: #FEF2F2;
+
+  /* Cloudflare Action Blue (Primary Buttons) */
+  --cf-blue: #0051C3;
+  --cf-blue-hover: #0043A6;
+  --kumo-button-emphasis-bg: #0051C3;
+  --kumo-button-emphasis-ring: #0051C3;
+
+  /* Cloudflare Brand Colors */
+  --cf-orange: #FF6600;
+  --cf-orange-brand: #F6821F;
+  --cf-orange-hover: #E65C00;
+  --cf-amber: #FBAD41;
+  --cf-orange-tint: #FFF3EB;
+  --cf-orange-border: #FFD4B8;
+  --cf-chart-blue: #0051C3;
+  --cf-success: #059669;
+  --cf-sidebar-active: #EFEFEF;
+  --cf-banner-outer-bg: #F7F7F7;
+  --cf-banner-outer-border: #E5E5E5;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+html[data-mode="dark"],
+[data-mode="dark"] {
+  color-scheme: dark;
+  
+  /* EmitMail Surfaces (Dark Mode - Pitch Black & Charcoal) */
+  --kumo-canvas: #050505;
+  --kumo-base: #0C0C0C;
+  --kumo-elevated: #141414;
+  --kumo-recessed: #080808;
+  --kumo-tint: #161616;
+  --kumo-control: #0F0F0F;
+  --kumo-interact: #262626;
+  
+  /* Typography (Dark Mode) */
+  --kumo-strong: #FFFFFF;
+  --kumo-default: #E5E5E5;
+  --kumo-subtle: #8E8E93;
+  --kumo-muted: #52525B;
+  
+  /* Borders (Dark Mode) */
+  --kumo-hairline: #1E1E1E;
+  --kumo-line: #262626;
+  --kumo-danger: #F87171;
+  --kumo-danger-tint: #2B1111;
+
+  /* Cloudflare Action Blue (Primary Buttons) */
+  --cf-blue: #0066FF;
+  --cf-blue-hover: #0052CC;
+  --kumo-button-emphasis-bg: #0066FF;
+  --kumo-button-emphasis-ring: #0066FF;
+
+  /* Cloudflare Brand Colors */
+  --cf-orange: #FF6600;
+  --cf-orange-brand: #F6821F;
+  --cf-orange-hover: #FF7A1A;
+  --cf-amber: #FBBF24;
+  --cf-orange-tint: #2A1205;
+  --cf-orange-border: #5C280B;
+  --cf-chart-blue: #3B82F6;
+  --cf-success: #34D399;
+  --cf-sidebar-active: #1C1C1E;
+  --cf-banner-outer-bg: #080808;
+  --cf-banner-outer-border: #1A1A1A;
+}
+
+@layer base {
+  html, body {
+    @apply bg-kumo-canvas text-kumo-default antialiased selection:bg-[#0066FF]/20 selection:text-[#0066FF];
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+.font-logo {
+  font-family: var(--font-bricolage), system-ui, sans-serif;
+}
+
+/* Explicit Cloudflare Button System */
+.btn-cf-primary {
+  background-color: #0066FF !important;
+  color: #FFFFFF !important;
+  font-weight: 500 !important;
+  border: 1px solid transparent !important;
+  border-radius: 0.375rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.375rem !important;
+  padding: 0.45rem 0.95rem !important;
+  font-size: 0.8125rem !important;
+  line-height: 1.125rem !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.25) !important;
+  transition: all 120ms ease !important;
+  cursor: pointer !important;
+  user-select: none !important;
+}
+.btn-cf-primary:hover {
+  background-color: #0052CC !important;
+}
+html[data-mode="light"] .btn-cf-primary {
+  background-color: #0051C3 !important;
+}
+html[data-mode="light"] .btn-cf-primary:hover {
+  background-color: #0043A6 !important;
+}
+
+.btn-cf-secondary {
+  background-color: #141414 !important;
+  color: #FFFFFF !important;
+  border: 1px solid #2B2B2B !important;
+  font-weight: 500 !important;
+  border-radius: 0.375rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.375rem !important;
+  padding: 0.45rem 0.95rem !important;
+  font-size: 0.8125rem !important;
+  line-height: 1.125rem !important;
+  transition: all 120ms ease !important;
+  cursor: pointer !important;
+  user-select: none !important;
+}
+.btn-cf-secondary:hover {
+  background-color: #1E1E22 !important;
+  border-color: #3E3E3E !important;
+}
+html[data-mode="light"] .btn-cf-secondary {
+  background-color: #FFFFFF !important;
+  color: #111111 !important;
+  border: 1px solid #D4D4D8 !important;
+}
+html[data-mode="light"] .btn-cf-secondary:hover {
+  background-color: #F4F4F5 !important;
+  border-color: #A1A1AA !important;
 }
