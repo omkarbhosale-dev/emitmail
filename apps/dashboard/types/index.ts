@@ -1,5 +1,35 @@
 export type NavTab = "home" | "domains" | "emails" | "api-keys" | "webhooks" | "settings";
 
+export interface DnsRecordItem {
+  fqdn: string;
+  host: string;
+  type: "TXT" | "MX" | "CNAME" | "A";
+  value: string;
+  status: "VERIFIED" | "PENDING" | "FAILED";
+  priority?: number;
+  reason?: string;
+  foundValues?: string[];
+  lastCheckedAt?: string;
+}
+
+export interface ApiDomain {
+  id: string;
+  domainName: string;
+  status: "PENDING" | "VERIFIED" | "FAILED";
+  dkimSelector: string;
+  dkimPublicKey: string;
+  returnPathSubdomain: string;
+  dmarcPolicy: string;
+  dnsRecords: DnsRecordItem[];
+  dkimVerified: boolean;
+  spfVerified: boolean;
+  mxVerified: boolean;
+  dmarcVerified: boolean;
+  lastVerifiedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface DomainItem {
   id: string;
   name: string;

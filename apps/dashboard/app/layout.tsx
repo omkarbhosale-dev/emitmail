@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Bricolage_Grotesque, Inter } from "next/font/google";
 import "./globals.css";
+import { AppShell } from "@/components/layout/AppShell";
 
 const bricolage = Bricolage_Grotesque({
   subsets: ["latin"],
@@ -49,7 +50,9 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col antialiased bg-kumo-canvas text-kumo-default font-sans">
-        {children}
+        <AppShell>
+          {children}
+        </AppShell>
       </body>
     </html>
   );

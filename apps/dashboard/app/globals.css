@@ -1,8 +1,4 @@
 @import "tailwindcss";
-@import "@cloudflare/kumo/styles/tailwind";
-
-/* Scan Kumo compiled components for Tailwind v4 utilities */
-@source "../node_modules/@cloudflare/kumo/dist/**/*.{js,jsx,ts,tsx}";
 
 @theme {
   --font-bricolage: var(--font-bricolage);
@@ -39,6 +35,11 @@
   --color-cf-orange-border: var(--cf-orange-border);
   --color-cf-chart-blue: var(--cf-chart-blue);
   --color-cf-success: var(--cf-success);
+
+  @keyframes skeleton {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
 }
 
 :root {

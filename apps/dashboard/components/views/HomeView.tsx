@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   MagnifyingGlass,
   PaperPlaneTilt,
@@ -13,11 +15,12 @@ import {
   CheckCircle,
 } from "@phosphor-icons/react";
 import { NavTab } from "@/types";
+import { useModals } from "@/components/layout/AppShell";
 
 interface HomeViewProps {
-  onNavigateTab: (tab: NavTab) => void;
-  onOpenCommandPalette: () => void;
-  onTriggerSendTestEmail: () => void;
+  onNavigateTab?: (tab: NavTab) => void;
+  onOpenCommandPalette?: () => void;
+  onTriggerSendTestEmail?: () => void;
 }
 
 export function HomeView({
@@ -25,8 +28,34 @@ export function HomeView({
   onOpenCommandPalette,
   onTriggerSendTestEmail,
 }: HomeViewProps) {
+  const router = useRouter();
+  const modals = useModals();
   const [timeframe, setTimeframe] = useState("Last 24 hours");
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleNavigate = (tab: NavTab) => {
+    if (onNavigateTab) {
+      onNavigateTab(tab);
+    } else {
+      router.push(tab === "home" ? "/" : `/${tab}`);
+    }
+  };
+
+  const handleOpenSearch = () => {
+    if (onOpenCommandPalette) {
+      onOpenCommandPalette();
+    } else {
+      modals.openCommandPalette();
+    }
+  };
+
+  const handleSendTestEmail = () => {
+    if (onTriggerSendTestEmail) {
+      onTriggerSendTestEmail();
+    } else {
+      modals.openSendTestEmail();
+    }
+  };
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -102,7 +131,7 @@ export function HomeView({
 
         {/* Centered Global Command Search Bar */}
         <div
-          onClick={onOpenCommandPalette}
+          onClick={handleOpenSearch}
           className="max-w-2xl mx-auto w-full bg-kumo-control border border-kumo-line rounded-full px-4 py-2.5 flex items-center justify-between focus-within:border-cf-orange hover:border-cf-orange/50 transition-all cursor-pointer shadow-2xs group"
         >
           <div className="flex items-center gap-2.5 text-xs text-kumo-subtle group-hover:text-kumo-strong">
@@ -127,7 +156,7 @@ export function HomeView({
               <div className="flex items-center justify-between text-xs font-semibold text-kumo-subtle mb-3">
                 <span className="uppercase tracking-wider text-[10px]">Domains</span>
                 <button
-                  onClick={() => onNavigateTab("domains")}
+                  onClick={() => handleNavigate("domains")}
                   className="hover:text-cf-orange flex items-center gap-0.5 text-kumo-subtle transition-colors"
                 >
                   <span>View all</span>
@@ -136,7 +165,7 @@ export function HomeView({
               </div>
               <ul className="space-y-1.5">
                 <li
-                  onClick={() => onNavigateTab("domains")}
+                  onClick={() => handleNavigate("domains")}
                   className="flex items-center justify-between p-1.5 rounded-lg hover:bg-kumo-tint cursor-pointer transition-colors group"
                 >
                   <div className="flex items-center gap-2 text-xs font-medium text-kumo-strong">
@@ -146,7 +175,7 @@ export function HomeView({
                   <span className="w-2 h-2 rounded-full bg-cf-success" title="Verified" />
                 </li>
                 <li
-                  onClick={() => onNavigateTab("domains")}
+                  onClick={() => handleNavigate("domains")}
                   className="flex items-center justify-between p-1.5 rounded-lg hover:bg-kumo-tint cursor-pointer transition-colors group"
                 >
                   <div className="flex items-center gap-2 text-xs font-medium text-kumo-strong">
@@ -156,7 +185,7 @@ export function HomeView({
                   <span className="w-2 h-2 rounded-full bg-cf-success" title="Verified" />
                 </li>
                 <li
-                  onClick={() => onNavigateTab("domains")}
+                  onClick={() => handleNavigate("domains")}
                   className="flex items-center justify-between p-1.5 rounded-lg hover:bg-kumo-tint cursor-pointer transition-colors group"
                 >
                   <div className="flex items-center gap-2 text-xs font-medium text-kumo-subtle">
@@ -167,12 +196,12 @@ export function HomeView({
                 </li>
               </ul>
             </div>
-            <button
-              onClick={() => onNavigateTab("domains")}
-              className="mt-3 w-full py-1.5 rounded-lg bg-kumo-elevated hover:bg-kumo-interact border border-kumo-hairline text-center text-xs font-medium text-kumo-default transition-colors"
+            <Link
+              href="/domains/add"
+              className="mt-3 w-full py-1.5 rounded-lg bg-kumo-elevated hover:bg-kumo-interact border border-kumo-hairline text-center text-xs font-medium text-kumo-default transition-colors block"
             >
               + Add Domain
-            </button>
+            </Link>
           </div>
 
           {/* Column 2: Quick Action / Workers */}
@@ -187,7 +216,7 @@ export function HomeView({
               </p>
             </div>
             <button
-              onClick={onTriggerSendTestEmail}
+              onClick={handleSendTestEmail}
               className="w-full bg-kumo-elevated hover:bg-kumo-interact border border-kumo-hairline hover:border-cf-blue/40 rounded-xl p-3 flex items-center justify-center gap-2 text-xs font-semibold text-kumo-strong transition-all group cursor-pointer shadow-2xs"
             >
               <PaperPlaneTilt
@@ -207,7 +236,7 @@ export function HomeView({
               </div>
               <div className="divide-y divide-kumo-hairline text-xs">
                 <button
-                  onClick={() => onNavigateTab("domains")}
+                  onClick={() => handleNavigate("domains")}
                   className="w-full py-2 flex items-center justify-between text-left hover:bg-kumo-tint px-1 rounded transition-colors group"
                 >
                   <span className="text-kumo-subtle truncate">
@@ -216,7 +245,7 @@ export function HomeView({
                   <CaretRight size={12} className="text-kumo-muted group-hover:text-kumo-strong shrink-0" />
                 </button>
                 <button
-                  onClick={() => onNavigateTab("api-keys")}
+                  onClick={() => handleNavigate("api-keys")}
                   className="w-full py-2 flex items-center justify-between text-left hover:bg-kumo-tint px-1 rounded transition-colors group"
                 >
                   <span className="text-kumo-subtle truncate">
@@ -225,7 +254,7 @@ export function HomeView({
                   <CaretRight size={12} className="text-kumo-muted group-hover:text-kumo-strong shrink-0" />
                 </button>
                 <button
-                  onClick={() => onNavigateTab("webhooks")}
+                  onClick={() => handleNavigate("webhooks")}
                   className="w-full py-2 flex items-center justify-between text-left hover:bg-kumo-tint px-1 rounded transition-colors group"
                 >
                   <span className="text-kumo-subtle truncate">

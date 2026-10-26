@@ -17,6 +17,7 @@ import { ProcessedEmailItem } from "@/types";
 import { useToast } from "@/components/ui/Toast";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { TableSkeleton } from "@/components/ui/Skeleton";
+import { useModals } from "@/components/layout/AppShell";
 
 const INITIAL_EMAILS: ProcessedEmailItem[] = [
   {
@@ -112,11 +113,21 @@ const INITIAL_EMAILS: ProcessedEmailItem[] = [
 ];
 
 interface EmailsViewProps {
-  onTriggerSendEmail: () => void;
+  onTriggerSendEmail?: () => void;
 }
 
-export function EmailsView({ onTriggerSendEmail }: EmailsViewProps) {
+export function EmailsView({ onTriggerSendEmail }: EmailsViewProps = {}) {
   const { toast } = useToast();
+  const modals = useModals();
+
+  const handleSendEmail = () => {
+    if (onTriggerSendEmail) {
+      onTriggerSendEmail();
+    } else {
+      modals.openSendTestEmail();
+    }
+  };
+
   const [emails, setEmails] = useState<ProcessedEmailItem[]>(INITIAL_EMAILS);
   const [statusFilter, setStatusFilter] = useState<"all" | "delivered" | "queued" | "bounced">("all");
   const [domainFilter, setDomainFilter] = useState("all");
@@ -191,7 +202,7 @@ export function EmailsView({ onTriggerSendEmail }: EmailsViewProps) {
           {/* Cloudflare Action Blue Button */}
           <button
             type="button"
-            onClick={onTriggerSendEmail}
+            onClick={handleSendEmail}
             className="btn-cf-primary"
           >
             <PaperPlaneTilt size={15} weight="bold" />

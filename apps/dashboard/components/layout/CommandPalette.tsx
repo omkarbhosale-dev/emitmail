@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import {
   MagnifyingGlass,
   House,
@@ -18,7 +19,7 @@ import { NavTab } from "@/types";
 interface CommandPaletteProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelectTab: (tab: NavTab) => void;
+  onSelectTab?: (tab: NavTab) => void;
   onTriggerSendTestEmail: () => void;
 }
 
@@ -28,6 +29,7 @@ export function CommandPalette({
   onSelectTab,
   onTriggerSendTestEmail,
 }: CommandPaletteProps) {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -80,8 +82,9 @@ export function CommandPalette({
       category: "Navigation",
       icon: House,
       action: () => {
-        onSelectTab("home");
+        router.push("/");
         onClose();
+        onSelectTab?.("home");
       },
     },
     {
@@ -90,8 +93,9 @@ export function CommandPalette({
       category: "Navigation",
       icon: Globe,
       action: () => {
-        onSelectTab("domains");
+        router.push("/domains");
         onClose();
+        onSelectTab?.("domains");
       },
     },
     {
@@ -100,8 +104,9 @@ export function CommandPalette({
       category: "Navigation",
       icon: EnvelopeSimple,
       action: () => {
-        onSelectTab("emails");
+        router.push("/emails");
         onClose();
+        onSelectTab?.("emails");
       },
     },
     {
@@ -110,8 +115,9 @@ export function CommandPalette({
       category: "Navigation",
       icon: Key,
       action: () => {
-        onSelectTab("api-keys");
+        router.push("/api-keys");
         onClose();
+        onSelectTab?.("api-keys");
       },
     },
     {
@@ -120,8 +126,9 @@ export function CommandPalette({
       category: "Navigation",
       icon: PlugsConnected,
       action: () => {
-        onSelectTab("webhooks");
+        router.push("/webhooks");
         onClose();
+        onSelectTab?.("webhooks");
       },
     },
     {
@@ -130,8 +137,9 @@ export function CommandPalette({
       category: "Navigation",
       icon: Gear,
       action: () => {
-        onSelectTab("settings");
+        router.push("/settings");
         onClose();
+        onSelectTab?.("settings");
       },
     },
   ];

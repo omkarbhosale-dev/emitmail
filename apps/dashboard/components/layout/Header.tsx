@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   List,
   Sun,
@@ -65,11 +66,11 @@ export function Header({
         </button>
 
         {/* Clean Typography Brand Logo */}
-        <div className="flex items-center cursor-pointer select-none">
+        <Link href="/" className="flex items-center cursor-pointer select-none">
           <span className="font-logo font-extrabold tracking-tight text-xl sm:text-2xl text-cf-orange leading-none">
             emitmail
           </span>
-        </div>
+        </Link>
       </div>
 
       {/* Right Cluster: Quick Search Mobile + Docs/AI + Theme Toggle + Avatar */}

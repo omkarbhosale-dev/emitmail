@@ -1,6 +1,8 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   House,
   Globe,
@@ -17,8 +19,8 @@ import { NavTab } from "@/types";
 import { cn } from "@/lib/utils";
 
 interface SidebarProps {
-  currentTab: NavTab;
-  onSelectTab: (tab: NavTab) => void;
+  currentTab?: NavTab;
+  onSelectTab?: (tab: NavTab) => void;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
   isMobileOpen: boolean;
@@ -29,20 +31,21 @@ interface SidebarProps {
 interface NavItemConfig {
   id: NavTab;
   label: string;
+  href: string;
   icon: React.ComponentType<{ size?: number; weight?: "regular" | "bold" | "fill"; className?: string }>;
   badge?: string;
 }
 
 const TOP_NAV_ITEMS: NavItemConfig[] = [
-  { id: "home", label: "Home", icon: House },
-  { id: "domains", label: "Domains", icon: Globe },
-  { id: "emails", label: "Emails", icon: EnvelopeSimple },
-  { id: "api-keys", label: "API Key", icon: Key },
-  { id: "webhooks", label: "Webhook", icon: PlugsConnected, badge: "Live" },
+  { id: "home", label: "Home", href: "/", icon: House },
+  { id: "domains", label: "Domains", href: "/domains", icon: Globe },
+  { id: "emails", label: "Emails", href: "/emails", icon: EnvelopeSimple },
+  { id: "api-keys", label: "API Key", href: "/api-keys", icon: Key },
+  { id: "webhooks", label: "Webhook", href: "/webhooks", icon: PlugsConnected, badge: "Live" },
 ];
 
 const BOTTOM_NAV_ITEMS: NavItemConfig[] = [
-  { id: "settings", label: "Settings", icon: Gear },
+  { id: "settings", label: "Settings", href: "/settings", icon: Gear },
 ];
 
 export function Sidebar({
@@ -54,8 +57,21 @@ export function Sidebar({
   onCloseMobile,
   onOpenCommandPalette,
 }: SidebarProps) {
+  const pathname = usePathname();
+
+  const getActiveTab = (path: string): NavTab => {
+    if (path.startsWith("/domains")) return "domains";
+    if (path.startsWith("/emails")) return "emails";
+    if (path.startsWith("/api-keys")) return "api-keys";
+    if (path.startsWith("/webhooks")) return "webhooks";
+    if (path.startsWith("/settings")) return "settings";
+    return "home";
+  };
+
+  const activeTab = currentTab ?? getActiveTab(pathname || "/");
+
   const handleItemClick = (tab: NavTab) => {
-    onSelectTab(tab);
+    if (onSelectTab) onSelectTab(tab);
     onCloseMobile();
   };
 
@@ -63,11 +79,12 @@ export function Sidebar({
     <ul className="space-y-1">
       {items.map((item) => {
         const IconComponent = item.icon;
-        const isActive = currentTab === item.id;
+        const isActive = activeTab === item.id;
 
         return (
           <li key={item.id}>
-            <button
+            <Link
+              href={item.href}
               onClick={() => handleItemClick(item.id)}
               title={item.label}
               className={cn(
@@ -104,7 +121,7 @@ export function Sidebar({
                   {item.badge}
                 </span>
               )}
-            </button>
+            </Link>
           </li>
         );
       })}
@@ -144,7 +161,8 @@ export function Sidebar({
 
           {/* Domain Selector above search bar */}
           <div className="mb-2">
-            <button
+            <Link
+              href="/domains"
               onClick={() => handleItemClick("domains")}
               className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg bg-kumo-control hover:bg-kumo-elevated border border-kumo-line text-xs font-medium text-kumo-strong transition-colors"
               title="Active domain: omkarbhosale.dev"
@@ -158,7 +176,7 @@ export function Sidebar({
                 </span>
               </div>
               <CaretUpDown size={14} className="text-kumo-subtle shrink-0" />
-            </button>
+            </Link>
           </div>
 
           {/* Quick Search */}
@@ -199,18 +217,20 @@ export function Sidebar({
         <div className="space-y-2.5 flex-1 min-h-0 overflow-y-auto">
           {/* Domain Selector above search bar */}
           {isCollapsed ? (
-            <button
-              onClick={() => onSelectTab("domains")}
+            <Link
+              href="/domains"
+              onClick={() => onSelectTab?.("domains")}
               title="Domain: omkarbhosale.dev"
               className="w-full h-9 flex items-center justify-center rounded-lg bg-kumo-control hover:bg-kumo-elevated border border-kumo-line text-xs font-bold text-cf-orange transition-colors"
             >
               <span className="w-6 h-6 rounded-md bg-cf-orange/15 flex items-center justify-center">
                 O
               </span>
-            </button>
+            </Link>
           ) : (
-            <button
-              onClick={() => onSelectTab("domains")}
+            <Link
+              href="/domains"
+              onClick={() => onSelectTab?.("domains")}
               className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-kumo-control hover:bg-kumo-elevated border border-kumo-line text-xs font-medium text-kumo-strong transition-colors group cursor-pointer"
               title="Active domain: omkarbhosale.dev"
             >
@@ -223,7 +243,7 @@ export function Sidebar({
                 </span>
               </div>
               <CaretUpDown size={14} className="text-kumo-subtle shrink-0 group-hover:text-kumo-strong" />
-            </button>
+            </Link>
           )}
 
           {/* Quick Search Button */}
