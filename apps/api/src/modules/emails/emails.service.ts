@@ -4,6 +4,7 @@ import { enqueueEmailDispatch } from '../../queues/emailDispatch.queue.js';
 import { SendEmailInput } from './emails.schema.js';
 import { SuppressionsService } from '../suppressions/suppressions.service.js';
 import { generateUnsubscribeToken } from '../../utils/crypto.js';
+import { formatFromHeader } from '../../utils/formatFrom.js';
 import { Domain, DomainStatus, EmailStatus, Prisma } from '@prisma/client';
 import crypto from 'node:crypto';
 
@@ -107,7 +108,31 @@ export class EmailsService {
     let listUnsubscribeMetadata: any = undefined;
     const mergedHeaders: Record<string, string> = { ...((input.headers as Record<string, string>) || {}) };
 
-    if (rawListUnsub || unsubMode === 'one-click') {
+    // Strip bot fingerprints or internal headers if caller passed them
+    for (const key of Object.keys(mergedHeaders)) {
+      const lower = key.toLowerCase();
+      if (lower === 'x-mailer' || lower === 'x-priority') {
+        delete mergedHeaders[key];
+      }
+    }
+
+    let unsubHttpsUrl: string | null = null;
+    let unsubMailto: string | null = null;
+
+    if (rawListUnsub) {
+      if (typeof rawListUnsub === 'string' && rawListUnsub.startsWith('https://')) {
+        unsubHttpsUrl = rawListUnsub;
+      } else if (typeof rawListUnsub === 'object' && rawListUnsub !== null) {
+        if (typeof rawListUnsub.url === 'string' && rawListUnsub.url.startsWith('https://')) {
+          unsubHttpsUrl = rawListUnsub.url;
+        }
+        if (typeof rawListUnsub.email === 'string' && rawListUnsub.email.includes('@')) {
+          unsubMailto = rawListUnsub.email;
+        }
+      }
+    }
+
+    if (!unsubHttpsUrl && unsubMode === 'one-click') {
       const primaryRecipient = activeToRecipients[0] || rawToRecipients[0];
       const unsubToken = generateUnsubscribeToken({
         domainId: targetDomain.id,
@@ -116,22 +141,31 @@ export class EmailsService {
       });
 
       const apiBase = env.NEXT_PUBLIC_API_URL.replace(/\/api\/v1\/?$/, '');
-      const defaultHttpsUrl = `${apiBase}/api/v1/unsubscribe/one-click/${unsubToken}`;
-      const defaultMailto = `unsubscribe@${targetDomain.domainName}`;
+      unsubHttpsUrl = `${apiBase}/api/v1/unsubscribe/one-click/${unsubToken}`;
+      unsubMailto = `unsubscribe@${targetDomain.domainName}`;
+    }
 
-      const httpsUrl = rawListUnsub?.url || defaultHttpsUrl;
-      const mailtoAddr = rawListUnsub?.email || defaultMailto;
-
-      mergedHeaders['List-Unsubscribe'] = `<${httpsUrl}>, <mailto:${mailtoAddr}?subject=unsubscribe>`;
+    if (unsubHttpsUrl) {
+      const mailtoTarget = unsubMailto || `unsubscribe@${targetDomain.domainName}`;
+      mergedHeaders['List-Unsubscribe'] = `<${unsubHttpsUrl}>, <mailto:${mailtoTarget}?subject=unsubscribe>`;
       mergedHeaders['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click';
 
       listUnsubscribeMetadata = {
-        url: httpsUrl,
-        email: mailtoAddr,
+        url: unsubHttpsUrl,
+        email: mailtoTarget,
         mode: unsubMode || 'one-click',
-        token: unsubToken,
       } as Prisma.InputJsonObject;
+    } else {
+      // For standard transactional emails without explicit https unsubscribe URL, do not include unsubscribe headers
+      delete mergedHeaders['List-Unsubscribe'];
+      delete mergedHeaders['list-unsubscribe'];
+      delete mergedHeaders['List-Unsubscribe-Post'];
+      delete mergedHeaders['list-unsubscribe-post'];
     }
+
+    // Ensure "From" header always includes an RFC-5322 display name
+    const rawFromName = (input as any).fromName || (input as any).from_name || (input as any).name;
+    const formattedFrom = formatFromHeader(input.from, rawFromName);
 
     // 6. Create Email record in database
     const emailStatus = isCompletelySuppressed ? EmailStatus.SUPPRESSED : EmailStatus.QUEUED;
@@ -140,7 +174,7 @@ export class EmailsService {
       data: {
         id: generatedId,
         domainId: targetDomain.id,
-        from: input.from,
+        from: formattedFrom,
         to: isCompletelySuppressed ? rawToRecipients : activeToRecipients,
         subject: input.subject,
         htmlContent: input.html || null,
