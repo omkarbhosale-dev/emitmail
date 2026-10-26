@@ -23,19 +23,41 @@ export class ServerConfigService {
     });
 
     if (!config) {
+      const activeHostname =
+        env.SMTP_EHLO_HOSTNAME && env.SMTP_EHLO_HOSTNAME !== 'mail.yourdomain.com'
+          ? env.SMTP_EHLO_HOSTNAME
+          : env.MAIL_SERVER_HOSTNAME;
+
       const isCustomConfigured =
-        env.MAIL_SERVER_HOSTNAME !== 'mail.yourdomain.com' &&
-        env.MAIL_SERVER_HOSTNAME.includes('.');
+        activeHostname !== 'mail.yourdomain.com' &&
+        activeHostname.includes('.');
 
       config = await prisma.serverConfig.create({
         data: {
           id: 'master',
-          mailServerHostname: env.MAIL_SERVER_HOSTNAME,
+          mailServerHostname: activeHostname,
           spfIncludeDomain: env.SPF_INCLUDE_DOMAIN,
-          vpsPublicIpv4: env.VPS_PUBLIC_IPV4,
+          vpsPublicIpv4: env.SENDING_SERVER_IP || env.VPS_PUBLIC_IPV4,
           isConfigured: isCustomConfigured,
         },
       });
+    } else if (
+      (config.mailServerHostname === 'mail.yourdomain.com' || config.mailServerHostname === 'localhost') &&
+      env.SMTP_EHLO_HOSTNAME !== 'mail.yourdomain.com'
+    ) {
+      // Auto-heal legacy database rows initialized with placeholder values
+      config = await prisma.serverConfig.update({
+        where: { id: 'master' },
+        data: {
+          mailServerHostname: env.SMTP_EHLO_HOSTNAME,
+          vpsPublicIpv4:
+            env.SENDING_SERVER_IP && env.SENDING_SERVER_IP !== '0.0.0.0'
+              ? env.SENDING_SERVER_IP
+              : config.vpsPublicIpv4,
+          isConfigured: true,
+        },
+      });
+      console.log(`🔧 [ServerConfig] Auto-healed placeholder hostname to "${env.SMTP_EHLO_HOSTNAME}".`);
     }
 
     return config;

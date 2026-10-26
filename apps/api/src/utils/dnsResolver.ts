@@ -86,15 +86,22 @@ export const verifyDomainDns = async (params: {
   returnPathSubdomain: string;
   mailServerHostname?: string;
   spfIncludeDomain?: string;
+  sendingServerIp?: string;
   existingDnsRecords?: DnsRecordDefinition[];
 }): Promise<VerificationResult> => {
+  const isPlaceholder = (h?: string | null) =>
+    !h || h === 'mail.yourdomain.com' || h === 'mail.example.com' || h === 'localhost';
+
   const {
     domainName,
     dkimSelector,
     dkimPublicKey,
     returnPathSubdomain,
-    mailServerHostname = env.MAIL_SERVER_HOSTNAME,
+    mailServerHostname = (process.env.SMTP_EHLO_HOSTNAME && !isPlaceholder(process.env.SMTP_EHLO_HOSTNAME))
+      ? process.env.SMTP_EHLO_HOSTNAME
+      : (!isPlaceholder(env.SMTP_EHLO_HOSTNAME) ? env.SMTP_EHLO_HOSTNAME : `mail.${domainName}`),
     spfIncludeDomain = env.SPF_INCLUDE_DOMAIN,
+    sendingServerIp = process.env.SENDING_SERVER_IP || (env.SENDING_SERVER_IP !== '0.0.0.0' ? env.SENDING_SERVER_IP : ''),
   } = params;
 
   const resolver = createPublicDnsResolver();
@@ -130,6 +137,8 @@ export const verifyDomainDns = async (params: {
   const matchingSpf = allSpfTxts.find((txt) => {
     const lower = txt.trim().toLowerCase();
     if (!lower.startsWith('v=spf1')) return false;
+    // Check if sending server IP is explicitly authorized
+    if (sendingServerIp && lower.includes(`ip4:${sendingServerIp}`)) return true;
     // If expectedSpfInclude is defined and realistic, check for it
     if (expectedSpfInclude && lower.includes(expectedSpfInclude)) return true;
     // Otherwise accept valid SPF record with includes, ip4, mx, or fallback qualifiers
@@ -137,6 +146,7 @@ export const verifyDomainDns = async (params: {
       lower.includes('include:') ||
       lower.includes('ip4:') ||
       lower.includes('mx') ||
+      lower.includes('a') ||
       lower.includes('~all') ||
       lower.includes('-all') ||
       lower.includes('+all')
@@ -176,7 +186,7 @@ export const verifyDomainDns = async (params: {
   );
   const dmarcVerified = Boolean(matchingDmarc);
 
-  // Reconstruct updated DNS records array
+  // Reconstruct updated DNS records array with 10/10 deliverability values
   const updatedRecords: DnsRecordDefinition[] = [
     {
       type: 'TXT',
@@ -196,21 +206,21 @@ export const verifyDomainDns = async (params: {
       type: 'TXT',
       host: returnPathSubdomain,
       fqdn: spfFqdn,
-      value: `v=spf1 include:${spfIncludeDomain || '_spf.' + domainName} ~all`,
+      value: sendingServerIp ? `v=spf1 ip4:${sendingServerIp} a mx ~all` : 'v=spf1 a mx ~all',
       status: spfVerified ? 'VERIFIED' : 'FAILED',
       foundValues: allSpfTxts,
       reason: spfVerified
-        ? 'SPF record verified (apex or return-path authorized)'
+        ? 'SPF record verified (return-path / apex authorized)'
         : allSpfTxts.length === 0
-        ? 'No SPF TXT record found on apex or return-path host'
-        : 'Record must start with v=spf1 and authorize sender',
+        ? 'No SPF TXT record found on return-path host or apex'
+        : 'Record must start with v=spf1 and authorize sender IP',
       lastCheckedAt: checkedAt,
     },
     {
       type: 'MX',
       host: returnPathSubdomain,
       fqdn: spfFqdn,
-      value: mailServerHostname || `mail.${domainName}`,
+      value: mailServerHostname,
       priority: 10,
       status: mxVerified ? 'VERIFIED' : 'FAILED',
       foundValues: allMxRecords.map((m) => `${m.priority} ${m.exchange}`),
@@ -225,7 +235,7 @@ export const verifyDomainDns = async (params: {
       type: 'TXT',
       host: '_dmarc',
       fqdn: dmarcFqdn,
-      value: 'v=DMARC1; p=none; sp=none; aspf=r; adkim=r;',
+      value: `v=DMARC1; p=none; rua=mailto:dmarc@${domainName}; aspf=r; adkim=r;`,
       status: dmarcVerified ? 'VERIFIED' : 'FAILED',
       foundValues: dmarcTxts,
       reason: dmarcVerified
@@ -237,8 +247,8 @@ export const verifyDomainDns = async (params: {
     },
   ];
 
-  // DKIM is mandatory cryptographic proof; SPF or MX proves domain routing authorization
-  const isAllRequiredVerified = dkimVerified && (spfVerified || mxVerified);
+  // Only mark domain VERIFIED when DKIM, Return-Path SPF, and Return-Path MX all pass
+  const isAllRequiredVerified = dkimVerified && spfVerified && mxVerified;
 
   return {
     dkimVerified,
