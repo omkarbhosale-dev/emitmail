@@ -1,6 +1,7 @@
 import { prisma } from './config/db.js';
 import { env } from './config/env.js';
 import { createEmailDeliveryWorker } from './workers/emailDelivery.worker.js';
+import { runPreflightDeliverabilityCheck } from './utils/deliverabilityCheck.js';
 
 async function startWorker(): Promise<void> {
   console.log('====================================================');
@@ -18,6 +19,29 @@ async function startWorker(): Promise<void> {
   } catch (error) {
     console.error('❌ Failed to connect to PostgreSQL database:', error);
     process.exit(1);
+  }
+
+  // Pre-Flight Deliverability Check for 10/10 inbox placement
+  const isPlaceholder = (h?: string | null) =>
+    !h || h === 'mail.yourdomain.com' || h === 'mail.example.com' || h === 'localhost';
+  const serverConfig = await prisma.serverConfig.findUnique({ where: { id: 'master' } }).catch(() => null);
+  const activeEhloHostname =
+    (process.env.SMTP_EHLO_HOSTNAME && !isPlaceholder(process.env.SMTP_EHLO_HOSTNAME))
+      ? process.env.SMTP_EHLO_HOSTNAME
+      : (env.SMTP_EHLO_HOSTNAME && !isPlaceholder(env.SMTP_EHLO_HOSTNAME))
+        ? env.SMTP_EHLO_HOSTNAME
+        : (!isPlaceholder(serverConfig?.mailServerHostname)
+            ? serverConfig!.mailServerHostname
+            : 'mail.example.com');
+  const activeSendingIp =
+    process.env.SENDING_SERVER_IP ||
+    (env.SENDING_SERVER_IP && env.SENDING_SERVER_IP !== '0.0.0.0' ? env.SENDING_SERVER_IP : '') ||
+    (serverConfig?.vpsPublicIpv4 && serverConfig.vpsPublicIpv4 !== '0.0.0.0' ? serverConfig.vpsPublicIpv4 : '0.0.0.0');
+
+  if (!isPlaceholder(activeEhloHostname) && activeSendingIp && activeSendingIp !== '0.0.0.0') {
+    await runPreflightDeliverabilityCheck(activeEhloHostname, activeSendingIp).catch((err) => {
+      console.warn('⚠️ Could not complete preflight deliverability check:', err.message);
+    });
   }
 
   const deliveryWorker = createEmailDeliveryWorker();
