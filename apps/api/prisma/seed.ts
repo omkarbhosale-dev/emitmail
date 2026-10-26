@@ -33,11 +33,17 @@ export async function ensureServerConfigExists(): Promise<void> {
     where: { id: 'master' },
   });
 
-  if (!existingConfig) {
-    const mailServerHostname = process.env.MAIL_SERVER_HOSTNAME || 'mail.yourdomain.com';
+    const isPlaceholder = (h?: string | null) =>
+      !h || h === 'mail.yourdomain.com' || h === 'mail.example.com' || h === 'localhost';
+    const mailServerHostname =
+      (process.env.SMTP_EHLO_HOSTNAME && !isPlaceholder(process.env.SMTP_EHLO_HOSTNAME))
+        ? process.env.SMTP_EHLO_HOSTNAME
+        : (!isPlaceholder(process.env.MAIL_SERVER_HOSTNAME)
+            ? process.env.MAIL_SERVER_HOSTNAME!
+            : 'mail.yourdomain.com');
     const spfIncludeDomain = process.env.SPF_INCLUDE_DOMAIN || '_spf.yourdomain.com';
-    const vpsPublicIpv4 = process.env.VPS_PUBLIC_IPV4 || '0.0.0.0';
-    const isConfigured = mailServerHostname !== 'mail.yourdomain.com' && mailServerHostname.includes('.');
+    const vpsPublicIpv4 = process.env.SENDING_SERVER_IP || process.env.VPS_PUBLIC_IPV4 || '0.0.0.0';
+    const isConfigured = !isPlaceholder(mailServerHostname) && mailServerHostname.includes('.');
 
     await prisma.serverConfig.create({
       data: {
@@ -50,6 +56,27 @@ export async function ensureServerConfigExists(): Promise<void> {
     });
 
     console.log('✅ Master ServerConfig seeded successfully.');
+  } else if (
+    (existingConfig.mailServerHostname === 'mail.yourdomain.com' ||
+      existingConfig.mailServerHostname === 'mail.example.com' ||
+      existingConfig.mailServerHostname === 'localhost') &&
+    process.env.SMTP_EHLO_HOSTNAME
+  ) {
+    const isPlaceholder = (h?: string | null) =>
+      !h || h === 'mail.yourdomain.com' || h === 'mail.example.com' || h === 'localhost';
+    const activeHost =
+      (process.env.SMTP_EHLO_HOSTNAME && !isPlaceholder(process.env.SMTP_EHLO_HOSTNAME))
+        ? process.env.SMTP_EHLO_HOSTNAME
+        : (process.env.MAIL_SERVER_HOSTNAME || 'mail.yourdomain.com');
+    await prisma.serverConfig.update({
+      where: { id: 'master' },
+      data: {
+        mailServerHostname: activeHost,
+        vpsPublicIpv4: process.env.SENDING_SERVER_IP || process.env.VPS_PUBLIC_IPV4 || existingConfig.vpsPublicIpv4,
+        isConfigured: true,
+      },
+    });
+    console.log(`🔧 Master ServerConfig updated from placeholder to "${activeHost}".`);
   } else {
     console.log('ℹ️ Master ServerConfig already exists.');
   }
