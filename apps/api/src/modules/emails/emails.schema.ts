@@ -12,6 +12,9 @@ export const sendEmailSchema = z
       .string({ required_error: 'Sender "from" address is required' })
       .min(3, 'From address is required')
       .trim(),
+    name: z.string().optional(),
+    fromName: z.string().optional(),
+    from_name: z.string().optional(),
     to: z.union([
       z.string().min(3, 'Invalid email address in "to" field'),
       z.array(z.string().min(3, 'Invalid email address in "to" array')).min(1, 'At least one recipient is required'),
