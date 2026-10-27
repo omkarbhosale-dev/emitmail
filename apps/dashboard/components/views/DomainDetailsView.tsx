@@ -415,7 +415,7 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
               type="button"
               onClick={handleVerifyDns}
               disabled={isVerifying}
-              className="btn-cf-primary text-xs flex items-center gap-1.5"
+              className="h-9 px-3.5 rounded-md bg-[#0066FF] hover:bg-[#0052CC] text-white text-xs font-medium inline-flex items-center justify-center gap-1.5 shadow-sm transition-all duration-120 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed select-none"
             >
               <ArrowsClockwise
                 size={14}
@@ -428,11 +428,11 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
               type="button"
               onClick={handleDeleteDomain}
               disabled={isDeleting}
-              className="btn-cf-secondary text-xs text-kumo-danger hover:bg-kumo-danger-tint hover:border-kumo-danger/40 flex items-center gap-1.5"
+              className="h-9 px-3.5 rounded-md bg-red-600 hover:bg-red-700 active:bg-red-800 text-white text-xs font-medium inline-flex items-center justify-center gap-1.5 border border-red-500/40 shadow-sm transition-all duration-120 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed select-none"
               title="Delete Domain"
             >
               <Trash size={14} />
-              <span>Delete</span>
+              <span>{isDeleting ? "Deleting..." : "Delete"}</span>
             </button>
           </div>
         </div>
