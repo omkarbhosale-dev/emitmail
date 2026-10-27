@@ -251,9 +251,6 @@ export function DomainsView() {
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-kumo-strong">
               Domains
             </h1>
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[#1C1C1E] border border-[#2B2B2B] text-[#A1A1A1]">
-              <span>DKIM & SPF Engine</span>
-            </span>
           </div>
           <p className="text-xs text-kumo-subtle mt-1.5">
             Manage authenticated sending domains, DKIM keys, SPF return-paths, and DMARC compliance
@@ -427,24 +424,65 @@ export function DomainsView() {
                           </Link>
                         </td>
 
-                        {/* Status: Active (Verified) or Pending DNS */}
+                        {/* Status: Active, Partially Failed, Failed, or Pending DNS */}
                         <td className="py-3 px-4">
-                          {dom.status === "VERIFIED" ? (
-                            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-                              <Check size={12} weight="bold" />
-                              <span>Active</span>
-                            </div>
-                          ) : dom.status === "FAILED" ? (
-                            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-rose-500/10 border border-rose-500/20 text-rose-400">
-                              <X size={12} weight="bold" />
-                              <span>Failed</span>
-                            </div>
-                          ) : (
-                            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/10 border border-amber-500/20 text-amber-400">
-                              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                              <span>Pending DNS</span>
-                            </div>
-                          )}
+                          {(() => {
+                            const records = dom.dnsRecords || [];
+                            const verifiedCount = records.filter((r) => r.status === "VERIFIED").length;
+                            const failedCount = records.filter((r) => r.status === "FAILED").length;
+                            const pendingCount = records.filter((r) => r.status === "PENDING").length;
+
+                            let statusType: "active" | "partially_failed" | "failed" | "pending" = "pending";
+
+                            if (dom.status === "VERIFIED" || (records.length > 0 && verifiedCount === records.length)) {
+                              statusType = "active";
+                            } else if (dom.status === "PARTIALLY_FAILED" || (records.length > 0 && verifiedCount > 0 && (failedCount > 0 || pendingCount > 0))) {
+                              statusType = "partially_failed";
+                            } else if (dom.status === "FAILED" || (records.length > 0 && failedCount === records.length)) {
+                              statusType = "failed";
+                            } else {
+                              // Check flags fallback
+                              const flags = [dom.dkimVerified, dom.spfVerified, dom.mxVerified, dom.dmarcVerified].filter((v) => typeof v === "boolean");
+                              const passed = flags.filter(Boolean).length;
+                              if (passed === flags.length && flags.length > 0) statusType = "active";
+                              else if (passed > 0) statusType = "partially_failed";
+                              else statusType = "pending";
+                            }
+
+                            if (statusType === "active") {
+                              return (
+                                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                                  <Check size={12} weight="bold" />
+                                  <span>Active</span>
+                                </div>
+                              );
+                            }
+
+                            if (statusType === "partially_failed") {
+                              return (
+                                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                                  <WarningCircle size={12} weight="bold" />
+                                  <span>Partially Failed</span>
+                                </div>
+                              );
+                            }
+
+                            if (statusType === "failed") {
+                              return (
+                                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-rose-500/10 border border-rose-500/20 text-rose-400">
+                                  <X size={12} weight="bold" />
+                                  <span>Failed</span>
+                                </div>
+                              );
+                            }
+
+                            return (
+                              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-zinc-500/10 border border-zinc-500/20 text-zinc-400">
+                                <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 animate-pulse" />
+                                <span>Pending DNS</span>
+                              </div>
+                            );
+                          })()}
                         </td>
 
                         {/* Created Date */}

@@ -31,6 +31,33 @@ export const safeDomainSelect = {
   updatedAt: true,
 };
 
+export function enrichDomainStatus<T extends { status: any; dkimVerified?: boolean; spfVerified?: boolean; mxVerified?: boolean; dmarcVerified?: boolean; dnsRecords?: any }>(domain: T): T & { status: string } {
+  const records = Array.isArray(domain.dnsRecords) ? (domain.dnsRecords as Array<{ status?: string }>) : [];
+  if (records.length > 0) {
+    const verifiedCount = records.filter(r => r.status === 'VERIFIED').length;
+    const failedCount = records.filter(r => r.status === 'FAILED').length;
+    if (verifiedCount === records.length) {
+      return { ...domain, status: 'VERIFIED' };
+    }
+    if (verifiedCount > 0 && verifiedCount < records.length) {
+      return { ...domain, status: 'PARTIALLY_FAILED' };
+    }
+    if (failedCount === records.length || domain.status === 'FAILED') {
+      return { ...domain, status: 'FAILED' };
+    }
+  } else {
+    const flags = [domain.dkimVerified, domain.spfVerified, domain.mxVerified, domain.dmarcVerified].filter(v => typeof v === 'boolean');
+    const passed = flags.filter(Boolean).length;
+    if (passed === flags.length && flags.length > 0) {
+      return { ...domain, status: 'VERIFIED' };
+    }
+    if (passed > 0 && passed < flags.length) {
+      return { ...domain, status: 'PARTIALLY_FAILED' };
+    }
+  }
+  return { ...domain };
+}
+
 export class DomainsService {
   /**
    * Register a new domain, generate DKIM RSA keys, and initialize expected DNS records
@@ -148,7 +175,7 @@ export class DomainsService {
       console.warn('⚠️ Could not enqueue initial domain verification job:', err);
     }
 
-    return created;
+    return enrichDomainStatus(created);
   }
 
   /**
@@ -174,7 +201,7 @@ export class DomainsService {
       select: safeDomainSelect,
     });
 
-    return domains;
+    return domains.map(enrichDomainStatus);
   }
 
   /**
@@ -186,7 +213,7 @@ export class DomainsService {
       select: safeDomainSelect,
     });
 
-    return domain;
+    return domain ? enrichDomainStatus(domain) : null;
   }
 
   /**
@@ -261,7 +288,7 @@ export class DomainsService {
     }
 
     return {
-      domain: updatedDomain,
+      domain: enrichDomainStatus(updatedDomain),
       verification: verificationResult,
     };
   }

@@ -15,7 +15,7 @@ export interface DnsRecordItem {
 export interface ApiDomain {
   id: string;
   domainName: string;
-  status: "PENDING" | "VERIFIED" | "FAILED";
+  status: "PENDING" | "VERIFIED" | "PARTIALLY_FAILED" | "FAILED" | "VERIFYING";
   dkimSelector: string;
   dkimPublicKey: string;
   returnPathSubdomain: string;

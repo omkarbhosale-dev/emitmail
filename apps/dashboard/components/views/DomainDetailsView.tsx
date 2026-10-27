@@ -9,13 +9,11 @@ import {
   Trash,
   Check,
   Copy,
-  CheckCircle,
   WarningCircle,
-  Clock,
-  FileCode,
+  ArrowUpRight,
   CaretDown,
 } from "@phosphor-icons/react";
-import { ApiDomain } from "@/types";
+import { ApiDomain, DnsRecordItem } from "@/types";
 import { useToast } from "@/components/ui/Toast";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { api } from "@/lib/api";
@@ -43,11 +41,13 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
       const data = await api.domains.getById(domainId);
       setDomain(data);
 
-      // Auto-collapse DNS records if domain is completely verified
+      // Auto-collapse if all records are properly configured and verified
+      const records = data.dnsRecords || [];
       const verified =
         data.status === "VERIFIED" ||
+        (records.length > 0 && records.every((r) => r.status === "VERIFIED")) ||
         (data.dkimVerified && data.spfVerified && data.mxVerified && data.dmarcVerified);
-      setIsDnsCollapsed(verified);
+      setIsDnsCollapsed(Boolean(verified));
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to load domain details";
       setError(msg);
@@ -70,7 +70,7 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
     setCopiedKey(label);
     toast({
       title: "Copied to Clipboard",
-      description: label,
+      description: text.length > 50 ? `${text.slice(0, 47)}...` : text,
       type: "success",
     });
     setTimeout(() => setCopiedKey(null), 2000);
@@ -89,7 +89,6 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
         summary.mxVerified &&
         summary.dmarcVerified;
 
-      // If all passed, collapse records
       if (allPassed) {
         setIsDnsCollapsed(true);
       }
@@ -168,10 +167,169 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
     );
   }
 
-  const isVerified = domain.status === "VERIFIED";
-  const isFullyVerified =
-    domain.status === "VERIFIED" ||
-    (domain.dkimVerified && domain.spfVerified && domain.mxVerified && domain.dmarcVerified);
+  // Calculate status breakdown
+  const rawRecords: DnsRecordItem[] = domain.dnsRecords && domain.dnsRecords.length > 0
+    ? domain.dnsRecords
+    : [
+        {
+          type: "TXT",
+          host: `${domain.dkimSelector}._domainkey`,
+          fqdn: `${domain.dkimSelector}._domainkey.${domain.domainName}`,
+          value: `v=DKIM1; k=rsa; p=${domain.dkimPublicKey}`,
+          status: domain.dkimVerified ? "VERIFIED" : "PENDING",
+        },
+        {
+          type: "TXT",
+          host: domain.returnPathSubdomain,
+          fqdn: `${domain.returnPathSubdomain}.${domain.domainName}`,
+          value: `v=spf1 a mx ~all`,
+          status: domain.spfVerified ? "VERIFIED" : "PENDING",
+        },
+        {
+          type: "MX",
+          host: domain.returnPathSubdomain,
+          fqdn: `${domain.returnPathSubdomain}.${domain.domainName}`,
+          value: `mail.${domain.domainName}`,
+          status: domain.mxVerified ? "VERIFIED" : "PENDING",
+        },
+        {
+          type: "TXT",
+          host: "_dmarc",
+          fqdn: `_dmarc.${domain.domainName}`,
+          value: domain.dmarcPolicy || `v=DMARC1; p=none; rua=mailto:dmarc@${domain.domainName}; aspf=r; adkim=r;`,
+          status: domain.dmarcVerified ? "VERIFIED" : "PENDING",
+        },
+      ];
+
+  const verifiedCount = rawRecords.filter((r) => r.status === "VERIFIED").length;
+  const failedCount = rawRecords.filter((r) => r.status === "FAILED").length;
+  const isAllVerified = verifiedCount === rawRecords.length || domain.status === "VERIFIED";
+  const isPartiallyFailed = verifiedCount > 0 && !isAllVerified;
+  const isAllFailed = failedCount === rawRecords.length || (domain.status === "FAILED" && verifiedCount === 0);
+
+  // Group records by section
+  const dkimRecords = rawRecords.filter(
+    (r) => r.host.includes("_domainkey") || r.fqdn.includes("_domainkey")
+  );
+  const spfRecords = rawRecords.filter(
+    (r) =>
+      !r.host.includes("_domainkey") &&
+      !r.host.includes("_dmarc") &&
+      (r.host === domain.returnPathSubdomain || r.host === "@" || r.value.includes("v=spf1") || r.type === "MX")
+  );
+  const dmarcRecords = rawRecords.filter(
+    (r) => r.host.includes("_dmarc") || r.fqdn.includes("_dmarc")
+  );
+
+  const renderDnsTable = (title: string, records: DnsRecordItem[]) => {
+    if (records.length === 0) return null;
+
+    return (
+      <div className="space-y-2.5">
+        <div className="flex items-center gap-1.5 text-sm font-bold text-white">
+          <span>{title}</span>
+          <ArrowUpRight size={14} className="text-[#8E8E93]" />
+        </div>
+
+        <div className="bg-[#0C0C0E] border border-[#222226] rounded-xl overflow-hidden shadow-2xs">
+          {/* Table Header matching the screenshot */}
+          <div className="bg-[#141416] border-b border-[#222226] px-4 py-2.5 grid grid-cols-12 gap-3 text-xs text-[#8E8E93] font-medium items-center select-none">
+            <div className="col-span-2 sm:col-span-1">Type</div>
+            <div className="col-span-3 sm:col-span-3">Name</div>
+            <div className="col-span-4 sm:col-span-5">Content</div>
+            <div className="col-span-1 sm:col-span-1">TTL</div>
+            <div className="col-span-2 sm:col-span-2 text-right">Status</div>
+          </div>
+
+          {/* Table Rows with click-to-copy on Name and Content */}
+          <div className="divide-y divide-[#1C1C1F]">
+            {records.map((rec, idx) => {
+              const isRecVerified = rec.status === "VERIFIED";
+              const isRecFailed = rec.status === "FAILED";
+              const hostVal = rec.host || rec.fqdn;
+              const contentVal = rec.value;
+              const isNameCopied = copiedKey === `name-${rec.type}-${hostVal}`;
+              const isContentCopied = copiedKey === `content-${rec.type}-${hostVal}`;
+
+              return (
+                <div
+                  key={idx}
+                  className="grid grid-cols-12 gap-3 px-4 py-3.5 text-xs items-center hover:bg-[#121214] transition-colors"
+                >
+                  {/* Type */}
+                  <div className="col-span-2 sm:col-span-1 font-mono text-white text-xs font-semibold">
+                    {rec.type}
+                  </div>
+
+                  {/* Name - Click to Copy */}
+                  <div
+                    onClick={() => copyToClipboard(hostVal, `name-${rec.type}-${hostVal}`)}
+                    title="Click to copy Name"
+                    className="col-span-3 sm:col-span-3 font-mono text-white text-xs cursor-pointer hover:text-cf-orange transition-colors flex items-center gap-2 group/name truncate select-none"
+                  >
+                    <span className="truncate">{hostVal}</span>
+                    {isNameCopied ? (
+                      <span className="text-[10px] text-emerald-400 font-sans flex items-center gap-0.5 shrink-0 bg-emerald-500/10 px-1 rounded">
+                        <Check size={11} />
+                        <span>Copied</span>
+                      </span>
+                    ) : (
+                      <Copy
+                        size={13}
+                        className="text-[#6E6E6E] opacity-0 group-hover/name:opacity-100 transition-opacity shrink-0"
+                      />
+                    )}
+                  </div>
+
+                  {/* Content - Click to Copy */}
+                  <div
+                    onClick={() => copyToClipboard(contentVal, `content-${rec.type}-${hostVal}`)}
+                    title="Click to copy Content"
+                    className="col-span-4 sm:col-span-5 font-mono text-[#D4D4D8] text-xs cursor-pointer hover:text-white transition-colors flex items-center justify-between gap-2 group/content select-none"
+                  >
+                    <span className="truncate font-mono">{contentVal}</span>
+                    {isContentCopied ? (
+                      <span className="text-[10px] text-emerald-400 font-sans flex items-center gap-0.5 shrink-0 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                        <Check size={11} />
+                        <span>Copied</span>
+                      </span>
+                    ) : (
+                      <Copy
+                        size={13}
+                        className="text-[#6E6E6E] opacity-0 group-hover/content:opacity-100 transition-opacity shrink-0"
+                      />
+                    )}
+                  </div>
+
+                  {/* TTL */}
+                  <div className="col-span-1 sm:col-span-1 font-mono text-[#8E8E93] text-xs">
+                    Auto
+                  </div>
+
+                  {/* Status Badge */}
+                  <div className="col-span-2 sm:col-span-2 flex justify-end">
+                    {isRecVerified ? (
+                      <span className="inline-flex items-center justify-center px-3 py-0.5 rounded-full text-xs font-medium bg-emerald-950/60 border border-emerald-500/30 text-emerald-400">
+                        Verified
+                      </span>
+                    ) : isRecFailed ? (
+                      <span className="inline-flex items-center justify-center px-3 py-0.5 rounded-full text-xs font-medium bg-rose-950/60 border border-rose-500/30 text-rose-400">
+                        Failed
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center justify-center px-3 py-0.5 rounded-full text-xs font-medium bg-amber-950/60 border border-amber-500/30 text-amber-400">
+                        Pending
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
@@ -188,57 +346,63 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
         <span className="text-kumo-strong font-medium">{domain.domainName}</span>
       </div>
 
-      {/* Domain Header Card */}
-      <div className="bg-kumo-base border border-kumo-hairline rounded-2xl p-6 sm:p-7 shadow-sm">
+      {/* Domain Top Header Card */}
+      <div className="bg-[#0C0C0E] border border-[#222226] rounded-2xl p-6 sm:p-7 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-2">
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-kumo-strong">
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
                 {domain.domainName}
               </h1>
               <span
                 className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full border ${
-                  isFullyVerified
+                  isAllVerified
                     ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-400"
-                    : domain.status === "FAILED"
+                    : isPartiallyFailed
+                    ? "bg-amber-500/10 border-amber-500/25 text-amber-400"
+                    : isAllFailed
                     ? "bg-rose-500/10 border-rose-500/25 text-rose-400"
-                    : "bg-amber-500/10 border-amber-500/25 text-amber-400"
+                    : "bg-zinc-500/10 border-zinc-500/25 text-zinc-400"
                 }`}
               >
                 <span
                   className={`w-1.5 h-1.5 rounded-full ${
-                    isFullyVerified
+                    isAllVerified
                       ? "bg-emerald-400"
-                      : domain.status === "FAILED"
+                      : isPartiallyFailed
+                      ? "bg-amber-400 animate-pulse"
+                      : isAllFailed
                       ? "bg-rose-400"
-                      : "bg-amber-400 animate-pulse"
+                      : "bg-zinc-400 animate-pulse"
                   }`}
                 />
-                {isFullyVerified
-                  ? "Verified & Ready"
-                  : domain.status === "FAILED"
-                  ? "DNS Verification Failed"
-                  : "Pending DNS Propagation"}
+                {isAllVerified
+                  ? "Active"
+                  : isPartiallyFailed
+                  ? `Partially Failed (${verifiedCount}/${rawRecords.length} Verified)`
+                  : isAllFailed
+                  ? "Failed"
+                  : "Pending DNS"}
               </span>
             </div>
 
             <div className="flex items-center gap-4 text-xs text-kumo-subtle flex-wrap">
               <span>
-                Selector: <strong className="text-kumo-strong font-mono">{domain.dkimSelector}</strong>
+                Selector: <strong className="text-white font-mono">{domain.dkimSelector}</strong>
               </span>
               <span>•</span>
               <span>
-                Return-Path: <strong className="text-kumo-strong font-mono">{domain.returnPathSubdomain}.{domain.domainName}</strong>
+                Return-Path: <strong className="text-white font-mono">{domain.returnPathSubdomain}.{domain.domainName}</strong>
               </span>
               <span>•</span>
               <span>
-                Added on: <span className="text-kumo-strong">{new Date(domain.createdAt).toLocaleDateString()}</span>
+                Added on: <span className="text-[#D4D4D8]">{new Date(domain.createdAt).toLocaleDateString()}</span>
               </span>
               {domain.lastVerifiedAt && (
                 <>
                   <span>•</span>
                   <span>
-                    Last checked: <span className="text-kumo-strong">{new Date(domain.lastVerifiedAt).toLocaleTimeString()}</span>
+                    Last checked: <span className="text-[#D4D4D8]">{new Date(domain.lastVerifiedAt).toLocaleTimeString()}</span>
                   </span>
                 </>
               )}
@@ -274,43 +438,36 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
         </div>
       </div>
 
-      {/* DNS Configuration Table with Auto-Collapse for Verified Domains */}
-      <div className="bg-kumo-base border border-kumo-hairline rounded-2xl overflow-hidden shadow-sm">
-        {/* Clickable Header for Collapsing / Expanding */}
+      {/* Main Bordered DNS Records Card (Collapsible) */}
+      <div className="bg-[#0C0C0E] border border-[#222226] rounded-2xl overflow-hidden shadow-sm">
+        {/* Card Header with Collapsible Trigger */}
         <div
           onClick={() => setIsDnsCollapsed(!isDnsCollapsed)}
-          className="px-6 py-4.5 border-b border-kumo-hairline flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer hover:bg-kumo-tint/40 transition-colors select-none"
+          className="px-6 py-4.5 border-b border-[#222226] flex items-center justify-between cursor-pointer hover:bg-[#121214] transition-colors select-none"
         >
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-cf-blue/10 border border-cf-blue/20 flex items-center justify-center text-cf-blue shrink-0">
-              <FileCode size={18} weight="bold" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2.5 flex-wrap">
-                <h2 className="text-sm font-bold text-kumo-strong">
-                  DNS Configuration Records ({domain.dnsRecords?.length || 0})
-                </h2>
-                {isFullyVerified ? (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                    <CheckCircle size={12} weight="fill" />
-                    <span>All Records Verified</span>
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
-                    <Clock size={12} />
-                    <span>Awaiting DNS Publication</span>
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-kumo-subtle mt-0.5">
-                {isDnsCollapsed
-                  ? "All records are active and validated on authoritative nameservers. Click to view configuration details."
-                  : "Add these exact records to your DNS provider (Cloudflare, AWS Route53, Namecheap, GoDaddy)."}
-              </p>
-            </div>
+          <div className="flex items-center gap-3 flex-wrap">
+            <h2 className="text-base font-bold text-white tracking-tight">
+              Domain Verification
+            </h2>
+            {isAllVerified ? (
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-400">
+                <Check size={12} weight="bold" />
+                <span>All Records Verified</span>
+              </span>
+            ) : isPartiallyFailed ? (
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-400">
+                <WarningCircle size={12} weight="bold" />
+                <span>{verifiedCount} of {rawRecords.length} Verified</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-zinc-500/10 border border-zinc-500/25 text-zinc-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 animate-pulse" />
+                <span>Awaiting DNS Publication</span>
+              </span>
+            )}
           </div>
 
-          <div className="flex items-center gap-2 self-end sm:self-center">
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={(e) => {
@@ -328,87 +485,34 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
           </div>
         </div>
 
-        {/* DNS Records List Body (Collapsible) */}
+        {/* Card Body with DNS Record Tables */}
         {!isDnsCollapsed && (
-          <div className="p-6 space-y-4 animate-in fade-in duration-150">
-            {domain.dnsRecords && domain.dnsRecords.length > 0 ? (
-              domain.dnsRecords.map((rec, index) => {
-                const isRecordVerified = rec.status === "VERIFIED";
-                const hostLabel = rec.host || rec.fqdn;
-                return (
-                  <div
-                    key={index}
-                    className="p-4 rounded-xl bg-kumo-control border border-kumo-hairline space-y-3"
+          <div className="p-6 space-y-6 animate-in fade-in duration-150">
+            {/* Warning Banner if not fully verified */}
+            {!isAllVerified && (
+              <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-200 text-xs flex items-start gap-2.5">
+                <WarningCircle size={17} weight="bold" className="text-amber-400 shrink-0 mt-0.5" />
+                <div className="leading-relaxed">
+                  <strong className="text-white font-semibold">Sending is not affected:</strong> Your emails are still being sent. Add or fix the DNS records below to finish verifying this domain. Once fixed,{" "}
+                  <button
+                    type="button"
+                    onClick={handleVerifyDns}
+                    className="underline hover:text-white font-medium cursor-pointer"
                   >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="px-2 py-0.5 rounded bg-cf-blue/15 text-cf-blue text-xs font-mono font-semibold border border-cf-blue/25">
-                          {rec.type} {rec.priority !== undefined ? `(Priority ${rec.priority})` : ""}
-                        </span>
-                        <span className="text-xs text-kumo-subtle">Name / Host:</span>
-                        <span className="font-mono text-kumo-strong text-xs font-semibold px-2 py-0.5 rounded bg-kumo-base border border-kumo-hairline">
-                          {hostLabel}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`text-[11px] font-semibold px-2 py-0.5 rounded border ${
-                            isRecordVerified
-                              ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-400"
-                              : "bg-amber-500/10 border-amber-500/25 text-amber-400"
-                          }`}
-                        >
-                          {isRecordVerified ? "Verified" : "Pending DNS"}
-                        </span>
-
-                        <button
-                          type="button"
-                          onClick={() => copyToClipboard(hostLabel, `${rec.type} Host Name`)}
-                          className="btn-cf-secondary text-xs py-1 px-2.5 flex items-center gap-1"
-                        >
-                          <Copy size={13} />
-                          <span>Copy Host</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-kumo-subtle font-medium">Value / Content:</span>
-                        <button
-                          type="button"
-                          onClick={() => copyToClipboard(rec.value, `${rec.type} Record Value`)}
-                          className="btn-cf-secondary text-xs py-0.5 px-2 flex items-center gap-1"
-                        >
-                          {copiedKey === `${rec.type} Record Value` ? (
-                            <Check size={12} className="text-emerald-400" />
-                          ) : (
-                            <Copy size={12} />
-                          )}
-                          <span>{copiedKey === `${rec.type} Record Value` ? "Copied" : "Copy Value"}</span>
-                        </button>
-                      </div>
-
-                      <div className="font-mono text-xs bg-kumo-base p-3 rounded-lg border border-kumo-line text-kumo-strong break-all select-all leading-relaxed">
-                        {rec.value}
-                      </div>
-                    </div>
-
-                    {rec.reason && (
-                      <div className="text-[11px] text-kumo-subtle flex items-center gap-1.5 pt-1">
-                        <span className="text-kumo-muted">Status Note:</span>
-                        <span className="italic">{rec.reason}</span>
-                      </div>
-                    )}
-                  </div>
-                );
-              })
-            ) : (
-              <div className="text-center py-8 text-kumo-subtle text-xs">
-                No DNS records generated for this domain.
+                    restart verification
+                  </button>.
+                </div>
               </div>
             )}
+
+            {/* 1. DKIM Section Table */}
+            {renderDnsTable("DKIM", dkimRecords)}
+
+            {/* 2. SPF Section Table */}
+            {renderDnsTable("SPF", spfRecords)}
+
+            {/* 3. DMARC Section Table */}
+            {renderDnsTable("DMARC", dmarcRecords)}
           </div>
         )}
       </div>
