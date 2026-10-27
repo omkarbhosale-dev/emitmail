@@ -7,6 +7,8 @@ import {
   House,
   Globe,
   EnvelopeSimple,
+  Tray,
+  ChartLineUp,
   Key,
   PlugsConnected,
   Gear,
@@ -88,6 +90,39 @@ export function CommandPalette({
       },
     },
     {
+      id: "nav-emails",
+      label: "Navigate to Email Dispatches",
+      category: "Navigation",
+      icon: EnvelopeSimple,
+      action: () => {
+        router.push("/emails");
+        onClose();
+        onSelectTab?.("emails");
+      },
+    },
+    {
+      id: "nav-inbox",
+      label: "Navigate to Inbox & Inbound Feed",
+      category: "Navigation",
+      icon: Tray,
+      action: () => {
+        router.push("/inbox");
+        onClose();
+        onSelectTab?.("inbox");
+      },
+    },
+    {
+      id: "nav-analytics",
+      label: "Navigate to Analytics & Timeseries",
+      category: "Navigation",
+      icon: ChartLineUp,
+      action: () => {
+        router.push("/analytics");
+        onClose();
+        onSelectTab?.("analytics");
+      },
+    },
+    {
       id: "nav-domains",
       label: "Navigate to Domains & DNS Records",
       category: "Navigation",
@@ -96,17 +131,6 @@ export function CommandPalette({
         router.push("/domains");
         onClose();
         onSelectTab?.("domains");
-      },
-    },
-    {
-      id: "nav-emails",
-      label: "Navigate to Processed Emails Feed",
-      category: "Navigation",
-      icon: EnvelopeSimple,
-      action: () => {
-        router.push("/emails");
-        onClose();
-        onSelectTab?.("emails");
       },
     },
     {
@@ -122,7 +146,7 @@ export function CommandPalette({
     },
     {
       id: "nav-webhooks",
-      label: "Navigate to Webhook Endpoints",
+      label: "Navigate to Webhooks",
       category: "Navigation",
       icon: PlugsConnected,
       action: () => {

@@ -1,4 +1,4 @@
-export type NavTab = "home" | "domains" | "emails" | "api-keys" | "webhooks" | "settings";
+export type NavTab = "emails" | "inbox" | "analytics" | "domains" | "api-keys" | "webhooks" | "settings" | "home";
 
 export interface DnsRecordItem {
   fqdn: string;

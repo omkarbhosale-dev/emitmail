@@ -7,6 +7,8 @@ import {
   House,
   Globe,
   EnvelopeSimple,
+  Tray,
+  ChartLineUp,
   Key,
   PlugsConnected,
   Gear,
@@ -38,10 +40,12 @@ interface NavItemConfig {
 
 const TOP_NAV_ITEMS: NavItemConfig[] = [
   { id: "home", label: "Home", href: "/", icon: House },
+  { id: "emails", label: "Email", href: "/emails", icon: EnvelopeSimple },
+  { id: "inbox", label: "Inbox", href: "/inbox", icon: Tray },
+  { id: "analytics", label: "Analytics", href: "/analytics", icon: ChartLineUp },
   { id: "domains", label: "Domains", href: "/domains", icon: Globe },
-  { id: "emails", label: "Emails", href: "/emails", icon: EnvelopeSimple },
   { id: "api-keys", label: "API Key", href: "/api-keys", icon: Key },
-  { id: "webhooks", label: "Webhook", href: "/webhooks", icon: PlugsConnected, badge: "Live" },
+  { id: "webhooks", label: "Webhooks", href: "/webhooks", icon: PlugsConnected, badge: "Live" },
 ];
 
 const BOTTOM_NAV_ITEMS: NavItemConfig[] = [
@@ -60,8 +64,11 @@ export function Sidebar({
   const pathname = usePathname();
 
   const getActiveTab = (path: string): NavTab => {
-    if (path.startsWith("/domains")) return "domains";
+    if (path === "/") return "home";
     if (path.startsWith("/emails")) return "emails";
+    if (path.startsWith("/inbox")) return "inbox";
+    if (path.startsWith("/analytics")) return "analytics";
+    if (path.startsWith("/domains")) return "domains";
     if (path.startsWith("/api-keys")) return "api-keys";
     if (path.startsWith("/webhooks")) return "webhooks";
     if (path.startsWith("/settings")) return "settings";
