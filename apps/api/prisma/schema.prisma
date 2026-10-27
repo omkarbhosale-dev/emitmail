@@ -30,6 +30,11 @@ enum SuppressionReason {
   MANUAL
 }
 
+enum InboundEmailDirection {
+  INBOUND
+  OUTBOUND_REPLY
+}
+
 model ServerConfig {
   id                 String   @id @default("master")
   mailServerHostname String   @default("mail.yourdomain.com")
@@ -42,15 +47,17 @@ model ServerConfig {
 }
 
 model User {
-  id                 String   @id @default(uuid())
-  username           String   @unique @default("admin")
-  email              String?  @unique
-  fullName           String?  @default("EmitMail Administrator")
+  id                 String    @id @default(uuid())
+  username           String    @unique @default("admin")
+  email              String?   @unique
+  fullName           String?   @default("EmitMail Administrator")
   passwordHash       String
-  mustChangePassword Boolean  @default(true)
-  timezone           String   @default("UTC")
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  mustChangePassword Boolean   @default(true)
+  timezone           String    @default("UTC")
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  mailboxes          Mailbox[]
 
   @@map("users")
 }
@@ -69,6 +76,8 @@ model Domain {
   spfVerified         Boolean      @default(false)
   mxVerified          Boolean      @default(false)
   dmarcVerified       Boolean      @default(false)
+  inboundEnabled      Boolean      @default(false)
+  inboundMxVerified   Boolean      @default(false)
   verificationRetries Int          @default(0)
   verificationErrors  Json?
   tlsPolicy           String       @default("enforce") // "enforce" | "opportunistic"
@@ -80,8 +89,78 @@ model Domain {
   emails              Email[]
   webhooks            WebhookSubscription[]
   suppressions        Suppression[]
+  mailboxes           Mailbox[]
+  inboundEmails       InboundEmail[]
 
   @@map("domains")
+}
+
+model Mailbox {
+  id            String         @id @default(uuid())
+  userId        String?
+  user          User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  domainId      String
+  domain        Domain         @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  localPart     String
+  emailAddress  String         @unique
+  displayName   String?
+  isActive      Boolean        @default(true)
+  isCatchAll    Boolean        @default(false)
+  unreadCount   Int            @default(0)
+  totalMessages Int            @default(0)
+  lastMessageAt DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  inboundEmails InboundEmail[]
+
+  @@unique([domainId, localPart])
+  @@index([domainId])
+  @@index([emailAddress])
+  @@index([userId])
+  @@map("mailboxes")
+}
+
+model InboundEmail {
+  id          String                @id @default(uuid())
+  mailboxId   String
+  mailbox     Mailbox               @relation(fields: [mailboxId], references: [id], onDelete: Cascade)
+  domainId    String
+  domain      Domain                @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  threadId    String
+  messageId   String
+  inReplyTo   String?
+  references  String[]              @default([])
+  fromAddress String
+  fromName    String?
+  toAddresses Json                  @default("[]")
+  ccAddresses Json                  @default("[]")
+  replyTo     String?
+  subject     String                @default("(No Subject)")
+  snippet     String
+  textBody    String?               @db.Text
+  htmlBody    String?               @db.Text
+  rawHeaders  Json?
+  attachments Json?
+  sizeBytes   Int                   @default(0)
+  isRead      Boolean               @default(false)
+  isStarred   Boolean               @default(false)
+  isArchived  Boolean               @default(false)
+  isTrash     Boolean               @default(false)
+  direction   InboundEmailDirection @default(INBOUND)
+  receivedAt  DateTime              @default(now())
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  @@index([mailboxId, receivedAt])
+  @@index([domainId])
+  @@index([threadId])
+  @@index([messageId])
+  @@index([isRead])
+  @@index([isStarred])
+  @@index([isArchived])
+  @@index([isTrash])
+  @@map("inbound_emails")
 }
 
 model ApiKey {

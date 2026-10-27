@@ -45,12 +45,14 @@ async function startWorker(): Promise<void> {
   }
 
   const deliveryWorker = createEmailDeliveryWorker();
+  const inboundWorker = (await import('./workers/inboundEmail.worker.js')).createInboundEmailWorker();
+  console.log('✅ BullMQ Inbound Email worker started.');
 
   const shutdown = async (signal: string) => {
-    console.log(`\n🛑 Received ${signal}. Gracefully stopping delivery worker...`);
+    console.log(`\n🛑 Received ${signal}. Gracefully stopping workers...`);
     try {
-      await deliveryWorker.close();
-      console.log('✅ BullMQ worker closed.');
+      await Promise.allSettled([deliveryWorker.close(), inboundWorker.close()]);
+      console.log('✅ BullMQ workers closed.');
       await prisma.$disconnect();
       console.log('✅ Database disconnected.');
     } catch (err) {

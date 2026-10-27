@@ -17,6 +17,7 @@ import { emailRoutes } from './modules/emails/emails.routes.js';
 import { webhookRoutes } from './modules/webhooks/webhooks.routes.js';
 import { suppressionRoutes } from './modules/suppressions/suppressions.routes.js';
 import { unsubscribeRoutes } from './modules/unsubscribe/unsubscribe.routes.js';
+import { inboxRoutes } from './modules/inbox/inbox.routes.js';
 import path from 'node:path';
 import fs from 'node:fs';
 
@@ -108,6 +109,9 @@ export const createApp = (): Express => {
   app.use('/suppressions', suppressionRoutes);
   app.use('/api/v1/unsubscribe', unsubscribeRoutes);
   app.use('/unsubscribe', unsubscribeRoutes);
+  app.use('/api/v1/inbox', inboxRoutes);
+  app.use('/api/inbox', inboxRoutes);
+  app.use('/inbox', inboxRoutes);
 
   // Root endpoint aliases for convenience
   app.use('/domains', domainRoutes);

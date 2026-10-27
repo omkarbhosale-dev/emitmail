@@ -16,12 +16,16 @@
     "bullmq": "^6.4.0",
     "dotenv": "^16.4.7",
     "ioredis": "^5.4.2",
+    "mailparser": "^3.12.4",
     "nodemailer": "^10.2.1",
+    "smtp-server": "^3.21.1",
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@types/mailparser": "^3.9.0",
     "@types/node": "^22.10.2",
     "@types/nodemailer": "^8.0.2",
+    "@types/smtp-server": "^3.5.13",
     "dotenv-cli": "^7.4.4",
     "prisma": "^5.22.0",
     "tsx": "^4.19.2",
