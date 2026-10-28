@@ -24,7 +24,7 @@ export class InboxService {
     return (
       process.env.SMTP_EHLO_HOSTNAME ||
       env.SMTP_EHLO_HOSTNAME ||
-      'mail.omkarbhosale.dev'
+      env.MAIL_SERVER_HOSTNAME
     ).toLowerCase().replace(/\.$/, '');
   }
 

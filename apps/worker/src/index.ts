@@ -32,7 +32,7 @@ async function startWorker(): Promise<void> {
         ? env.SMTP_EHLO_HOSTNAME
         : (!isPlaceholder(serverConfig?.mailServerHostname)
             ? serverConfig!.mailServerHostname
-            : 'mail.example.com');
+            : env.MAIL_SERVER_HOSTNAME);
   const activeSendingIp =
     process.env.SENDING_SERVER_IP ||
     (env.SENDING_SERVER_IP && env.SENDING_SERVER_IP !== '0.0.0.0' ? env.SENDING_SERVER_IP : '') ||
