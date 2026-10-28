@@ -131,6 +131,7 @@ export function MailboxEmailsView({ mailboxId }: MailboxEmailsViewProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isVerifyingMx, setIsVerifyingMx] = useState(false);
+  const [isSimulating, setIsSimulating] = useState(false);
   const [isMxBannerDismissed, setIsMxBannerDismissed] = useState(false);
   const [activeFilter, setActiveFilter] = useState<"all" | "unread" | "starred">("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -146,8 +147,8 @@ export function MailboxEmailsView({ mailboxId }: MailboxEmailsViewProps) {
   const fetchMailboxData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [mailboxesRes, messagesRes, domainsRes] = await Promise.allSettled([
-        api.inbox.listMailboxes(),
+      const [mailboxRes, messagesRes, domainsRes] = await Promise.allSettled([
+        api.inbox.getMailbox(mailboxId),
         api.inbox.listMessages(mailboxId, {
           filter: activeFilter,
           search: searchQuery.trim() || undefined,
@@ -156,36 +157,16 @@ export function MailboxEmailsView({ mailboxId }: MailboxEmailsViewProps) {
       ]);
 
       let foundMailbox: MailboxItem | null = null;
-      if (mailboxesRes.status === "fulfilled") {
-        foundMailbox = mailboxesRes.value.find((m) => m.id === mailboxId) || null;
-        if (foundMailbox) setMailbox(foundMailbox);
+      if (mailboxRes.status === "fulfilled" && mailboxRes.value) {
+        foundMailbox = mailboxRes.value;
+        setMailbox(foundMailbox);
       }
 
-      if (messagesRes.status === "fulfilled" && messagesRes.value.messages) {
-        setMessages(messagesRes.value.messages);
+      if (messagesRes.status === "fulfilled") {
+        setMessages(messagesRes.value.messages || []);
         if (messagesRes.value.mailbox && !foundMailbox) {
-          setMailbox(messagesRes.value.mailbox);
-        }
-      } else {
-        // Fallback for demo
-        const filteredFallback = FALLBACK_EMAILS.filter(
-          (m) => m.mailboxId === mailboxId || mailboxId.includes("support")
-        );
-        setMessages(filteredFallback.length > 0 ? filteredFallback : FALLBACK_EMAILS);
-        if (!foundMailbox) {
-          setMailbox({
-            id: mailboxId,
-            domainId: "dom_omkar",
-            emailAddress: mailboxId.includes("billing") ? "billing@omkarbhosale.dev" : "support@omkarbhosale.dev",
-            localPart: mailboxId.includes("billing") ? "billing" : "support",
-            displayName: mailboxId.includes("billing") ? "EmitMail Billing" : "EmitMail Support",
-            isCatchAll: false,
-            isActive: true,
-            totalMessages: 24,
-            unreadCount: 2,
-            createdAt: "2026-10-28T10:00:00.000Z",
-            updatedAt: "2026-10-28T10:00:00.000Z",
-          });
+          foundMailbox = messagesRes.value.mailbox;
+          setMailbox(foundMailbox);
         }
       }
 
@@ -194,7 +175,7 @@ export function MailboxEmailsView({ mailboxId }: MailboxEmailsViewProps) {
         setDomain(dom);
       }
     } catch {
-      // Fallback
+      // Keep existing state on error
     } finally {
       setIsLoading(false);
     }
@@ -203,6 +184,38 @@ export function MailboxEmailsView({ mailboxId }: MailboxEmailsViewProps) {
   useEffect(() => {
     fetchMailboxData();
   }, [fetchMailboxData]);
+
+  const handleSimulateTestEmail = async () => {
+    if (!mailbox) return;
+    setIsSimulating(true);
+    try {
+      await api.inbox.simulateInbound({
+        from: "EmitMail Test <hello@emitmail.com>",
+        to: mailbox.emailAddress,
+        subject: "Welcome to your new EmitMail Inbox!",
+        text: `Your mailbox ${mailbox.emailAddress} is active and receiving inbound emails.`,
+        html: `<div style="font-family:sans-serif;padding:20px;border-radius:12px;background:#f9f9fb;border:1px solid #e2e2ea;"><h2 style="color:#0f172a;margin-top:0;">Welcome to EmitMail!</h2><p style="color:#334155;line-height:1.6;">Your mailbox <strong>${mailbox.emailAddress}</strong> is active, DNS is verified, and inbound processing is working properly.</p><hr style="border:none;border-top:1px solid #e2e2ea;margin:20px 0;"/><p style="color:#64748b;font-size:12px;margin-bottom:0;">Processed by EmitMail SMTP Receiver & BullMQ Worker</p></div>`,
+      });
+      toast({
+        title: "Test Inbound Dispatched",
+        description: "Processing incoming MIME message through BullMQ worker...",
+        type: "info",
+      });
+      setTimeout(async () => {
+        await fetchMailboxData();
+        setIsSimulating(false);
+        toast({
+          title: "New Email Received",
+          description: "Incoming test email has been added to your mailbox.",
+          type: "success",
+        });
+      }, 1500);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to simulate email";
+      toast({ title: "Simulation Failed", description: msg, type: "error" });
+      setIsSimulating(false);
+    }
+  };
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -682,6 +695,17 @@ export function MailboxEmailsView({ mailboxId }: MailboxEmailsViewProps) {
                 ? `No messages matched "${searchQuery}".`
                 : `Incoming messages addressed to ${mailbox?.emailAddress || "this mailbox"} will appear here in real time.`}
             </p>
+            {!searchQuery && mailbox && (
+              <button
+                type="button"
+                onClick={handleSimulateTestEmail}
+                disabled={isSimulating}
+                className="mt-4 btn-cf-secondary text-xs flex items-center gap-1.5"
+              >
+                <ArrowsClockwise size={13} className={isSimulating ? "animate-spin" : ""} />
+                <span>{isSimulating ? "Simulating inbound email..." : "Simulate incoming test email"}</span>
+              </button>
+            )}
           </div>
         ) : (
           <div className="divide-y divide-kumo-hairline">

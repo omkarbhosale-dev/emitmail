@@ -70,11 +70,9 @@ export function Sidebar({
     const fetchUnread = async () => {
       try {
         const { api } = await import("@/lib/api");
-        const res = await api.inbox.listMessages();
+        const mailboxes = await api.inbox.listMailboxes();
         if (isMounted) {
-          const count = typeof res.unreadCount === "number"
-            ? res.unreadCount
-            : res.messages?.filter((m) => !m.isRead).length ?? 0;
+          const count = mailboxes.reduce((acc, m) => acc + (m.unreadCount || 0), 0);
           setUnreadCount(count);
         }
       } catch {

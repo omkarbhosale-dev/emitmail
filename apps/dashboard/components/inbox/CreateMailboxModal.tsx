@@ -51,12 +51,14 @@ export function CreateMailboxModal({
     setError(null);
 
     try {
-      const created = await api.inbox.createMailbox({
+      const res = await api.inbox.createMailbox({
         domainId: selectedDomainId,
         localPart: localPart.trim().toLowerCase(),
         displayName: displayName.trim() || undefined,
         isCatchAll,
       });
+
+      const created = (res as any)?.mailbox || res;
 
       toast({
         title: "Mailbox Created",

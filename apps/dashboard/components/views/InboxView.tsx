@@ -57,29 +57,32 @@ export function InboxView() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const [mailboxes, setMailboxes] = useState<MailboxItem[]>(INITIAL_MAILBOXES);
+  const [mailboxes, setMailboxes] = useState<MailboxItem[]>([]);
   const [domains, setDomains] = useState<InboundDomainItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Fetch mailboxes and domains
   const fetchData = useCallback(async () => {
+    setIsLoading(true);
     try {
       const [mailboxesRes, domainsRes] = await Promise.allSettled([
         api.inbox.listMailboxes(),
         api.inbox.listDomains(),
       ]);
 
-      if (mailboxesRes.status === "fulfilled" && mailboxesRes.value.length > 0) {
+      if (mailboxesRes.status === "fulfilled") {
         setMailboxes(mailboxesRes.value);
       }
       if (domainsRes.status === "fulfilled") {
         setDomains(domainsRes.value);
       }
     } catch {
-      // Fallback to initial mock mailboxes in offline dev mode
+      // Keep existing state on error
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 

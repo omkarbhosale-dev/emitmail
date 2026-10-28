@@ -181,13 +181,28 @@ export const api = {
       return apiFetch<import("@/types").MailboxItem[]>(`/inbox/mailboxes${query}`);
     },
 
+    getMailbox: async (mailboxId: string) => {
+      return apiFetch<import("@/types").MailboxItem>(`/inbox/mailboxes/${mailboxId}`);
+    },
+
     createMailbox: async (data: {
       domainId: string;
       localPart: string;
       displayName?: string;
       isCatchAll?: boolean;
     }) => {
-      return apiFetch<import("@/types").MailboxItem>("/inbox/mailboxes", {
+      return apiFetch<{
+        mailbox: import("@/types").MailboxItem;
+        inboundDnsInstructions: {
+          mxVerified: boolean;
+          record: {
+            type: string;
+            host: string;
+            value: string;
+            priority: number;
+          };
+        };
+      }>("/inbox/mailboxes", {
         method: "POST",
         body: JSON.stringify(data),
       });
@@ -251,8 +266,9 @@ export const api = {
       data: { html?: string; text?: string; cc?: string[]; bcc?: string[] }
     ) => {
       return apiFetch<{
-        replyMessage: import("@/types").InboundEmailItem;
-        thread: import("@/types").InboundEmailItem[];
+        message: string;
+        emailId: string;
+        reply: import("@/types").InboundEmailItem;
       }>(`/inbox/messages/${messageId}/reply`, {
         method: "POST",
         body: JSON.stringify(data),
@@ -264,6 +280,23 @@ export const api = {
       data: { to: string | string[]; subject: string; html?: string; text?: string; cc?: string[]; bcc?: string[] }
     ) => {
       return apiFetch<import("@/types").InboundEmailItem>(`/inbox/mailboxes/${mailboxId}/send`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+    },
+
+    simulateInbound: async (data: {
+      from: string;
+      to: string;
+      subject: string;
+      text?: string;
+      html?: string;
+    }) => {
+      return apiFetch<{
+        enqueued: boolean;
+        jobId: string;
+        message: string;
+      }>("/inbox/simulate-inbound", {
         method: "POST",
         body: JSON.stringify(data),
       });

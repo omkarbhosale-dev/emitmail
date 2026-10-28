@@ -124,8 +124,11 @@ export function InboxMessageDetailView({ messageId, mailboxId }: InboxMessageDet
         text: replyText.trim(),
       });
 
-      setThreadMessages(result.thread);
+      if (result.reply) {
+        setThreadMessages((prev) => [...prev, result.reply]);
+      }
       setReplyText("");
+      await fetchMessage();
       toast({
         title: "Reply Sent",
         description: `Dispatched reply to ${message.fromAddress}`,
@@ -187,11 +190,23 @@ export function InboxMessageDetailView({ messageId, mailboxId }: InboxMessageDet
     );
   }
 
+  const formatAddress = (addr: unknown): string => {
+    if (!addr) return "";
+    if (typeof addr === "string") return addr;
+    if (typeof addr === "object") {
+      const obj = addr as { address?: string; name?: string };
+      return obj.name ? `${obj.name} <${obj.address}>` : (obj.address || "");
+    }
+    return String(addr);
+  };
+
   const senderInitials = (message.fromName || message.fromAddress)
     .slice(0, 2)
     .toUpperCase();
 
-  const recipientMailboxAddress = message.mailbox?.emailAddress || (Array.isArray(message.toAddresses) ? message.toAddresses[0] : "mailbox");
+  const recipientMailboxAddress =
+    message.mailbox?.emailAddress ||
+    (Array.isArray(message.toAddresses) ? formatAddress(message.toAddresses[0]) : "mailbox");
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
@@ -306,7 +321,12 @@ export function InboxMessageDetailView({ messageId, mailboxId }: InboxMessageDet
                 </span>
               </div>
               <div className="text-[11px] text-kumo-subtle mt-0.5 flex items-center gap-2">
-                <span>to {Array.isArray(message.toAddresses) ? message.toAddresses.join(", ") : message.toAddresses}</span>
+                <span>
+                  to{" "}
+                  {Array.isArray(message.toAddresses)
+                    ? message.toAddresses.map(formatAddress).filter(Boolean).join(", ")
+                    : formatAddress(message.toAddresses)}
+                </span>
                 <button
                   type="button"
                   onClick={() => setShowMetadataPopover(!showMetadataPopover)}

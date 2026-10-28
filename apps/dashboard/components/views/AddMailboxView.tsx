@@ -38,7 +38,7 @@ export function AddMailboxView() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const [domains, setDomains] = useState<InboundDomainItem[]>(INITIAL_FALLBACK_DOMAINS);
+  const [domains, setDomains] = useState<InboundDomainItem[]>([]);
   const [selectedDomainId, setSelectedDomainId] = useState("");
   const [localPart, setLocalPart] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -55,13 +55,9 @@ export function AddMailboxView() {
         if (isMounted && list && list.length > 0) {
           setDomains(list);
           setSelectedDomainId(list[0].id);
-        } else if (isMounted) {
-          setSelectedDomainId(INITIAL_FALLBACK_DOMAINS[0].id);
         }
       } catch {
-        if (isMounted) {
-          setSelectedDomainId(INITIAL_FALLBACK_DOMAINS[0].id);
-        }
+        // Continue with empty domains list
       } finally {
         if (isMounted) setIsLoadingDomains(false);
       }
@@ -95,12 +91,14 @@ export function AddMailboxView() {
     setErrorMessage(null);
 
     try {
-      const created = await api.inbox.createMailbox({
+      const res = await api.inbox.createMailbox({
         domainId: selectedDomainId,
         localPart: cleanAlias,
         displayName: displayName.trim() || undefined,
         isCatchAll,
       });
+
+      const created = (res as any)?.mailbox || res;
 
       toast({
         title: "Mailbox Created",
