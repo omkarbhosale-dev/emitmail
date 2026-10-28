@@ -70,6 +70,15 @@ const envSchema = z.object({
   SMTP_EHLO_HOSTNAME: z.string().default('mail.example.com'),
   SENDING_SERVER_IP: z.string().default('0.0.0.0'),
   RETURN_PATH_SUBDOMAIN: z.string().default('send'),
+  INBOUND_SMTP_ENABLED: z
+    .preprocess((val) => val === 'true' || val === true || val === '1', z.boolean())
+    .default(true),
+  INBOUND_SMTP_PORT: z.coerce.number().int().positive().default(2525),
+  INBOUND_SMTP_HOST: z.string().default('0.0.0.0'),
+  INBOUND_MAX_BYTES: z.coerce.number().int().positive().default(26214400),
+  INBOUND_EMAIL_QUEUE_NAME: z.string().default('inbound-email'),
+  INBOUND_TLS_KEY_PATH: z.string().optional(),
+  INBOUND_TLS_CERT_PATH: z.string().optional(),
 });
 
 const parseEnv = () => {

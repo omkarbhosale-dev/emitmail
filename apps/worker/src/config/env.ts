@@ -48,6 +48,7 @@ const envSchema = z.object({
   MAIL_SERVER_HOSTNAME: z.string().default('mail.example.com'),
   SENDING_SERVER_IP: z.string().default('0.0.0.0'),
   RETURN_PATH_SUBDOMAIN: z.string().default('send'),
+  INBOUND_EMAIL_QUEUE_NAME: z.string().default('inbound-email'),
 });
 
 const parseEnv = () => {

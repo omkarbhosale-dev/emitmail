@@ -102,7 +102,17 @@ async function startServer(): Promise<void> {
     console.log('ℹ️ [Workers] Running in decoupled API mode. Background queues dispatched to Redis.');
   }
 
-  // 5. Start HTTP Server
+  // 5. Start Inbound SMTP Receiver (if enabled)
+  if (env.INBOUND_SMTP_ENABLED) {
+    try {
+      const { startInboundSmtpServer } = await import('./inbound/smtp-receiver.js');
+      await startInboundSmtpServer(env.INBOUND_SMTP_PORT, env.INBOUND_SMTP_HOST);
+    } catch (smtpErr) {
+      console.error('⚠️ [Inbound SMTP] Could not start Inbound SMTP server:', smtpErr);
+    }
+  }
+
+  // 6. Start HTTP Server
   const app = createApp();
   const server = app.listen(env.PORT, () => {
     console.log(`✨ EmitMail API listening on http://localhost:${env.PORT} [${env.NODE_ENV}]`);
@@ -113,6 +123,10 @@ async function startServer(): Promise<void> {
     console.log(`\n🛑 Received ${signal}. Shutting down EmitMail API...`);
     server.close(async () => {
       try {
+        if (env.INBOUND_SMTP_ENABLED) {
+          const { stopInboundSmtpServer } = await import('./inbound/smtp-receiver.js');
+          await stopInboundSmtpServer().catch(() => {});
+        }
         if (runningWorkers) {
           await runningWorkers.closeAll();
         }
