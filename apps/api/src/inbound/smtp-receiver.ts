@@ -21,7 +21,7 @@ export function createInboundSmtpServer(): SMTPServer {
   const hostname =
     process.env.SMTP_EHLO_HOSTNAME ||
     env.SMTP_EHLO_HOSTNAME ||
-    'mail.omkarbhosale.dev';
+    env.MAIL_SERVER_HOSTNAME;
 
   let tlsOptions: { key?: Buffer; cert?: Buffer } = {};
   if (
