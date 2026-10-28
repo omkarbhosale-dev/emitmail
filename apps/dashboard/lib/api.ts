@@ -156,4 +156,118 @@ export const api = {
       });
     },
   },
+
+  inbox: {
+    listDomains: async () => {
+      return apiFetch<import("@/types").InboundDomainItem[]>("/inbox/domains");
+    },
+
+    verifyDomainMx: async (domainId: string) => {
+      return apiFetch<{
+        verified: boolean;
+        expectedExchange: string;
+        detectedRecords: any[];
+        message: string;
+      }>(`/inbox/domains/${domainId}/verify-mx`, {
+        method: "POST",
+      });
+    },
+
+    listMailboxes: async (domainId?: string, search?: string) => {
+      const params = new URLSearchParams();
+      if (domainId) params.set("domainId", domainId);
+      if (search?.trim()) params.set("search", search.trim());
+      const query = params.toString() ? `?${params.toString()}` : "";
+      return apiFetch<import("@/types").MailboxItem[]>(`/inbox/mailboxes${query}`);
+    },
+
+    createMailbox: async (data: {
+      domainId: string;
+      localPart: string;
+      displayName?: string;
+      isCatchAll?: boolean;
+    }) => {
+      return apiFetch<import("@/types").MailboxItem>("/inbox/mailboxes", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+    },
+
+    deleteMailbox: async (mailboxId: string) => {
+      return apiFetch<{ id: string; emailAddress: string }>(`/inbox/mailboxes/${mailboxId}`, {
+        method: "DELETE",
+      });
+    },
+
+    listMessages: async (
+      mailboxId?: string,
+      query?: { filter?: string; search?: string; page?: number; limit?: number }
+    ) => {
+      const params = new URLSearchParams();
+      if (query?.filter) params.set("filter", query.filter);
+      if (query?.search?.trim()) params.set("search", query.search.trim());
+      if (query?.page) params.set("page", String(query.page));
+      if (query?.limit) params.set("limit", String(query.limit));
+      const q = params.toString() ? `?${params.toString()}` : "";
+      const endpoint = mailboxId && mailboxId !== "all"
+        ? `/inbox/mailboxes/${mailboxId}/messages${q}`
+        : `/inbox/messages${q}`;
+      return apiFetch<{
+        mailbox?: import("@/types").MailboxItem;
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+        unreadCount?: number;
+        messages: import("@/types").InboundEmailItem[];
+      }>(endpoint);
+    },
+
+    getMessage: async (messageId: string) => {
+      return apiFetch<{
+        message: import("@/types").InboundEmailItem;
+        thread: import("@/types").InboundEmailItem[];
+      }>(`/inbox/messages/${messageId}`);
+    },
+
+    updateMessage: async (
+      messageId: string,
+      data: { isRead?: boolean; isStarred?: boolean; isArchived?: boolean; isTrash?: boolean }
+    ) => {
+      return apiFetch<import("@/types").InboundEmailItem>(`/inbox/messages/${messageId}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      });
+    },
+
+    deleteMessage: async (messageId: string) => {
+      return apiFetch<{ id: string; deleted: boolean }>(`/inbox/messages/${messageId}`, {
+        method: "DELETE",
+      });
+    },
+
+    replyMessage: async (
+      messageId: string,
+      data: { html?: string; text?: string; cc?: string[]; bcc?: string[] }
+    ) => {
+      return apiFetch<{
+        replyMessage: import("@/types").InboundEmailItem;
+        thread: import("@/types").InboundEmailItem[];
+      }>(`/inbox/messages/${messageId}/reply`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+    },
+
+    sendMailbox: async (
+      mailboxId: string,
+      data: { to: string | string[]; subject: string; html?: string; text?: string; cc?: string[]; bcc?: string[] }
+    ) => {
+      return apiFetch<import("@/types").InboundEmailItem>(`/inbox/mailboxes/${mailboxId}/send`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+    },
+  },
 };
+

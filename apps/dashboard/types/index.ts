@@ -96,3 +96,92 @@ export interface ToastMessage {
   description?: string;
   type?: "success" | "info" | "warning" | "error";
 }
+
+export interface MailboxItem {
+  id: string;
+  domainId: string;
+  domain?: {
+    id: string;
+    domainName: string;
+    inboundMxVerified?: boolean;
+    inboundEnabled?: boolean;
+    status?: string;
+  };
+  localPart: string;
+  emailAddress: string;
+  displayName?: string | null;
+  isActive: boolean;
+  isCatchAll: boolean;
+  unreadCount: number;
+  totalMessages: number;
+  totalReceived?: number;
+  lastMessageAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InboundEmailAttachment {
+  filename: string;
+  contentType: string;
+  sizeBytes: number;
+  path?: string;
+  url?: string;
+}
+
+export interface InboundEmailItem {
+  id: string;
+  mailboxId: string;
+  domainId: string;
+  threadId: string;
+  messageId: string;
+  inReplyTo?: string | null;
+  references?: string[];
+  fromAddress: string;
+  fromName?: string | null;
+  toAddresses: string[];
+  ccAddresses?: string[];
+  replyTo?: string | null;
+  subject: string;
+  snippet: string;
+  textBody?: string | null;
+  htmlBody?: string | null;
+  rawHeaders?: Record<string, any> | null;
+  attachments?: InboundEmailAttachment[] | null;
+  sizeBytes: number;
+  isRead: boolean;
+  isStarred: boolean;
+  isArchived: boolean;
+  isTrash: boolean;
+  direction: "INBOUND" | "OUTBOUND_REPLY";
+  receivedAt: string;
+  createdAt: string;
+  updatedAt: string;
+  mailbox?: MailboxItem;
+  domain?: {
+    id: string;
+    domainName: string;
+  };
+  spamScore?: number;
+  dkimPass?: boolean;
+  spfPass?: boolean;
+}
+
+export interface InboundDomainItem {
+  id: string;
+  domainName: string;
+  inboundEnabled: boolean;
+  inboundMxVerified: boolean;
+  createdAt: string;
+  activeMailboxesCount?: number;
+  mxHost?: string;
+  mxPriority?: number;
+  requiredMxRecord: {
+    type: string;
+    host: string;
+    value: string;
+    priority: number;
+    ttl: string;
+    status: "VERIFIED" | "PENDING";
+  };
+}
+
