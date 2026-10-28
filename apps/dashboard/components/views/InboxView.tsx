@@ -1,472 +1,341 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Tray,
   MagnifyingGlass,
   ArrowsClockwise,
-  EnvelopeSimple,
-  EnvelopeOpen,
-  Star,
+  Plus,
   Trash,
   CheckCircle,
-  WarningCircle,
-  ArrowUUpLeft,
-  Copy,
-  Clock,
-  ShieldCheck,
+  Warning,
   X,
-  DotsThree,
+  CaretRight,
+  Globe,
 } from "@phosphor-icons/react";
+import { MailboxItem, InboundDomainItem } from "@/types";
 import { useToast } from "@/components/ui/Toast";
+import { TableSkeleton } from "@/components/ui/Skeleton";
+import { api } from "@/lib/api";
 
-interface InboundEmailItem {
-  id: string;
-  from: string;
-  to: string;
-  subject: string;
-  preview: string;
-  body: string;
-  receivedAt: string;
-  isRead: boolean;
-  isStarred: boolean;
-  spamScore: number;
-  dkimPass: boolean;
-  spfPass: boolean;
-}
+const STATIC_NOW = "2026-10-28T10:00:00.000Z";
 
-const INITIAL_INBOX_EMAILS: InboundEmailItem[] = [
+const INITIAL_MAILBOXES: MailboxItem[] = [
   {
-    id: "inb_01j7b92x",
-    from: "support@github.com",
-    to: "dev@omkarbhosale.dev",
-    subject: "[GitHub] A personal access token has been granted read permissions",
-    preview: "Hey omkarbhosale, a new fine-grained personal access token was created with repository permissions...",
-    body: `Hello omkarbhosale,\n\nA new fine-grained personal access token ("emitmail-deploy-agent") was generated on your account.\n\nPermissions granted:\n- Contents: Read and write\n- Workflows: Read\n\nIf you did not generate this token, please revoke it immediately in your security settings.`,
-    receivedAt: "5 mins ago",
-    isRead: false,
-    isStarred: true,
-    spamScore: 0.1,
-    dkimPass: true,
-    spfPass: true,
+    id: "mbx_support",
+    domainId: "dom_omkar",
+    emailAddress: "support@omkarbhosale.dev",
+    localPart: "support",
+    displayName: "EmitMail Support",
+    isCatchAll: false,
+    isActive: true,
+    totalMessages: 24,
+    totalReceived: 24,
+    unreadCount: 2,
+    createdAt: STATIC_NOW,
+    updatedAt: STATIC_NOW,
   },
   {
-    id: "inb_02k8c01y",
-    from: "noreply@cloudflare.com",
-    to: "dns-admin@omkarbhosale.dev",
-    subject: "DNS record propagation confirmed for omkarbhosale.dev",
-    preview: "Your DNS TXT and MX verification records for selector 'esp._domainkey' have been successfully propagated globally...",
-    body: `Cloudflare Edge DNS Notification:\n\nDomain: omkarbhosale.dev\nRecord: TXT esp._domainkey.omkarbhosale.dev\nStatus: Active (100% Edge Coverage)\n\nAll authoritative nameservers are now answering with 2048-bit RSA public key.`,
-    receivedAt: "25 mins ago",
-    isRead: false,
-    isStarred: false,
-    spamScore: 0.0,
-    dkimPass: true,
-    spfPass: true,
-  },
-  {
-    id: "inb_03m9d44z",
-    from: "mailer-daemon@google.com",
-    to: "bounce@send.omkarbhosale.dev",
-    subject: "Delivery Status Notification (Delay): Host busy",
-    preview: "This is an informational notice regarding delivery to external destination. The server has queued retry attempt #2...",
-    body: `Technical report:\n\nReporting-MTA: dns; mail.omkarbhosale.dev\nFinal-Recipient: rfc822; user@slow-destination.org\nAction: delayed\nStatus: 4.4.1 (Unable to connect to remote host)\nDiagnostic-Code: smtp; 421 4.4.1 Connection timed out, queued in Redis for retry.`,
-    receivedAt: "1 hour ago",
-    isRead: true,
-    isStarred: false,
-    spamScore: 0.2,
-    dkimPass: true,
-    spfPass: true,
-  },
-  {
-    id: "inb_04p2e99w",
-    from: "billing@resend.com",
-    to: "finance@omkarbhosale.dev",
-    subject: "Your monthly invoice summary for September 2026",
-    preview: "Thank you for using Resend during your migration to EmitMail self-hosted infrastructure. Your receipt is attached...",
-    body: `Hi Omkar,\n\nHere is your monthly invoice statement. Your self-hosted EmitMail instance has saved you approximately $180/mo in managed transactional email fees.\n\nTotal Paid: $0.00 (Migrated to Self-Hosted)`,
-    receivedAt: "Yesterday",
-    isRead: true,
-    isStarred: true,
-    spamScore: 0.0,
-    dkimPass: true,
-    spfPass: true,
+    id: "mbx_billing",
+    domainId: "dom_omkar",
+    emailAddress: "billing@omkarbhosale.dev",
+    localPart: "billing",
+    displayName: "EmitMail Billing",
+    isCatchAll: false,
+    isActive: true,
+    totalMessages: 8,
+    totalReceived: 8,
+    unreadCount: 0,
+    createdAt: STATIC_NOW,
+    updatedAt: STATIC_NOW,
   },
 ];
 
 export function InboxView() {
+  const router = useRouter();
   const { toast } = useToast();
-  const [emails, setEmails] = useState<InboundEmailItem[]>(INITIAL_INBOX_EMAILS);
+
+  const [mailboxes, setMailboxes] = useState<MailboxItem[]>([]);
+  const [domains, setDomains] = useState<InboundDomainItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filter, setFilter] = useState<"all" | "unread" | "starred">("all");
-  const [selectedEmail, setSelectedEmail] = useState<InboundEmailItem | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const handleRefresh = () => {
+  // Fetch mailboxes and domains
+  const fetchData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [mailboxesRes, domainsRes] = await Promise.allSettled([
+        api.inbox.listMailboxes(),
+        api.inbox.listDomains(),
+      ]);
+
+      if (mailboxesRes.status === "fulfilled") {
+        setMailboxes(mailboxesRes.value);
+      }
+      if (domainsRes.status === "fulfilled") {
+        setDomains(domainsRes.value);
+      }
+    } catch {
+      // Keep existing state on error
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const handleRefresh = async () => {
     setIsRefreshing(true);
-    setTimeout(() => {
-      setIsRefreshing(false);
-      toast({
-        title: "Inbox Synchronized",
-        description: "Checked for new inbound messages via local MX daemon.",
-        type: "info",
-      });
-    }, 600);
-  };
-
-  const toggleStar = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setEmails((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, isStarred: !item.isStarred } : item
-      )
-    );
-  };
-
-  const markAsRead = (id: string, read: boolean) => {
-    setEmails((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, isRead: read } : item))
-    );
-    if (selectedEmail?.id === id) {
-      setSelectedEmail((prev) => (prev ? { ...prev, isRead: read } : null));
-    }
-  };
-
-  const deleteEmail = (id: string, e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    setEmails((prev) => prev.filter((item) => item.id !== id));
-    if (selectedEmail?.id === id) {
-      setSelectedEmail(null);
-    }
+    await fetchData();
+    setIsRefreshing(false);
     toast({
-      title: "Email Removed",
-      description: "Message deleted from inbound inbox.",
+      title: "Mailboxes Refreshed",
+      description: "Synchronized active mailboxes and unread counts.",
       type: "info",
     });
   };
 
-  const filteredEmails = emails.filter((item) => {
-    if (filter === "unread" && item.isRead) return false;
-    if (filter === "starred" && !item.isStarred) return false;
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      return (
-        item.subject.toLowerCase().includes(q) ||
-        item.from.toLowerCase().includes(q) ||
-        item.to.toLowerCase().includes(q) ||
-        item.preview.toLowerCase().includes(q)
-      );
+  const handleDeleteMailbox = async (id: string, emailAddress: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!window.confirm(`Are you sure you want to delete mailbox "${emailAddress}"? Incoming emails to this alias will no longer be accepted.`)) {
+      return;
     }
-    return true;
-  });
 
-  const unreadCount = emails.filter((e) => !e.isRead).length;
+    setDeletingId(id);
+    try {
+      await api.inbox.deleteMailbox(id);
+      setMailboxes((prev) => prev.filter((m) => m.id !== id));
+      toast({
+        title: "Mailbox Deleted",
+        description: `Removed alias ${emailAddress}`,
+        type: "info",
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to delete mailbox";
+      toast({
+        title: "Delete Failed",
+        description: msg,
+        type: "error",
+      });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const filteredMailboxes = useMemo(() => {
+    if (!searchQuery.trim()) return mailboxes;
+    const q = searchQuery.toLowerCase();
+    return mailboxes.filter(
+      (m) =>
+        m.emailAddress.toLowerCase().includes(q) ||
+        m.localPart.toLowerCase().includes(q) ||
+        (m.displayName && m.displayName.toLowerCase().includes(q))
+    );
+  }, [mailboxes, searchQuery]);
 
   return (
-    <div className="space-y-4 animate-in fade-in duration-200">
-      {/* 1. Header (Cloudflare Kumo Style) */}
+    <div className="space-y-6 animate-in fade-in duration-200">
+      {/* 1. Header (Clean header without badges or telemetry cards) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-kumo-strong">
-              Inbox
-            </h1>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Inbound SMTP & Webhooks Active</span>
-            </span>
-            {unreadCount > 0 && (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-cf-orange text-white">
-                {unreadCount} new
-              </span>
-            )}
-          </div>
-          <p className="text-xs text-kumo-subtle mt-1.5">
-            Live inbound mail stream, webhook notifications, and bounce receiver
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-kumo-strong">
+            Inbox
+          </h1>
+          <p className="text-xs text-kumo-subtle mt-1">
+            Manage custom inbound mailboxes, aliases, and incoming email routing.
           </p>
         </div>
 
-        {/* Action Controls */}
-        <div className="flex items-center gap-2.5 shrink-0">
+        {/* Top Right Actions */}
+        <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
           <button
             type="button"
             onClick={handleRefresh}
             disabled={isRefreshing}
-            className="btn-cf-secondary flex items-center gap-1.5 text-xs"
+            className="btn-cf-secondary flex items-center gap-1.5"
+            title="Refresh mailboxes"
           >
             <ArrowsClockwise
               size={14}
-              className={isRefreshing ? "animate-spin" : ""}
+              className={isRefreshing ? "animate-spin text-cf-blue" : ""}
             />
             <span>Refresh</span>
           </button>
+
+          <Link
+            href="/inbox/add"
+            className="btn-cf-primary flex items-center gap-1.5"
+          >
+            <Plus size={14} weight="bold" />
+            <span>Add mailbox</span>
+          </Link>
         </div>
       </div>
 
-      {/* 2. Controls Toolbar: Search & Filter Tabs */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[#0C0C0C] border border-[#262626] rounded-lg p-2">
-        {/* Search Input */}
-        <div className="relative flex-1">
+      {/* 2. Search Toolbar */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="relative flex-1 sm:max-w-md">
           <MagnifyingGlass
             size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6E6E6E]"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-kumo-muted"
           />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search inbound messages by sender, recipient, or subject..."
-            className="w-full bg-[#141414] border border-[#262626] rounded-md pl-9 pr-3 py-1.5 text-xs text-kumo-strong placeholder:text-[#6E6E6E] outline-none focus:border-[#3E3E3E]"
+            placeholder="Search by mailbox alias or address..."
+            className="w-full pl-8 pr-7 py-1.5 text-xs bg-kumo-control border border-kumo-line rounded-lg text-kumo-strong placeholder:text-kumo-muted focus:outline-none focus:border-cf-blue"
           />
           {searchQuery && (
             <button
+              type="button"
               onClick={() => setSearchQuery("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#6E6E6E] hover:text-white"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-kumo-muted hover:text-kumo-strong cursor-pointer"
             >
-              <X size={13} />
+              <X size={12} />
             </button>
           )}
         </div>
 
-        {/* Filter Pills */}
-        <div className="flex items-center gap-1 self-start sm:self-auto shrink-0">
-          <button
-            type="button"
-            onClick={() => setFilter("all")}
-            className={`px-3 py-1 text-xs rounded-md font-medium transition-colors cursor-pointer ${
-              filter === "all"
-                ? "bg-[#1C1C1E] text-white border border-[#3E3E3E]"
-                : "text-kumo-subtle hover:text-white"
-            }`}
-          >
-            All ({emails.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setFilter("unread")}
-            className={`px-3 py-1 text-xs rounded-md font-medium transition-colors cursor-pointer ${
-              filter === "unread"
-                ? "bg-[#1C1C1E] text-white border border-[#3E3E3E]"
-                : "text-kumo-subtle hover:text-white"
-            }`}
-          >
-            Unread ({unreadCount})
-          </button>
-          <button
-            type="button"
-            onClick={() => setFilter("starred")}
-            className={`px-3 py-1 text-xs rounded-md font-medium transition-colors cursor-pointer ${
-              filter === "starred"
-                ? "bg-[#1C1C1E] text-white border border-[#3E3E3E]"
-                : "text-kumo-subtle hover:text-white"
-            }`}
-          >
-            Starred ({emails.filter((e) => e.isStarred).length})
-          </button>
+        <div className="text-xs text-kumo-subtle hidden sm:block">
+          {filteredMailboxes.length} {filteredMailboxes.length === 1 ? "mailbox" : "mailboxes"} registered
         </div>
       </div>
 
-      {/* 3. Master List View */}
-      <div className="bg-[#0C0C0C] border border-[#262626] rounded-lg overflow-hidden shadow-2xs">
-        {filteredEmails.length === 0 ? (
-          <div className="p-12 text-center flex flex-col items-center justify-center">
-            <div className="w-12 h-12 rounded-xl bg-[#141414] border border-[#262626] flex items-center justify-center text-kumo-muted mb-3">
+      {/* 3. Mailboxes Table */}
+      <div className="bg-kumo-base border border-kumo-hairline rounded-xl overflow-hidden shadow-2xs">
+        {isLoading ? (
+          <TableSkeleton rows={4} cols={5} />
+        ) : filteredMailboxes.length === 0 ? (
+          /* Empty State */
+          <div className="p-10 md:p-14 text-center flex flex-col items-center justify-center max-w-md mx-auto">
+            <div className="w-12 h-12 rounded-2xl bg-kumo-control border border-kumo-line flex items-center justify-center text-kumo-muted mb-3">
               <Tray size={24} weight="duotone" />
             </div>
-            <h4 className="text-sm font-semibold text-kumo-strong mb-1">
-              No inbound emails found
-            </h4>
-            <p className="text-xs text-kumo-subtle max-w-sm">
+            <h3 className="text-sm font-semibold text-kumo-strong mb-1">
+              {searchQuery ? "No matching mailboxes found" : "No mailboxes created yet"}
+            </h3>
+            <p className="text-xs text-kumo-subtle mb-5 leading-relaxed">
               {searchQuery
-                ? `No messages matched "${searchQuery}".`
-                : "Inbound mailbox is empty. Incoming emails sent to your verified domains will appear here in real time."}
+                ? `No mailboxes matched "${searchQuery}".`
+                : "Create custom mailbox aliases (e.g. support@yourdomain.com) to receive emails directly into EmitMail."}
             </p>
+            <Link
+              href="/inbox/add"
+              className="btn-cf-primary flex items-center gap-1.5 text-xs"
+            >
+              <Plus size={14} weight="bold" />
+              <span>Create your first mailbox</span>
+            </Link>
           </div>
         ) : (
-          <div className="divide-y divide-[#1E1E1E]">
-            {filteredEmails.map((item) => (
-              <div
-                key={item.id}
-                onClick={() => {
-                  setSelectedEmail(item);
-                  if (!item.isRead) markAsRead(item.id, true);
-                }}
-                className={`flex items-start sm:items-center justify-between gap-3 p-3 sm:px-4 sm:py-3 transition-colors cursor-pointer group select-none ${
-                  !item.isRead
-                    ? "bg-[#121214] hover:bg-[#18181A]"
-                    : "hover:bg-[#141414]"
-                }`}
-              >
-                {/* Left Star & Status Dot */}
-                <div className="flex items-center gap-2.5 shrink-0 pt-0.5 sm:pt-0">
-                  <button
-                    type="button"
-                    onClick={(e) => toggleStar(item.id, e)}
-                    className="text-[#6E6E6E] hover:text-amber-400 transition-colors"
-                  >
-                    <Star
-                      size={15}
-                      weight={item.isStarred ? "fill" : "regular"}
-                      className={item.isStarred ? "text-amber-400" : ""}
-                    />
-                  </button>
-                  <span
-                    className={`w-2 h-2 rounded-full ${
-                      !item.isRead ? "bg-cf-blue" : "bg-transparent"
-                    }`}
-                  />
-                </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-kumo-hairline bg-kumo-recessed/50 text-kumo-subtle font-medium">
+                  <th className="py-3 px-4">Mailbox Address</th>
+                  <th className="py-3 px-4 hidden sm:table-cell">Domain</th>
+                  <th className="py-3 px-4">Unread Emails</th>
+                  <th className="py-3 px-4 hidden md:table-cell">Total Messages</th>
+                  <th className="py-3 px-4 hidden sm:table-cell">Status</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-kumo-hairline">
+                {filteredMailboxes.map((mb) => {
+                  const domainName = mb.domain?.domainName || mb.emailAddress.split("@")[1] || "domain";
 
-                {/* Sender & Subject & Preview Snippet */}
-                <div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-12 gap-1 md:gap-3 items-baseline">
-                  {/* Sender */}
-                  <div className="md:col-span-3 truncate text-xs">
-                    <span
-                      className={
-                        !item.isRead
-                          ? "font-semibold text-white"
-                          : "font-normal text-[#D4D4D8]"
-                      }
+                  return (
+                    <tr
+                      key={mb.id}
+                      onClick={() => router.push(`/inbox/${mb.id}`)}
+                      className="hover:bg-kumo-tint/60 transition-colors cursor-pointer group"
                     >
-                      {item.from}
-                    </span>
-                  </div>
+                      {/* Mailbox Address & Display Name */}
+                      <td className="py-3.5 px-4 font-semibold text-kumo-strong">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-lg bg-cf-orange/10 border border-cf-orange/20 flex items-center justify-center text-cf-orange shrink-0">
+                            <Tray size={14} weight="bold" />
+                          </div>
+                          <div className="min-w-0">
+                            <span className="font-mono text-xs block text-kumo-strong group-hover:text-cf-orange transition-colors truncate">
+                              {mb.emailAddress}
+                            </span>
+                            {mb.displayName && (
+                              <span className="text-[11px] text-kumo-subtle font-sans block truncate font-normal">
+                                {mb.displayName}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </td>
 
-                  {/* Subject & Preview */}
-                  <div className="md:col-span-9 truncate text-xs">
-                    <span
-                      className={
-                        !item.isRead
-                          ? "font-semibold text-white"
-                          : "text-kumo-strong"
-                      }
-                    >
-                      {item.subject}
-                    </span>
-                    <span className="text-kumo-subtle ml-2 hidden sm:inline">
-                      — {item.preview}
-                    </span>
-                  </div>
-                </div>
+                      {/* Domain */}
+                      <td className="py-3.5 px-4 text-kumo-subtle hidden sm:table-cell font-mono text-[11px]">
+                        <div className="flex items-center gap-1.5">
+                          <Globe size={13} className="text-kumo-muted" />
+                          <span>{domainName}</span>
+                        </div>
+                      </td>
 
-                {/* Right Badges & Timestamp */}
-                <div className="flex items-center gap-3 shrink-0 text-[11px] text-[#8E8E93]">
-                  <div className="hidden lg:flex items-center gap-1.5">
-                    {item.dkimPass && (
-                      <span className="px-1.5 py-0.2 rounded text-[9px] font-mono bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-                        DKIM:OK
-                      </span>
-                    )}
-                    {item.spfPass && (
-                      <span className="px-1.5 py-0.2 rounded text-[9px] font-mono bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-                        SPF:OK
-                      </span>
-                    )}
-                  </div>
-                  <span>{item.receivedAt}</span>
-                  <button
-                    type="button"
-                    onClick={(e) => deleteEmail(item.id, e)}
-                    className="opacity-0 group-hover:opacity-100 p-1 text-[#6E6E6E] hover:text-kumo-danger transition-all"
-                    title="Delete message"
-                  >
-                    <Trash size={14} />
-                  </button>
-                </div>
-              </div>
-            ))}
+                      {/* Unread Count Badge */}
+                      <td className="py-3.5 px-4">
+                        {mb.unreadCount > 0 ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-cf-orange text-white shadow-2xs">
+                            {mb.unreadCount} unread
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-kumo-control border border-kumo-line text-kumo-subtle">
+                            0 unread
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Total Messages */}
+                      <td className="py-3.5 px-4 text-kumo-default hidden md:table-cell font-mono text-[11px]">
+                        {mb.totalMessages ?? 0}
+                      </td>
+
+                      {/* Status */}
+                      <td className="py-3.5 px-4 hidden sm:table-cell">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                          <span>Active</span>
+                        </span>
+                      </td>
+
+                      {/* Actions */}
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            type="button"
+                            onClick={(e) => handleDeleteMailbox(mb.id, mb.emailAddress, e)}
+                            disabled={deletingId === mb.id}
+                            className="p-1.5 rounded-md text-kumo-muted hover:text-kumo-danger hover:bg-kumo-danger-tint transition-colors cursor-pointer"
+                            title="Delete mailbox"
+                          >
+                            <Trash size={14} />
+                          </button>
+
+                          <div className="text-kumo-muted group-hover:text-kumo-strong group-hover:translate-x-0.5 transition-transform p-1">
+                            <CaretRight size={14} />
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
-
-      {/* 4. Full Email Detail Modal */}
-      {selectedEmail && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="fixed inset-0 bg-black/70 backdrop-blur-xs transition-opacity"
-            onClick={() => setSelectedEmail(null)}
-          />
-          <div className="relative w-full max-w-2xl bg-[#0F0F11] border border-[#2B2B2B] rounded-2xl shadow-2xl overflow-hidden z-10 animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[85vh]">
-            {/* Modal Header */}
-            <div className="flex items-start justify-between px-6 py-4 border-b border-[#262626]">
-              <div className="space-y-1 pr-4 min-w-0">
-                <h3 className="text-base font-bold text-white tracking-tight leading-snug">
-                  {selectedEmail.subject}
-                </h3>
-                <div className="flex items-center gap-3 text-xs text-kumo-subtle flex-wrap">
-                  <span>
-                    From: <strong className="text-white font-mono">{selectedEmail.from}</strong>
-                  </span>
-                  <span>•</span>
-                  <span>
-                    To: <span className="text-[#D4D4D8] font-mono">{selectedEmail.to}</span>
-                  </span>
-                  <span>•</span>
-                  <span>{selectedEmail.receivedAt}</span>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedEmail(null)}
-                className="p-1.5 rounded-lg text-kumo-muted hover:text-white hover:bg-[#1E1E22] shrink-0"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            {/* Security Audit Row */}
-            <div className="bg-[#141416] border-b border-[#262626] px-6 py-2.5 flex items-center justify-between text-xs flex-wrap gap-2">
-              <div className="flex items-center gap-2">
-                <ShieldCheck size={16} className="text-emerald-400" />
-                <span className="text-[#A1A1AA]">Inbound Security Check:</span>
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-                  DKIM Signature Valid
-                </span>
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-                  SPF Alignment Pass
-                </span>
-              </div>
-              <div className="text-[11px] text-kumo-subtle font-mono">
-                Spam Score: {selectedEmail.spamScore} / 10
-              </div>
-            </div>
-
-            {/* Email Body */}
-            <div className="p-6 overflow-y-auto flex-1 text-xs text-[#E4E4E7] leading-relaxed font-sans whitespace-pre-wrap select-text bg-[#0A0A0C]">
-              {selectedEmail.body}
-            </div>
-
-            {/* Modal Footer */}
-            <div className="px-6 py-3.5 bg-[#121214] border-t border-[#262626] flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => markAsRead(selectedEmail.id, !selectedEmail.isRead)}
-                  className="btn-cf-secondary text-xs flex items-center gap-1.5"
-                >
-                  {selectedEmail.isRead ? <EnvelopeSimple size={14} /> : <EnvelopeOpen size={14} />}
-                  <span>{selectedEmail.isRead ? "Mark Unread" : "Mark Read"}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => deleteEmail(selectedEmail.id)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-kumo-danger hover:bg-kumo-danger-tint border border-kumo-danger/30 transition-colors"
-                >
-                  Delete
-                </button>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setSelectedEmail(null)}
-                className="btn-cf-primary text-xs"
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

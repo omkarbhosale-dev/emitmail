@@ -62,6 +62,41 @@ export function Sidebar({
   onOpenCommandPalette,
 }: SidebarProps) {
   const pathname = usePathname();
+  const [unreadCount, setUnreadCount] = React.useState<number>(0);
+
+  React.useEffect(() => {
+    let isMounted = true;
+
+    const fetchUnread = async () => {
+      try {
+        const { api } = await import("@/lib/api");
+        const mailboxes = await api.inbox.listMailboxes();
+        if (isMounted) {
+          const count = mailboxes.reduce((acc, m) => acc + (m.unreadCount || 0), 0);
+          setUnreadCount(count);
+        }
+      } catch {
+        // Fallback or offline dev mode
+      }
+    };
+
+    fetchUnread();
+
+    const handleUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent<{ unreadCount?: number }>;
+      if (typeof customEvent.detail?.unreadCount === "number") {
+        setUnreadCount(customEvent.detail.unreadCount);
+      } else {
+        fetchUnread();
+      }
+    };
+
+    window.addEventListener("inbox-unread-updated", handleUpdate);
+    return () => {
+      isMounted = false;
+      window.removeEventListener("inbox-unread-updated", handleUpdate);
+    };
+  }, [pathname]);
 
   const getActiveTab = (path: string): NavTab => {
     if (path === "/") return "home";
@@ -87,6 +122,8 @@ export function Sidebar({
       {items.map((item) => {
         const IconComponent = item.icon;
         const isActive = activeTab === item.id;
+        const isInbox = item.id === "inbox";
+        const showInboxBadge = isInbox && unreadCount > 0;
 
         return (
           <li key={item.id}>
@@ -95,7 +132,7 @@ export function Sidebar({
               onClick={() => handleItemClick(item.id)}
               title={item.label}
               className={cn(
-                "w-full flex items-center transition-all duration-150 rounded-lg group select-none text-[13px]",
+                "w-full flex items-center transition-all duration-150 rounded-lg group select-none text-[13px] relative",
                 collapsedState
                   ? "justify-center p-2.5"
                   : "justify-between px-3 py-2",
@@ -123,10 +160,22 @@ export function Sidebar({
                 {!collapsedState && <span>{item.label}</span>}
               </div>
 
-              {!collapsedState && item.badge && (
-                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-cf-orange-tint text-cf-orange border border-cf-orange-border/40">
-                  {item.badge}
+              {/* Collapsed dot indicator for inbox */}
+              {collapsedState && showInboxBadge && (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-cf-orange ring-2 ring-kumo-canvas" />
+              )}
+
+              {/* Expanded Badges */}
+              {!collapsedState && showInboxBadge ? (
+                <span className="bg-cf-orange text-white text-[11px] font-semibold px-1.5 py-0.5 rounded-full">
+                  {unreadCount}
                 </span>
+              ) : (
+                !collapsedState && item.badge && (
+                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-cf-orange-tint text-cf-orange border border-cf-orange-border/40">
+                    {item.badge}
+                  </span>
+                )
               )}
             </Link>
           </li>

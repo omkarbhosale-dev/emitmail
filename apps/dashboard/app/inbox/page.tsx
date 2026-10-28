@@ -1,5 +1,7 @@
 import { Metadata } from "next";
+import { Suspense } from "react";
 import { InboxView } from "@/components/views/InboxView";
+import { TableSkeleton } from "@/components/ui/Skeleton";
 
 export const metadata: Metadata = {
   title: "Inbox — EmitMail",
@@ -7,5 +9,9 @@ export const metadata: Metadata = {
 };
 
 export default function InboxPage() {
-  return <InboxView />;
+  return (
+    <Suspense fallback={<TableSkeleton rows={8} />}>
+      <InboxView />
+    </Suspense>
+  );
 }
