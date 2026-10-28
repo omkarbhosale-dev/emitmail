@@ -44,12 +44,16 @@ services:
     restart: unless-stopped
     ports:
       - "4000:4000"
+      - "25:2525"
     env_file:
       - .env
     environment:
       NODE_ENV: production
       PORT: 4000
       API_PORT: 4000
+      INBOUND_SMTP_ENABLED: "true"
+      INBOUND_SMTP_PORT: 2525
+      INBOUND_SMTP_HOST: "0.0.0.0"
       DATABASE_URL: postgresql://emitmail:emitmail_pass@emitmail-postgres:5432/emitmail?schema=public
       REDIS_URL: redis://emitmail-redis:6379
       REDIS_PASSWORD: emitmail_redis_pass

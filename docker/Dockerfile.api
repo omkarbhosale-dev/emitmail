@@ -23,7 +23,7 @@ WORKDIR /app/apps/api
 RUN npx prisma generate --schema=./prisma/schema.prisma
 RUN pnpm build
 
-EXPOSE 4000
+EXPOSE 4000 2525
 
 # Push DB schema on container boot if needed, then launch API server
 CMD ["sh", "-c", "npx prisma db push --schema=./prisma/schema.prisma --skip-generate && node dist/index.js"]
