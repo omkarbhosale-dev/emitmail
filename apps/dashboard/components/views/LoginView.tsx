@@ -10,7 +10,6 @@ import {
   EyeSlash,
   WarningCircle,
   ArrowRight,
-  ShieldCheck,
 } from "@phosphor-icons/react";
 import { api } from "@/lib/api";
 
@@ -57,50 +56,43 @@ export function LoginView() {
       <style>{`
         @keyframes pulseMatrix {
           0%, 100% {
-            transform: scale(0.93) translateY(0);
-            opacity: 0.32;
+            transform: scale(0.92) translateY(0);
+            filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.45));
           }
           50% {
-            transform: scale(1.07) translateY(-8px);
-            opacity: 0.65;
+            transform: scale(1.08) translateY(-6px);
+            filter: drop-shadow(0 0 24px rgba(255, 255, 255, 0.85));
           }
         }
         @keyframes floatHorizon {
           0%, 100% {
-            opacity: 0.7;
+            opacity: 0.65;
             transform: scaleX(1);
           }
           50% {
             opacity: 0.95;
-            transform: scaleX(1.08);
+            transform: scaleX(1.1);
           }
         }
       `}</style>
 
-      {/* Left Column: Administrator Login Form (40%-45% on desktop) */}
-      <div className="w-full lg:w-[45%] xl:w-[42%] h-full flex flex-col justify-between p-6 sm:p-10 lg:p-14 bg-kumo-canvas border-r border-kumo-hairline z-20 overflow-y-auto">
+      {/* Left Column: Clean Administrator Login Form */}
+      <div className="w-full lg:w-[45%] xl:w-[40%] h-full flex flex-col justify-between p-6 sm:p-10 lg:p-14 bg-kumo-canvas border-r border-kumo-hairline z-20 overflow-y-auto">
         {/* Brand Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-cf-orange flex items-center justify-center text-white shadow-md shadow-cf-orange/20">
-              <PaperPlaneTilt size={20} weight="fill" />
-            </div>
-            <div>
-              <span className="font-bricolage text-xl font-bold tracking-tight text-kumo-strong">
-                EmitMail
-              </span>
-              <span className="hidden sm:inline-block ml-2 px-2 py-0.5 text-[10px] font-mono font-medium rounded-full bg-cf-orange/10 text-cf-orange border border-cf-orange/20">
-                v1.0 Cloud
-              </span>
-            </div>
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-cf-orange flex items-center justify-center text-white shadow-md shadow-cf-orange/20">
+            <PaperPlaneTilt size={20} weight="fill" />
           </div>
+          <span className="font-bricolage text-xl font-bold tracking-tight text-kumo-strong">
+            EmitMail
+          </span>
         </div>
 
         {/* Central Login Card */}
         <div className="my-auto py-8 max-w-sm w-full mx-auto">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-kumo-strong">
-              Welcome back
+              Welcome
             </h1>
             <p className="text-xs sm:text-sm text-kumo-subtle mt-1.5 leading-relaxed">
               Sign in with your administrator credentials to access your email routing control plane.
@@ -141,11 +133,9 @@ export function LoginView() {
 
             {/* Password Field */}
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-medium text-kumo-default">
-                  Password
-                </label>
-              </div>
+              <label className="text-xs font-medium text-kumo-default">
+                Password
+              </label>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
@@ -171,7 +161,7 @@ export function LoginView() {
               </div>
             </div>
 
-            {/* Remember Me for 30 Days */}
+            {/* Remember Me */}
             <div className="flex items-center justify-between pt-1">
               <label className="flex items-center gap-2 cursor-pointer select-none">
                 <input
@@ -181,7 +171,7 @@ export function LoginView() {
                   className="w-3.5 h-3.5 rounded bg-kumo-base border-kumo-hairline text-cf-orange focus:ring-0 focus:ring-offset-0 cursor-pointer accent-cf-orange"
                 />
                 <span className="text-xs text-kumo-subtle font-medium">
-                  Stay signed in for 30 days
+                  Remember me
                 </span>
               </label>
             </div>
@@ -205,42 +195,27 @@ export function LoginView() {
               )}
             </button>
           </form>
-
-          {/* Default Credentials Setup Callout Note */}
-          <div className="mt-6 p-3 rounded-xl bg-kumo-base border border-kumo-hairline text-[11px] text-kumo-muted">
-            <span className="font-semibold text-kumo-subtle">Default Setup Access:</span>
-            <div className="mt-1 flex items-center justify-between font-mono text-[10px] text-kumo-subtle">
-              <span>user: <span className="text-kumo-strong font-semibold">admin</span></span>
-              <span>pass: <span className="text-kumo-strong font-semibold">emitmail</span></span>
-            </div>
-          </div>
         </div>
 
-        {/* Footer info */}
-        <div className="flex items-center justify-between text-[11px] text-kumo-muted pt-4 border-t border-kumo-hairline">
-          <span className="flex items-center gap-1.5">
-            <ShieldCheck size={14} className="text-cf-success" />
-            <span>Encrypted Session</span>
-          </span>
-          <span className="font-mono">Cloudflare-Grade</span>
-        </div>
+        {/* Empty bottom space for balanced centering */}
+        <div className="h-4" />
       </div>
 
-      {/* Right Column: Screenshot Inspired Cloudflare Orange Showcase with Dot Matrix Animation */}
-      <div className="hidden lg:flex flex-1 h-full relative overflow-hidden bg-gradient-to-br from-[#FA8B38] via-[#F38020] to-[#E55A00] items-center justify-center p-12 xl:p-16 text-center select-none">
-        {/* 1. Fine Dot-Matrix Overlay Grid Pattern */}
+      {/* Right Column: Radiant Cloudflare Orange Canvas with Luminous Dot-Matrix Animation */}
+      <div className="hidden lg:flex flex-1 h-full relative overflow-hidden bg-gradient-to-br from-[#FA8B38] via-[#F38020] to-[#E55A00] items-center justify-center select-none">
+        {/* 1. Subtle Background Dot-Matrix Overlay Grid Pattern */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
             backgroundImage:
-              "radial-gradient(rgba(255, 255, 255, 0.22) 1.5px, transparent 1.5px)",
-            backgroundSize: "20px 20px",
+              "radial-gradient(rgba(255, 255, 255, 0.14) 1.2px, transparent 1.2px)",
+            backgroundSize: "22px 22px",
           }}
         />
 
-        {/* 2. Bottom Radiant Horizon Illumination Flare (Matching the screenshot glow) */}
+        {/* 2. Bottom Radiant Horizon Illumination Flare */}
         <div
-          className="absolute -bottom-16 left-1/2 -translate-x-1/2 w-[120%] h-80 pointer-events-none"
+          className="absolute -bottom-16 left-1/2 -translate-x-1/2 w-[130%] h-84 pointer-events-none"
           style={{
             background:
               "radial-gradient(ellipse 70% 55% at 50% 100%, rgba(255, 248, 220, 0.95) 0%, rgba(255, 220, 150, 0.45) 45%, transparent 75%)",
@@ -248,91 +223,86 @@ export function LoginView() {
           }}
         />
 
-        {/* 3. Dot-Matrix Email Icon Scaling Up and Down in the Background */}
+        {/* 3. High-Brightness Dot-Matrix Email Logo Scaling Up and Down Animation */}
         <div
-          className="absolute inset-0 flex items-center justify-center pointer-events-none z-0"
+          className="relative z-10 flex items-center justify-center pointer-events-none"
           style={{
-            animation: "pulseMatrix 7s ease-in-out infinite",
+            animation: "pulseMatrix 6s ease-in-out infinite",
           }}
         >
           <svg
-            width="560"
-            height="420"
-            viewBox="0 0 560 420"
+            width="640"
+            height="460"
+            viewBox="0 0 640 460"
             fill="none"
-            className="w-[85%] max-w-[580px] text-white/40"
+            className="w-[88%] max-w-[660px]"
           >
-            {/* Grid of matrix dots defining the envelope body and flap */}
-            <g fill="currentColor">
-              {/* Outer Envelope Border Dots */}
-              {Array.from({ length: 28 }).map((_, col) => (
-                <React.Fragment key={`border-top-bottom-${col}`}>
-                  <circle cx={40 + col * 17} cy={40} r="2.8" opacity="0.6" />
-                  <circle cx={40 + col * 17} cy={360} r="2.8" opacity="0.6" />
+            <defs>
+              {/* Radial glow filter for high-brightness dots */}
+              <filter id="brightGlow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="2.5" result="blur" />
+                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+              </filter>
+            </defs>
+
+            <g filter="url(#brightGlow)">
+              {/* Outer Envelope Border: Crisp Bright White Dots */}
+              {Array.from({ length: 30 }).map((_, col) => (
+                <React.Fragment key={`border-tb-${col}`}>
+                  {/* Top Edge */}
+                  <circle cx={60 + col * 18} cy={60} r="3.2" fill="#FFFFFF" opacity="0.95" />
+                  {/* Bottom Edge */}
+                  <circle cx={60 + col * 18} cy={380} r="3.2" fill="#FFFFFF" opacity="0.95" />
                 </React.Fragment>
               ))}
 
               {Array.from({ length: 19 }).map((_, row) => (
-                <React.Fragment key={`border-left-right-${row}`}>
-                  <circle cx={40} cy={57 + row * 16} r="2.8" opacity="0.6" />
-                  <circle cx={499} cy={57 + row * 16} r="2.8" opacity="0.6" />
+                <React.Fragment key={`border-lr-${row}`}>
+                  {/* Left Edge */}
+                  <circle cx={60} cy={76 + row * 16} r="3.2" fill="#FFFFFF" opacity="0.95" />
+                  {/* Right Edge */}
+                  <circle cx={582} cy={76 + row * 16} r="3.2" fill="#FFFFFF" opacity="0.95" />
                 </React.Fragment>
               ))}
 
-              {/* Envelope V Flap Folding Diagonals */}
-              {Array.from({ length: 16 }).map((_, i) => (
-                <React.Fragment key={`flap-diag-${i}`}>
+              {/* Envelope V-Flap Folding Diagonals (Brilliant Pure White Dots) */}
+              {Array.from({ length: 18 }).map((_, i) => (
+                <React.Fragment key={`v-flap-${i}`}>
                   {/* Left down to center */}
-                  <circle cx={40 + i * 15} cy={40 + i * 11} r="3.2" opacity="0.85" />
+                  <circle cx={60 + i * 14.5} cy={60 + i * 10} r="3.6" fill="#FFFFFF" opacity="1" />
                   {/* Right down to center */}
-                  <circle cx={499 - i * 15} cy={40 + i * 11} r="3.2" opacity="0.85" />
+                  <circle cx={582 - i * 14.5} cy={60 + i * 10} r="3.6" fill="#FFFFFF" opacity="1" />
                 </React.Fragment>
               ))}
 
-              {/* Lower Inner Folding Diagonals */}
-              {Array.from({ length: 14 }).map((_, i) => (
-                <React.Fragment key={`lower-diag-${i}`}>
-                  <circle cx={40 + i * 13} cy={360 - i * 9} r="2.5" opacity="0.45" />
-                  <circle cx={499 - i * 13} cy={360 - i * 9} r="2.5" opacity="0.45" />
+              {/* Lower Flap Inner Diagonals */}
+              {Array.from({ length: 15 }).map((_, i) => (
+                <React.Fragment key={`lower-flap-${i}`}>
+                  {/* Bottom left towards center */}
+                  <circle cx={60 + i * 13} cy={380 - i * 9} r="2.8" fill="#FFFFFF" opacity="0.8" />
+                  {/* Bottom right towards center */}
+                  <circle cx={582 - i * 13} cy={380 - i * 9} r="2.8" fill="#FFFFFF" opacity="0.8" />
                 </React.Fragment>
               ))}
 
-              {/* Center Seal Pulse Dot */}
-              <circle cx={270} cy={215} r="6" opacity="0.9" />
-              <circle cx={270} cy={215} r="12" fill="none" stroke="currentColor" strokeWidth="1.5" opacity="0.4" />
+              {/* Center Seal Luminous Multi-Ring Core */}
+              <circle cx={321} cy={240} r="7" fill="#FFFFFF" opacity="1" />
+              <circle cx={321} cy={240} r="14" stroke="#FFFFFF" strokeWidth="2" fill="none" opacity="0.75" />
+              <circle cx={321} cy={240} r="22" stroke="#FFFFFF" strokeWidth="1" strokeDasharray="3 3" fill="none" opacity="0.5" />
+
+              {/* Interior Sub-matrix ambient constellation dots */}
+              {Array.from({ length: 7 }).map((_, r) => (
+                <React.Fragment key={`inner-col-${r}`}>
+                  <circle cx={140 + r * 20} cy={280} r="2" fill="#FFFFFF" opacity="0.6" />
+                  <circle cx={360 + r * 20} cy={280} r="2" fill="#FFFFFF" opacity="0.6" />
+                  <circle cx={180 + r * 18} cy={320} r="2" fill="#FFFFFF" opacity="0.5" />
+                  <circle cx={320 + r * 18} cy={320} r="2" fill="#FFFFFF" opacity="0.5" />
+                </React.Fragment>
+              ))}
             </g>
           </svg>
-        </div>
-
-        {/* 4. Showcase Text & CTA Content (Matching Screenshot Content & Typography) */}
-        <div className="relative z-10 max-w-xl mx-auto flex flex-col items-center">
-          {/* Main Headline */}
-          <h2 className="text-3xl xl:text-[42px] font-bold text-white tracking-tight leading-[1.14] font-sans drop-shadow-sm">
-            Everything we learned from powering 20% of the Internet—yours by default
-          </h2>
-
-          {/* Subtitle */}
-          <p className="text-white/90 text-sm xl:text-[15px] max-w-md mt-4 sm:mt-5 leading-relaxed font-normal">
-            One platform for your apps, agents, and workforce.
-            <br />
-            Build, secure, and scale without managing infrastructure.
-          </p>
-
-          {/* White Pill Button */}
-          <button
-            type="button"
-            onClick={() => {
-              // Focus username field on click
-              const input = document.querySelector('input[type="text"]') as HTMLInputElement;
-              if (input) input.focus();
-            }}
-            className="mt-8 px-7 py-3 rounded-full bg-white text-gray-950 font-semibold text-xs xl:text-sm hover:bg-white/95 transition-all shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 cursor-pointer"
-          >
-            Start building for free
-          </button>
         </div>
       </div>
     </div>
   );
 }
-
