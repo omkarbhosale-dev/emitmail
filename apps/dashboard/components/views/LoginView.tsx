@@ -34,14 +34,16 @@ export function LoginView() {
     setErrorMessage(null);
 
     try {
-      await api.auth.login({
-        username: username.trim(),
-        password: password.trim(),
-      });
+      await api.auth.login(
+        {
+          username: username.trim(),
+          password: password.trim(),
+        },
+        rememberMe ? 30 : 1
+      );
 
-      // Redirect to home dashboard
-      router.push("/");
-      router.refresh();
+      // Hard redirect to root so Next.js middleware and browser cookies synchronize immediately
+      window.location.replace("/");
     } catch (err) {
       console.error("Login failure:", err);
       const msg = err instanceof Error ? err.message : "Invalid credentials provided";

@@ -8,7 +8,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { CommandPalette } from "@/components/layout/CommandPalette";
 import { SendTestEmailModal } from "@/components/modals/SendTestEmailModal";
 import { ToastProvider } from "@/components/ui/Toast";
-import { getAuthToken } from "@/lib/api";
+import { getAuthToken, clearAuthToken, api } from "@/lib/api";
 
 interface ModalContextType {
   openCommandPalette: () => void;
@@ -50,7 +50,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // Check auth state on client
+  // Check auth state on client and verify token against backend
   useEffect(() => {
     if (pathname === "/login") {
       setIsAuthenticated(true);
@@ -60,11 +60,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     const token = getAuthToken();
     if (!token) {
       setIsAuthenticated(false);
-      router.replace("/login");
-    } else {
-      setIsAuthenticated(true);
+      window.location.replace("/login");
+      return;
     }
-  }, [pathname, router]);
+
+    // Actively verify token validity against backend API
+    api.auth
+      .getMe()
+      .then(() => {
+        setIsAuthenticated(true);
+      })
+      .catch((err: unknown) => {
+        console.warn("Active session invalid or expired:", err);
+        clearAuthToken();
+        setIsAuthenticated(false);
+        window.location.replace("/login");
+      });
+  }, [pathname]);
 
   // If on login route, render standalone login view without AppShell headers/sidebars
   if (pathname === "/login") {

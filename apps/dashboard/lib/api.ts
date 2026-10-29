@@ -27,7 +27,7 @@ export function setAuthToken(token: string, days: number = 30): void {
 export function clearAuthToken(): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem(TOKEN_STORAGE_KEY);
-  document.cookie = "emitmail_token=; path=/; max-age=0; SameSite=Lax";
+  document.cookie = "emitmail_token=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax";
 }
 
 /**
@@ -79,7 +79,10 @@ export async function apiFetch<T>(
 
 export const api = {
   auth: {
-    login: async (credentials: { username: string; password: string }): Promise<{
+    login: async (
+      credentials: { username: string; password: string },
+      days: number = 30
+    ): Promise<{
       accessToken: string;
       user: {
         id: string;
@@ -101,7 +104,7 @@ export const api = {
       }
 
       const token = json.data.accessToken as string;
-      setAuthToken(token, 30); // 30-day session
+      setAuthToken(token, days);
       return json.data;
     },
 
