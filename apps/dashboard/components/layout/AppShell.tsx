@@ -1,8 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, Suspense } from "react";
-import { usePathname, useRouter } from "next/navigation";
-import { PaperPlaneTilt } from "@phosphor-icons/react";
+import { usePathname } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { CommandPalette } from "@/components/layout/CommandPalette";
@@ -28,14 +27,11 @@ export const useModals = () => useContext(ModalContext);
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isSendTestEmailOpen, setIsSendTestEmailOpen] = useState(false);
-
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   useEffect(() => {
     const handleOpenPalette = () => setIsCommandPaletteOpen(true);
@@ -52,51 +48,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   // Check auth state on client and verify token against backend
   useEffect(() => {
-    if (pathname === "/login") {
-      setIsAuthenticated(true);
-      return;
-    }
+    if (pathname === "/login") return;
 
     const token = getAuthToken();
     if (!token) {
-      setIsAuthenticated(false);
       window.location.replace("/login");
       return;
     }
 
     // Actively verify token validity against backend API
-    api.auth
-      .getMe()
-      .then(() => {
-        setIsAuthenticated(true);
-      })
-      .catch((err: unknown) => {
-        console.warn("Active session invalid or expired:", err);
-        clearAuthToken();
-        setIsAuthenticated(false);
-        window.location.replace("/login");
-      });
+    api.auth.getMe().catch((err: unknown) => {
+      console.warn("Active session invalid or expired:", err);
+      clearAuthToken();
+      window.location.replace("/login");
+    });
   }, [pathname]);
 
   // If on login route, render standalone login view without AppShell headers/sidebars
   if (pathname === "/login") {
     return <ToastProvider>{children}</ToastProvider>;
-  }
-
-  // Loading auth state screen
-  if (isAuthenticated === null || !isAuthenticated) {
-    return (
-      <div className="h-screen w-screen bg-kumo-canvas flex flex-col items-center justify-center select-none">
-        <div className="flex items-center gap-3 animate-pulse">
-          <div className="w-10 h-10 rounded-xl bg-cf-orange flex items-center justify-center text-white shadow-xl shadow-cf-orange/20">
-            <PaperPlaneTilt size={22} weight="fill" />
-          </div>
-          <span className="font-bricolage text-2xl font-bold tracking-tight text-kumo-strong">
-            EmitMail
-          </span>
-        </div>
-      </div>
-    );
   }
 
   return (

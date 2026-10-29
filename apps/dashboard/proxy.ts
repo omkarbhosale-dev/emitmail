@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Skip static assets, internal Next.js requests, and public files
@@ -28,7 +28,6 @@ export function middleware(request: NextRequest) {
   // For all other protected dashboard routes, redirect unauthenticated users to /login
   if (!token) {
     const loginUrl = new URL("/login", request.url);
-    // Optional: save return destination
     if (pathname !== "/") {
       loginUrl.searchParams.set("from", pathname);
     }
