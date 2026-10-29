@@ -86,6 +86,7 @@ export const createApp = (): Express => {
         services: {
           database: dbStatus,
           redis: redisStatus,
+          worker: redisStatus === 'connected' ? 'running' : 'stopped',
         },
       },
       'Health check status'

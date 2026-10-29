@@ -333,50 +333,175 @@ export const api = {
     },
   },
 
-emails: {
-    list: async (query?: { status?: string; limit?: number; offset?: number }): Promise<{
-      emails: ProcessedEmailItem[];
-      total: number;
-      limit: number;
-      offset: number;
-    }> => {
-      const params = new URLSearchParams();
-      if (query?.status && query.status !== "all") params.set("status", query.status.toUpperCase());
-      if (query?.limit) params.set("limit", String(query.limit));
-      if (query?.offset) params.set("offset", String(query.offset));
-      const q = params.toString() ? `?${params.toString()}` : "";
-      return apiFetch<{
+    emails: {
+      list: async (query?: {
+        status?: string;
+        limit?: number;
+        offset?: number;
+        startDate?: string;
+        endDate?: string;
+        domainId?: string;
+      }): Promise<{
         emails: ProcessedEmailItem[];
         total: number;
         limit: number;
         offset: number;
-      }>(`/emails${q}`);
+      }> => {
+        const params = new URLSearchParams();
+        if (query?.status && query.status !== "all") params.set("status", query.status.toUpperCase());
+        if (query?.limit) params.set("limit", String(query.limit));
+        if (query?.offset) params.set("offset", String(query.offset));
+        if (query?.startDate) params.set("startDate", query.startDate);
+        if (query?.endDate) params.set("endDate", query.endDate);
+        if (query?.domainId && query.domainId !== "all") params.set("domainId", query.domainId);
+        const q = params.toString() ? `?${params.toString()}` : "";
+        return apiFetch<{
+          emails: ProcessedEmailItem[];
+          total: number;
+          limit: number;
+          offset: number;
+        }>(`/emails${q}`);
+      },
+
+      getById: async (id: string): Promise<ProcessedEmailItem> => {
+        return apiFetch<ProcessedEmailItem>(`/emails/${id}`);
+      },
+
+      send: async (data: {
+        from: string;
+        to: string | string[];
+        subject: string;
+        html?: string;
+        text?: string;
+        cc?: string[];
+        bcc?: string[];
+        replyTo?: string;
+      }): Promise<{
+        id: string;
+        from: string;
+        to: string[];
+        status: string;
+        messageId: string;
+      }> => {
+        return apiFetch("/emails", {
+          method: "POST",
+          body: JSON.stringify(data),
+        });
+      },
+
+      getStats: async (): Promise<{
+        total: number;
+        delivered: number;
+        bounced: number;
+        queued: number;
+        deliveryRate: string;
+        bounceRate: string;
+        totalInbound: number;
+        unreadInbound: number;
+        totalInvocations: number;
+        chartDispatches: { time: string; val: number }[];
+        chartInbound: { time: string; val: number }[];
+        chartInvocations: { time: string; val: number }[];
+      }> => {
+        const [emailsRes, inboxRes] = await Promise.allSettled([
+          api.emails.list({ limit: 100 }),
+          api.inbox.listMessages(undefined, { limit: 100 }),
+        ]);
+
+        const emails = emailsRes.status === "fulfilled" && emailsRes.value?.emails ? emailsRes.value.emails : [];
+        const total = emailsRes.status === "fulfilled" && emailsRes.value?.total ? emailsRes.value.total : emails.length;
+        const delivered = emails.filter((e) => (e.status || "").toUpperCase() === "DELIVERED").length;
+        const bounced = emails.filter((e) => {
+          const s = (e.status || "").toUpperCase();
+          return s === "BOUNCED" || s === "SUPPRESSED" || s === "FAILED";
+        }).length;
+        const queued = emails.filter((e) => {
+          const s = (e.status || "").toUpperCase();
+          return s === "QUEUED" || s === "SENDING";
+        }).length;
+
+        const deliveryRate = total > 0 ? `${((delivered / total) * 100).toFixed(1)}%` : "100%";
+        const bounceRate = total > 0 ? `${((bounced / total) * 100).toFixed(1)}%` : "0%";
+
+        const inboundMessages = inboxRes.status === "fulfilled" && inboxRes.value?.messages ? inboxRes.value.messages : [];
+        const totalInbound = inboxRes.status === "fulfilled" && inboxRes.value?.total !== undefined
+          ? inboxRes.value.total
+          : inboundMessages.length;
+        const unreadInbound = inboxRes.status === "fulfilled" && inboxRes.value?.unreadCount !== undefined
+          ? inboxRes.value.unreadCount
+          : inboundMessages.filter((m) => !m.isRead).length;
+
+        const now = new Date();
+        const buckets = [
+          { label: "Day 1", startDay: 0, endDay: 6, outbound: 0, inbound: 0, invocations: 0 },
+          { label: "Day 7", startDay: 7, endDay: 13, outbound: 0, inbound: 0, invocations: 0 },
+          { label: "Day 14", startDay: 14, endDay: 20, outbound: 0, inbound: 0, invocations: 0 },
+          { label: "Day 21", startDay: 21, endDay: 27, outbound: 0, inbound: 0, invocations: 0 },
+          { label: "Day 30", startDay: 28, endDay: 31, outbound: 0, inbound: 0, invocations: 0 },
+        ];
+
+        let totalInvocations = 0;
+        for (const email of emails) {
+          const attempts = email.deliveryAttempts || 1;
+          totalInvocations += attempts;
+
+          const emailDate = new Date(email.createdAt);
+          const diffDays = Math.floor((now.getTime() - emailDate.getTime()) / (1000 * 60 * 60 * 24));
+          const daysFromStart = Math.max(0, Math.min(30, 30 - diffDays));
+
+          for (const bucket of buckets) {
+            if (daysFromStart >= bucket.startDay && daysFromStart <= bucket.endDay) {
+              bucket.outbound += 1;
+              bucket.invocations += attempts;
+              break;
+            }
+          }
+        }
+
+        for (const msg of inboundMessages) {
+          const dateStr = msg.receivedAt || msg.createdAt;
+          if (dateStr) {
+            const msgDate = new Date(dateStr);
+            const diffDays = Math.floor((now.getTime() - msgDate.getTime()) / (1000 * 60 * 60 * 24));
+            const daysFromStart = Math.max(0, Math.min(30, 30 - diffDays));
+
+            for (const bucket of buckets) {
+              if (daysFromStart >= bucket.startDay && daysFromStart <= bucket.endDay) {
+                bucket.inbound += 1;
+                break;
+              }
+            }
+          }
+        }
+
+        return {
+          total,
+          delivered,
+          bounced,
+          queued,
+          deliveryRate,
+          bounceRate,
+          totalInbound,
+          unreadInbound,
+          totalInvocations: totalInvocations || total,
+          chartDispatches: buckets.map((b) => ({ time: b.label, val: b.outbound })),
+          chartInbound: buckets.map((b) => ({ time: b.label, val: b.inbound })),
+          chartInvocations: buckets.map((b) => ({ time: b.label, val: b.invocations })),
+        };
+      },
     },
 
-    getById: async (id: string): Promise<ProcessedEmailItem> => {
-      return apiFetch<ProcessedEmailItem>(`/emails/${id}`);
+    system: {
+      getHealth: async (): Promise<{
+        status: string;
+        uptime: number;
+        services: {
+          database: string;
+          redis: string;
+          worker?: string;
+        };
+      }> => {
+        return apiFetch("/health");
+      },
     },
-
-    send: async (data: {
-      from: string;
-      to: string | string[];
-      subject: string;
-      html?: string;
-      text?: string;
-      cc?: string[];
-      bcc?: string[];
-      replyTo?: string;
-    }): Promise<{
-      id: string;
-      from: string;
-      to: string[];
-      status: string;
-      messageId: string;
-    }> => {
-      return apiFetch("/emails", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-    },
-  },
-};
+  };
