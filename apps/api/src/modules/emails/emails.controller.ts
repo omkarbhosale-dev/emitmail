@@ -74,3 +74,13 @@ export const listEmails = async (req: Request, res: Response): Promise<void> => 
     sendError(res, message, 500);
   }
 };
+
+export const getEmailStats = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const data = await EmailsService.getEmailStats(req.domain || null, req.query as any);
+    sendSuccess(res, data, 'Email analytics stats retrieved successfully');
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to retrieve email stats';
+    sendError(res, message, 500);
+  }
+};

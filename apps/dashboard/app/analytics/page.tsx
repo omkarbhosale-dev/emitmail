@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { HomeView } from "@/components/views/HomeView";
+import { AnalyticsView } from "@/components/views/AnalyticsView";
 
 export const metadata: Metadata = {
   title: "Analytics — EmitMail",
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function AnalyticsPage() {
-  return <HomeView />;
+  return <AnalyticsView />;
 }

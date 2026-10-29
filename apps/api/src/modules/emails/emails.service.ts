@@ -250,13 +250,30 @@ export class EmailsService {
    * Lists emails with tenancy filtering.
    */
   static async listEmails(
-    query: { status?: EmailStatus; limit?: number; offset?: number },
+    query: {
+      status?: EmailStatus;
+      limit?: number;
+      offset?: number;
+      startDate?: string;
+      endDate?: string;
+      domainId?: string;
+    },
     authenticatedDomain: Domain | null
   ) {
     const where: Prisma.EmailWhereInput = {};
 
     if (authenticatedDomain) {
       where.domainId = authenticatedDomain.id;
+    }
+
+    if (!authenticatedDomain && query.domainId && query.domainId !== 'all') {
+      where.domainId = query.domainId;
+    }
+
+    if (query.startDate || query.endDate) {
+      where.createdAt = {};
+      if (query.startDate) where.createdAt.gte = new Date(query.startDate);
+      if (query.endDate) where.createdAt.lte = new Date(query.endDate);
     }
 
     if (query.status) {
@@ -301,5 +318,89 @@ export class EmailsService {
     ]);
 
     return { emails, total, limit: take, offset: skip };
+  }
+  /**
+   * Aggregates real email analytics and timeseries across the last 30 days.
+   */
+  static async getEmailStats(authenticatedDomain: Domain | null, query?: { domainId?: string }) {
+    const where: Prisma.EmailWhereInput = {};
+    if (authenticatedDomain) {
+      where.domainId = authenticatedDomain.id;
+    } else if (query?.domainId && query.domainId !== 'all') {
+      where.domainId = query.domainId;
+    }
+
+    const now = new Date();
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const [total, delivered, bounced, queued, recentEmails] = await Promise.all([
+      prisma.email.count({ where }),
+      prisma.email.count({ where: { ...where, status: 'DELIVERED' } }),
+      prisma.email.count({
+        where: {
+          ...where,
+          status: { in: ['BOUNCED', 'SUPPRESSED', 'FAILED'] },
+        },
+      }),
+      prisma.email.count({
+        where: {
+          ...where,
+          status: { in: ['QUEUED', 'SENDING'] },
+        },
+      }),
+      prisma.email.findMany({
+        where: {
+          ...where,
+          createdAt: { gte: thirtyDaysAgo },
+        },
+        select: {
+          createdAt: true,
+          status: true,
+          deliveryAttempts: true,
+        },
+        orderBy: { createdAt: 'asc' },
+      }),
+    ]);
+
+    const deliveryRate = total > 0 ? ((delivered / total) * 100).toFixed(1) : '100.0';
+    const bounceRate = total > 0 ? ((bounced / total) * 100).toFixed(1) : '0.0';
+
+    const buckets = [
+      { label: 'Day 1', startDay: 0, endDay: 6, count: 0, invocations: 0 },
+      { label: 'Day 7', startDay: 7, endDay: 13, count: 0, invocations: 0 },
+      { label: 'Day 14', startDay: 14, endDay: 20, count: 0, invocations: 0 },
+      { label: 'Day 21', startDay: 21, endDay: 27, count: 0, invocations: 0 },
+      { label: 'Day 30', startDay: 28, endDay: 31, count: 0, invocations: 0 },
+    ];
+
+    let totalInvocations = 0;
+    for (const email of recentEmails) {
+      const attempts = email.deliveryAttempts || 1;
+      totalInvocations += attempts;
+
+      const diffDays = Math.floor((now.getTime() - email.createdAt.getTime()) / (1000 * 60 * 60 * 24));
+      const daysFromStart = Math.max(0, Math.min(30, 30 - diffDays));
+
+      for (const bucket of buckets) {
+        if (daysFromStart >= bucket.startDay && daysFromStart <= bucket.endDay) {
+          bucket.count += 1;
+          bucket.invocations += attempts;
+          break;
+        }
+      }
+    }
+
+    return {
+      total,
+      delivered,
+      bounced,
+      queued,
+      deliveryRate: `${deliveryRate}%`,
+      bounceRate: `${bounceRate}%`,
+      totalInvocations: totalInvocations || total,
+      chartDispatches: buckets.map((b) => ({ time: b.label, val: b.count })),
+      chartInvocations: buckets.map((b) => ({ time: b.label, val: b.invocations })),
+    };
   }
 }

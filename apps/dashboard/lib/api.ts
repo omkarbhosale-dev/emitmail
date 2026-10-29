@@ -491,6 +491,206 @@ export const api = {
       },
     },
 
+    analytics: {
+      getDetailedStats: async (params?: {
+        timeRange?: "today" | "week" | "month" | "custom";
+        startDate?: string;
+        endDate?: string;
+        domainId?: string;
+      }) => {
+        const timeRange = params?.timeRange || "month";
+        const now = new Date();
+        let startTime = 0;
+        let endTime = now.getTime();
+
+        let buckets: { label: string; start: number; end: number; outbound: number; inbound: number }[] = [];
+
+        if (timeRange === "today") {
+          const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+          startTime = startOfDay.getTime();
+          const hourStep = 4;
+          for (let h = 0; h < 24; h += hourStep) {
+            const bStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, 0, 0, 0).getTime();
+            const bEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h + hourStep - 1, 59, 59, 999).getTime();
+            const label = `${String(h).padStart(2, "0")}:00`;
+            buckets.push({ label, start: bStart, end: bEnd, outbound: 0, inbound: 0 });
+          }
+        } else if (timeRange === "week") {
+          startTime = now.getTime() - 7 * 24 * 60 * 60 * 1000;
+          for (let i = 6; i >= 0; i--) {
+            const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+            const bStart = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0).getTime();
+            const bEnd = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999).getTime();
+            const label = d.toLocaleDateString("en-US", { weekday: "short" });
+            buckets.push({ label, start: bStart, end: bEnd, outbound: 0, inbound: 0 });
+          }
+        } else if (timeRange === "custom" && params?.startDate && params?.endDate) {
+          const s = new Date(params.startDate + "T00:00:00");
+          const e = new Date(params.endDate + "T23:59:59");
+          startTime = isNaN(s.getTime()) ? now.getTime() - 7 * 24 * 60 * 60 * 1000 : s.getTime();
+          endTime = isNaN(e.getTime()) ? now.getTime() : e.getTime();
+          const span = Math.max(endTime - startTime, 1000);
+          const parts = 5;
+          const step = span / parts;
+          for (let i = 0; i < parts; i++) {
+            const bStart = startTime + i * step;
+            const bEnd = i === parts - 1 ? endTime : startTime + (i + 1) * step;
+            const d = new Date(bStart);
+            const label = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+            buckets.push({ label, start: bStart, end: bEnd, outbound: 0, inbound: 0 });
+          }
+        } else {
+          // Default: "month" (30 days)
+          startTime = now.getTime() - 30 * 24 * 60 * 60 * 1000;
+          const parts = 5;
+          const step = (30 * 24 * 60 * 60 * 1000) / parts;
+          for (let i = 0; i < parts; i++) {
+            const bStart = startTime + i * step;
+            const bEnd = i === parts - 1 ? endTime : startTime + (i + 1) * step;
+            const d = new Date(bStart);
+            const label = `Day ${i * 6 + 1}`;
+            buckets.push({ label, start: bStart, end: bEnd, outbound: 0, inbound: 0 });
+          }
+        }
+
+        const [emailsRes, inboxRes, domainsRes, healthRes] = await Promise.allSettled([
+          api.emails.list({ limit: 100 }),
+          api.inbox.listMessages(undefined, { limit: 100 }),
+          api.domains.list(),
+          api.system.getHealth(),
+        ]);
+
+        const rawEmails = emailsRes.status === "fulfilled" && emailsRes.value?.emails ? emailsRes.value.emails : [];
+        const rawInbound = inboxRes.status === "fulfilled" && inboxRes.value?.messages ? inboxRes.value.messages : [];
+        const domains = domainsRes.status === "fulfilled" && Array.isArray(domainsRes.value) ? domainsRes.value : [];
+        const health = healthRes.status === "fulfilled" ? healthRes.value : null;
+
+        // Filter by Date Range and Domain
+        const selectedDomainId = params?.domainId;
+        const filteredEmails = rawEmails.filter((e) => {
+          const t = new Date(e.createdAt).getTime();
+          const inRange = t >= startTime && t <= endTime;
+          if (!inRange) return false;
+          if (selectedDomainId && selectedDomainId !== "all") {
+            const eDom = e.domainId || e.domain?.id;
+            return eDom === selectedDomainId;
+          }
+          return true;
+        });
+
+        const filteredInbound = rawInbound.filter((m) => {
+          const t = new Date(m.receivedAt || m.createdAt).getTime();
+          const inRange = t >= startTime && t <= endTime;
+          if (!inRange) return false;
+          if (selectedDomainId && selectedDomainId !== "all") {
+            return m.domainId === selectedDomainId;
+          }
+          return true;
+        });
+
+        // Compute Core Metrics
+        const totalSent = filteredEmails.length;
+        const delivered = filteredEmails.filter((e) => (e.status || "").toUpperCase() === "DELIVERED").length;
+        const bounced = filteredEmails.filter((e) => {
+          const s = (e.status || "").toUpperCase();
+          return s === "BOUNCED" || s === "SUPPRESSED" || s === "FAILED";
+        }).length;
+        const queued = filteredEmails.filter((e) => {
+          const s = (e.status || "").toUpperCase();
+          return s === "QUEUED" || s === "SENDING";
+        }).length;
+        const failed = filteredEmails.filter((e) => (e.status || "").toUpperCase() === "FAILED").length;
+        const suppressed = filteredEmails.filter((e) => (e.status || "").toUpperCase() === "SUPPRESSED").length;
+
+        const deliveryRate = totalSent > 0 ? `${((delivered / totalSent) * 100).toFixed(1)}%` : "100.0%";
+        const bounceRate = totalSent > 0 ? `${((bounced / totalSent) * 100).toFixed(1)}%` : "0.0%";
+
+        const totalInbound = filteredInbound.length;
+        const unreadInbound = filteredInbound.filter((m) => !m.isRead).length;
+
+        let totalAttempts = 0;
+        for (const e of filteredEmails) {
+          totalAttempts += e.deliveryAttempts || 1;
+        }
+        const avgAttempts = totalSent > 0 ? (totalAttempts / totalSent).toFixed(1) : "1.0";
+
+        // Assign to Chart Buckets
+        for (const e of filteredEmails) {
+          const t = new Date(e.createdAt).getTime();
+          for (const b of buckets) {
+            if (t >= b.start && t <= b.end) {
+              b.outbound += 1;
+              break;
+            }
+          }
+        }
+
+        for (const m of filteredInbound) {
+          const t = new Date(m.receivedAt || m.createdAt).getTime();
+          for (const b of buckets) {
+            if (t >= b.start && t <= b.end) {
+              b.inbound += 1;
+              break;
+            }
+          }
+        }
+
+        // Domain Breakdown
+        const domainStats = domains.map((dom) => {
+          const domEmails = filteredEmails.filter((e) => (e.domainId || e.domain?.id) === dom.id);
+          const domSent = domEmails.length;
+          const domDelivered = domEmails.filter((e) => (e.status || "").toUpperCase() === "DELIVERED").length;
+          const domBounced = domEmails.filter((e) => {
+            const s = (e.status || "").toUpperCase();
+            return s === "BOUNCED" || s === "SUPPRESSED" || s === "FAILED";
+          }).length;
+          const domRate = domSent > 0 ? `${((domDelivered / domSent) * 100).toFixed(1)}%` : "100.0%";
+          return {
+            domainId: dom.id,
+            domainName: dom.domainName,
+            sent: domSent,
+            delivered: domDelivered,
+            bounced: domBounced,
+            deliveryRate: domRate,
+            status: dom.status || "VERIFIED",
+          };
+        });
+
+        // Status Breakdown
+        const statusBreakdown = [
+          { status: "Delivered", count: delivered, percentage: totalSent > 0 ? Math.round((delivered / totalSent) * 100) : 100, color: "var(--cf-success)" },
+          { status: "Queued / Sending", count: queued, percentage: totalSent > 0 ? Math.round((queued / totalSent) * 100) : 0, color: "var(--cf-chart-blue)" },
+          { status: "Bounced", count: bounced - suppressed - failed > 0 ? bounced - suppressed - failed : 0, percentage: totalSent > 0 ? Math.round(((bounced - suppressed - failed) / totalSent) * 100) : 0, color: "var(--cf-orange)" },
+          { status: "Suppressed", count: suppressed, percentage: totalSent > 0 ? Math.round((suppressed / totalSent) * 100) : 0, color: "var(--cf-amber)" },
+          { status: "Failed", count: failed, percentage: totalSent > 0 ? Math.round((failed / totalSent) * 100) : 0, color: "var(--kumo-danger)" },
+        ];
+
+        return {
+          timeRange,
+          totalSent,
+          delivered,
+          bounced,
+          queued,
+          failed,
+          suppressed,
+          deliveryRate,
+          bounceRate,
+          totalInbound,
+          unreadInbound,
+          avgAttempts,
+          chartOutbound: buckets.map((b) => ({ time: b.label, val: b.outbound })),
+          chartInbound: buckets.map((b) => ({ time: b.label, val: b.inbound })),
+          domainStats,
+          statusBreakdown,
+          health: {
+            database: health?.services?.database === "connected",
+            redis: health?.services?.redis === "connected",
+            worker: health?.services?.worker === "running" || health?.services?.redis === "connected",
+          },
+        };
+      },
+    },
+
     system: {
       getHealth: async (): Promise<{
         status: string;
