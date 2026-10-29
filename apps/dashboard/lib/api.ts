@@ -1,4 +1,4 @@
-import { ApiDomain } from "@/types";
+import { ApiDomain, ApiKeyItem, CreatedApiKeyResponse } from "@/types";
 
 const API_BASE_URL = (
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1"
@@ -157,6 +157,36 @@ export const api = {
     },
   },
 
+  apiKeys: {
+    list: async (): Promise<ApiKeyItem[]> => {
+      return apiFetch<ApiKeyItem[]>("/api-keys");
+    },
+
+    create: async (data: {
+      name: string;
+      domainId?: string | null;
+      scopes?: string[];
+      expiresAt?: string | null;
+    }): Promise<CreatedApiKeyResponse> => {
+      return apiFetch<CreatedApiKeyResponse>("/api-keys", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+    },
+
+    toggle: async (id: string): Promise<ApiKeyItem> => {
+      return apiFetch<ApiKeyItem>(`/api-keys/${id}/toggle`, {
+        method: "PATCH",
+      });
+    },
+
+    delete: async (id: string): Promise<{ id: string; name: string }> => {
+      return apiFetch<{ id: string; name: string }>(`/api-keys/${id}`, {
+        method: "DELETE",
+      });
+    },
+  },
+
   inbox: {
     listDomains: async () => {
       return apiFetch<import("@/types").InboundDomainItem[]>("/inbox/domains");
@@ -303,4 +333,3 @@ export const api = {
     },
   },
 };
-
