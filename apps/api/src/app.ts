@@ -115,6 +115,7 @@ export const createApp = (): Express => {
   app.use('/inbox', inboxRoutes);
 
   // Root endpoint aliases for convenience
+  app.use('/auth', authRoutes);
   app.use('/domains', domainRoutes);
   app.use('/api-keys', apiKeyRoutes);
 

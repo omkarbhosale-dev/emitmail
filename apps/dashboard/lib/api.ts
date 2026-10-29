@@ -8,46 +8,30 @@ const TOKEN_STORAGE_KEY = "emitmail_admin_jwt";
 
 export function getAuthToken(): string | null {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem(TOKEN_STORAGE_KEY);
+  const stored = localStorage.getItem(TOKEN_STORAGE_KEY);
+  if (stored) return stored;
+
+  const cookieMatch = document.cookie.match(/(?:^|;\s*)emitmail_token=([^;]+)/);
+  if (cookieMatch) return decodeURIComponent(cookieMatch[1]);
+
+  return null;
 }
 
-export function setAuthToken(token: string): void {
+export function setAuthToken(token: string, days: number = 30): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(TOKEN_STORAGE_KEY, token);
+  const maxAge = days * 24 * 60 * 60;
+  document.cookie = `emitmail_token=${encodeURIComponent(token)}; path=/; max-age=${maxAge}; SameSite=Lax`;
 }
 
 export function clearAuthToken(): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem(TOKEN_STORAGE_KEY);
+  document.cookie = "emitmail_token=; path=/; max-age=0; SameSite=Lax";
 }
 
 /**
- * Log in to EmitMail API. If no credentials supplied, defaults to standard setup admin/emitmail.
- */
-export async function loginToApi(
-  username: string = "admin",
-  password: string = "emitmail"
-): Promise<string> {
-  const res = await fetch(`${API_BASE_URL}/auth/login`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ username, password }),
-  });
-
-  const json = await res.json();
-  if (!res.ok || !json.success || !json.data?.accessToken) {
-    throw new Error(json.message || "Failed to authenticate with EmitMail API");
-  }
-
-  const token = json.data.accessToken as string;
-  setAuthToken(token);
-  return token;
-}
-
-/**
- * Base fetch wrapper with automatic JWT injection and 401 token refresh retry.
+ * Base fetch wrapper with automatic JWT injection.
  */
 export async function apiFetch<T>(
   path: string,
@@ -56,16 +40,7 @@ export async function apiFetch<T>(
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
   const url = `${API_BASE_URL}${cleanPath}`;
 
-  let token = getAuthToken();
-
-  // If no token exists yet in browser, attempt automatic bootstrap login
-  if (!token && typeof window !== "undefined") {
-    try {
-      token = await loginToApi();
-    } catch {
-      // Continue without token; backend will return 401 if route is protected
-    }
-  }
+  const token = getAuthToken();
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -76,22 +51,16 @@ export async function apiFetch<T>(
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  let response = await fetch(url, {
+  const response = await fetch(url, {
     ...options,
     headers,
   });
 
-  // If unauthorized (e.g. token expired), try re-authenticating once and retry request
+  // If unauthorized, clear invalid session and redirect to login
   if (response.status === 401 && typeof window !== "undefined") {
-    try {
-      token = await loginToApi();
-      headers["Authorization"] = `Bearer ${token}`;
-      response = await fetch(url, {
-        ...options,
-        headers,
-      });
-    } catch {
-      clearAuthToken();
+    clearAuthToken();
+    if (window.location.pathname !== "/login") {
+      window.location.href = "/login";
     }
   }
 
@@ -109,6 +78,57 @@ export async function apiFetch<T>(
 }
 
 export const api = {
+  auth: {
+    login: async (credentials: { username: string; password: string }): Promise<{
+      accessToken: string;
+      user: {
+        id: string;
+        username: string;
+        email?: string;
+        fullName?: string;
+        mustChangePassword?: boolean;
+      };
+    }> => {
+      const res = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(credentials),
+      });
+
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success || !json?.data?.accessToken) {
+        throw new Error(json?.message || "Invalid credentials provided");
+      }
+
+      const token = json.data.accessToken as string;
+      setAuthToken(token, 30); // 30-day session
+      return json.data;
+    },
+
+    getMe: async () => {
+      return apiFetch<{
+        id: string;
+        username: string;
+        email?: string;
+        fullName?: string;
+        mustChangePassword?: boolean;
+      }>("/auth/me");
+    },
+
+    changePassword: async (data: { currentPassword: string; newPassword: string }) => {
+      return apiFetch("/auth/change-password", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+    },
+
+    logout: () => {
+      clearAuthToken();
+      if (typeof window !== "undefined") {
+        window.location.href = "/login";
+      }
+    },
+  },
   domains: {
     list: async (search?: string, status?: string): Promise<ApiDomain[]> => {
       const params = new URLSearchParams();
