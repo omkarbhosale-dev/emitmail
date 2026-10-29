@@ -6,17 +6,11 @@ import { useRouter } from "next/navigation";
 import {
   CaretLeft,
   ArrowBendUpLeft,
-  EnvelopeSimple,
-  EnvelopeOpen,
-  Trash,
   Code,
   Paperclip,
-  ShieldCheck,
-  CheckCircle,
   WarningCircle,
   ArrowsClockwise,
   PaperPlaneTilt,
-  Info,
   TextB,
   TextItalic,
   Link as LinkIcon,
@@ -42,7 +36,6 @@ export function InboxMessageDetailView({ messageId, mailboxId }: InboxMessageDet
   const [message, setMessage] = useState<InboundEmailItem | null>(null);
   const [threadMessages, setThreadMessages] = useState<InboundEmailItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [isSendingReply, setIsSendingReply] = useState(false);
   const [replyText, setReplyText] = useState("");
   const [showRawHeaders, setShowRawHeaders] = useState(false);
@@ -72,41 +65,6 @@ export function InboxMessageDetailView({ messageId, mailboxId }: InboxMessageDet
   useEffect(() => {
     fetchMessage();
   }, [fetchMessage]);
-
-  const handleToggleRead = async () => {
-    if (!message) return;
-    const nextRead = !message.isRead;
-    try {
-      await api.inbox.updateMessage(message.id, { isRead: nextRead });
-      setMessage({ ...message, isRead: nextRead });
-      toast({
-        title: nextRead ? "Marked as Read" : "Marked as Unread",
-        type: "info",
-      });
-    } catch {
-      toast({ title: "Failed to update message state", type: "error" });
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!message) return;
-    if (!window.confirm("Are you sure you want to delete this email?")) return;
-
-    setIsDeleting(true);
-    try {
-      await api.inbox.deleteMessage(message.id);
-      toast({
-        title: "Email Deleted",
-        description: "The message has been permanently deleted.",
-        type: "info",
-      });
-      router.push(backHref);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to delete message";
-      toast({ title: "Delete Failed", description: msg, type: "error" });
-      setIsDeleting(false);
-    }
-  };
 
   const handleFocusReply = () => {
     replyBoxRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -249,7 +207,7 @@ export function InboxMessageDetailView({ messageId, mailboxId }: InboxMessageDet
           <button
             type="button"
             onClick={handleFocusReply}
-            className="btn-cf-secondary text-xs flex items-center gap-1.5"
+            className="btn-cf-secondary text-xs flex items-center gap-1.5 cursor-pointer"
           >
             <ArrowBendUpLeft size={14} weight="bold" />
             <span>Reply</span>
@@ -257,50 +215,23 @@ export function InboxMessageDetailView({ messageId, mailboxId }: InboxMessageDet
 
           <button
             type="button"
-            onClick={handleToggleRead}
-            className="btn-cf-secondary text-xs flex items-center gap-1.5"
-            title={message.isRead ? "Mark as unread" : "Mark as read"}
-          >
-            {message.isRead ? <EnvelopeSimple size={14} /> : <EnvelopeOpen size={14} />}
-            <span>{message.isRead ? "Mark Unread" : "Mark Read"}</span>
-          </button>
-
-          <button
-            type="button"
             onClick={() => setShowRawHeaders(true)}
-            className="btn-cf-secondary text-xs flex items-center gap-1.5"
+            className="btn-cf-secondary text-xs flex items-center gap-1.5 cursor-pointer"
             title="View RFC headers and MIME diagnostics"
           >
             <Code size={14} />
             <span className="hidden sm:inline">Raw Headers</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleDelete}
-            disabled={isDeleting}
-            className="h-8 px-3 rounded-md bg-red-600 hover:bg-red-700 text-white text-xs font-medium inline-flex items-center gap-1.5 border border-red-500/40 shadow-sm transition-colors cursor-pointer"
-            title="Delete this message"
-          >
-            <Trash size={14} />
-            <span>{isDeleting ? "Deleting..." : "Delete"}</span>
           </button>
         </div>
       </div>
 
       {/* 4.2 Email Subject & Thread Metadata Header */}
       <div className="bg-kumo-base border border-kumo-hairline rounded-2xl p-6 shadow-2xs space-y-4">
-        {/* Subject Title + Recipient Mailbox Pill */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-kumo-hairline pb-4">
+        {/* Subject Title */}
+        <div className="border-b border-kumo-hairline pb-4">
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-kumo-strong leading-snug">
             {message.subject}
           </h1>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="font-mono text-xs bg-kumo-recessed px-2.5 py-1 rounded-md border border-kumo-hairline text-kumo-default">
-              to {recipientMailboxAddress}
-            </span>
-          </div>
         </div>
 
         {/* Sender Info Bar */}
@@ -338,14 +269,8 @@ export function InboxMessageDetailView({ messageId, mailboxId }: InboxMessageDet
             </div>
           </div>
 
-          {/* Date & Authentication Security Pass Badges */}
+          {/* Date */}
           <div className="flex items-center gap-2 text-xs text-kumo-subtle shrink-0">
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-              DKIM Pass
-            </span>
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-              SPF Pass
-            </span>
             <span>{new Date(message.receivedAt).toLocaleString()}</span>
           </div>
         </div>
@@ -392,7 +317,7 @@ export function InboxMessageDetailView({ messageId, mailboxId }: InboxMessageDet
 
           <div className="space-y-3">
             {threadMessages.map((tMsg) => {
-              if (tMsg.id === message.id) return null; // Current message rendered in full below
+              if (tMsg.id === message.id) return null;
               const isOutbound = tMsg.direction === "OUTBOUND_REPLY";
 
               return (
@@ -478,7 +403,7 @@ export function InboxMessageDetailView({ messageId, mailboxId }: InboxMessageDet
       </div>
 
       {/* 4.5 Inline Conversation Thread Reply Composer */}
-      <div className="bg-kumo-base border border-kumo-line rounded-2xl p-5 shadow-2xs focus-within:border-cf-orange transition-colors">
+      <div className="bg-kumo-base border border-kumo-line rounded-2xl p-5 shadow-2xs focus-within:border-[#0066FF] transition-colors">
         <form onSubmit={handleSendReply} className="space-y-3">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-kumo-hairline pb-3">
@@ -493,7 +418,7 @@ export function InboxMessageDetailView({ messageId, mailboxId }: InboxMessageDet
               </strong>
             </div>
 
-            <span className="text-xs font-semibold text-cf-orange font-mono">
+            <span className="text-xs font-semibold text-[#0066FF] font-mono">
               Re: {message.subject.replace(/^Re:\s*/i, "")}
             </span>
           </div>
@@ -542,7 +467,7 @@ export function InboxMessageDetailView({ messageId, mailboxId }: InboxMessageDet
             value={replyText}
             onChange={(e) => setReplyText(e.target.value)}
             placeholder="Write your reply here..."
-            className="w-full bg-kumo-control border border-kumo-line rounded-xl p-3.5 text-xs text-kumo-strong placeholder:text-kumo-muted focus:outline-none focus:border-cf-orange leading-relaxed min-h-[140px]"
+            className="w-full bg-kumo-control border border-kumo-line rounded-xl p-3.5 text-xs text-kumo-strong placeholder:text-kumo-muted focus:outline-none focus:border-[#0066FF] leading-relaxed min-h-[140px]"
           />
 
           {/* Send Bottom Bar */}
@@ -554,7 +479,7 @@ export function InboxMessageDetailView({ messageId, mailboxId }: InboxMessageDet
             <button
               type="submit"
               disabled={isSendingReply || !replyText.trim()}
-              className="px-4 py-2 rounded-lg bg-cf-orange hover:bg-cf-orange-hover text-white text-xs font-semibold flex items-center gap-2 shadow-sm transition-colors disabled:opacity-50 cursor-pointer"
+              className="btn-cf-primary text-xs flex items-center gap-2 disabled:opacity-50 cursor-pointer"
             >
               {isSendingReply ? (
                 <>

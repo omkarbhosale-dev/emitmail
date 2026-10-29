@@ -138,7 +138,7 @@ export function AddMailboxView() {
       {/* Page Header */}
       <div className="border-b border-kumo-hairline pb-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-cf-orange/10 border border-cf-orange/20 flex items-center justify-center text-cf-orange">
+          <div className="w-10 h-10 rounded-xl bg-cf-blue/10 border border-cf-blue/20 flex items-center justify-center text-cf-blue">
             <Tray size={20} weight="bold" />
           </div>
           <div>
@@ -240,11 +240,11 @@ export function AddMailboxView() {
           <div className="p-4 rounded-xl bg-kumo-control border border-kumo-line flex items-center justify-between">
             <div>
               <span className="text-[11px] text-kumo-subtle block font-sans">Full Inbound Address:</span>
-              <span className="text-sm font-mono font-bold text-cf-orange block mt-0.5 select-all">
+              <span className="text-sm font-mono font-bold text-cf-blue block mt-0.5 select-all">
                 {fullAddressPreview}
               </span>
             </div>
-            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-cf-orange-tint text-cf-orange border border-cf-orange-border/30">
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-cf-blue/10 text-cf-blue border border-cf-blue/20">
               Inbound Alias
             </span>
           </div>
