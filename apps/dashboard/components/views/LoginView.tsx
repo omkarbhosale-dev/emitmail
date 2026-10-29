@@ -56,28 +56,28 @@ export function LoginView() {
       <style>{`
         @keyframes pulseMatrix {
           0%, 100% {
-            transform: scale(0.92) translateY(0);
-            filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.45));
+            transform: scale(0.93) translateY(0);
+            opacity: 0.45;
           }
           50% {
-            transform: scale(1.08) translateY(-6px);
-            filter: drop-shadow(0 0 24px rgba(255, 255, 255, 0.85));
+            transform: scale(1.07) translateY(-6px);
+            opacity: 0.85;
           }
         }
         @keyframes floatHorizon {
           0%, 100% {
-            opacity: 0.65;
+            opacity: 0.7;
             transform: scaleX(1);
           }
           50% {
             opacity: 0.95;
-            transform: scaleX(1.1);
+            transform: scaleX(1.08);
           }
         }
       `}</style>
 
       {/* Left Column: Clean Administrator Login Form */}
-      <div className="w-full lg:w-[45%] xl:w-[40%] h-full flex flex-col justify-between p-6 sm:p-10 lg:p-14 bg-kumo-canvas border-r border-kumo-hairline z-20 overflow-y-auto">
+      <div className="w-full lg:w-[45%] xl:w-[42%] h-full flex flex-col justify-between p-6 sm:p-10 lg:p-14 bg-kumo-canvas border-r border-kumo-hairline z-20 overflow-y-auto">
         {/* Brand Header */}
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-cf-orange flex items-center justify-center text-white shadow-md shadow-cf-orange/20">
@@ -197,25 +197,25 @@ export function LoginView() {
           </form>
         </div>
 
-        {/* Empty bottom space for balanced centering */}
+        {/* Empty bottom space */}
         <div className="h-4" />
       </div>
 
-      {/* Right Column: Radiant Cloudflare Orange Canvas with Luminous Dot-Matrix Animation */}
-      <div className="hidden lg:flex flex-1 h-full relative overflow-hidden bg-gradient-to-br from-[#FA8B38] via-[#F38020] to-[#E55A00] items-center justify-center select-none">
-        {/* 1. Subtle Background Dot-Matrix Overlay Grid Pattern */}
+      {/* Right Column: Screenshot Inspired Cloudflare Orange Showcase with Dot Matrix Animation */}
+      <div className="hidden lg:flex flex-1 h-full relative overflow-hidden bg-gradient-to-br from-[#FA8B38] via-[#F38020] to-[#E55A00] items-center justify-center p-12 xl:p-16 text-center select-none">
+        {/* 1. Fine Dot-Matrix Overlay Grid Pattern */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
             backgroundImage:
-              "radial-gradient(rgba(255, 255, 255, 0.14) 1.2px, transparent 1.2px)",
-            backgroundSize: "22px 22px",
+              "radial-gradient(rgba(255, 255, 255, 0.22) 1.5px, transparent 1.5px)",
+            backgroundSize: "20px 20px",
           }}
         />
 
-        {/* 2. Bottom Radiant Horizon Illumination Flare */}
+        {/* 2. Bottom Radiant Horizon Illumination Flare (Matching the screenshot glow) */}
         <div
-          className="absolute -bottom-16 left-1/2 -translate-x-1/2 w-[130%] h-84 pointer-events-none"
+          className="absolute -bottom-16 left-1/2 -translate-x-1/2 w-[120%] h-80 pointer-events-none"
           style={{
             background:
               "radial-gradient(ellipse 70% 55% at 50% 100%, rgba(255, 248, 220, 0.95) 0%, rgba(255, 220, 150, 0.45) 45%, transparent 75%)",
@@ -223,84 +223,87 @@ export function LoginView() {
           }}
         />
 
-        {/* 3. High-Brightness Dot-Matrix Email Logo Scaling Up and Down Animation */}
+        {/* 3. Dot-Matrix Email Icon Scaling Up and Down in the Background */}
         <div
-          className="relative z-10 flex items-center justify-center pointer-events-none"
+          className="absolute inset-0 flex items-center justify-center pointer-events-none z-0"
           style={{
-            animation: "pulseMatrix 6s ease-in-out infinite",
+            animation: "pulseMatrix 7s ease-in-out infinite",
           }}
         >
           <svg
-            width="640"
-            height="460"
-            viewBox="0 0 640 460"
+            width="560"
+            height="420"
+            viewBox="0 0 560 420"
             fill="none"
-            className="w-[88%] max-w-[660px]"
+            className="w-[85%] max-w-[580px] text-white"
           >
-            <defs>
-              {/* Radial glow filter for high-brightness dots */}
-              <filter id="brightGlow" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="2.5" result="blur" />
-                <feComposite in="SourceGraphic" in2="blur" operator="over" />
-              </filter>
-            </defs>
-
-            <g filter="url(#brightGlow)">
-              {/* Outer Envelope Border: Crisp Bright White Dots */}
-              {Array.from({ length: 30 }).map((_, col) => (
-                <React.Fragment key={`border-tb-${col}`}>
-                  {/* Top Edge */}
-                  <circle cx={60 + col * 18} cy={60} r="3.2" fill="#FFFFFF" opacity="0.95" />
-                  {/* Bottom Edge */}
-                  <circle cx={60 + col * 18} cy={380} r="3.2" fill="#FFFFFF" opacity="0.95" />
+            {/* Grid of matrix dots defining the envelope body and flap */}
+            <g fill="currentColor">
+              {/* Outer Envelope Border Dots */}
+              {Array.from({ length: 28 }).map((_, col) => (
+                <React.Fragment key={`border-top-bottom-${col}`}>
+                  <circle cx={40 + col * 17} cy={40} r="3" opacity="0.8" />
+                  <circle cx={40 + col * 17} cy={360} r="3" opacity="0.8" />
                 </React.Fragment>
               ))}
 
               {Array.from({ length: 19 }).map((_, row) => (
-                <React.Fragment key={`border-lr-${row}`}>
-                  {/* Left Edge */}
-                  <circle cx={60} cy={76 + row * 16} r="3.2" fill="#FFFFFF" opacity="0.95" />
-                  {/* Right Edge */}
-                  <circle cx={582} cy={76 + row * 16} r="3.2" fill="#FFFFFF" opacity="0.95" />
+                <React.Fragment key={`border-left-right-${row}`}>
+                  <circle cx={40} cy={57 + row * 16} r="3" opacity="0.8" />
+                  <circle cx={499} cy={57 + row * 16} r="3" opacity="0.8" />
                 </React.Fragment>
               ))}
 
-              {/* Envelope V-Flap Folding Diagonals (Brilliant Pure White Dots) */}
-              {Array.from({ length: 18 }).map((_, i) => (
-                <React.Fragment key={`v-flap-${i}`}>
+              {/* Envelope V Flap Folding Diagonals */}
+              {Array.from({ length: 16 }).map((_, i) => (
+                <React.Fragment key={`flap-diag-${i}`}>
                   {/* Left down to center */}
-                  <circle cx={60 + i * 14.5} cy={60 + i * 10} r="3.6" fill="#FFFFFF" opacity="1" />
+                  <circle cx={40 + i * 15} cy={40 + i * 11} r="3.5" opacity="0.95" />
                   {/* Right down to center */}
-                  <circle cx={582 - i * 14.5} cy={60 + i * 10} r="3.6" fill="#FFFFFF" opacity="1" />
+                  <circle cx={499 - i * 15} cy={40 + i * 11} r="3.5" opacity="0.95" />
                 </React.Fragment>
               ))}
 
-              {/* Lower Flap Inner Diagonals */}
-              {Array.from({ length: 15 }).map((_, i) => (
-                <React.Fragment key={`lower-flap-${i}`}>
-                  {/* Bottom left towards center */}
-                  <circle cx={60 + i * 13} cy={380 - i * 9} r="2.8" fill="#FFFFFF" opacity="0.8" />
-                  {/* Bottom right towards center */}
-                  <circle cx={582 - i * 13} cy={380 - i * 9} r="2.8" fill="#FFFFFF" opacity="0.8" />
+              {/* Lower Inner Folding Diagonals */}
+              {Array.from({ length: 14 }).map((_, i) => (
+                <React.Fragment key={`lower-diag-${i}`}>
+                  <circle cx={40 + i * 13} cy={360 - i * 9} r="2.8" opacity="0.65" />
+                  <circle cx={499 - i * 13} cy={360 - i * 9} r="2.8" opacity="0.65" />
                 </React.Fragment>
               ))}
 
-              {/* Center Seal Luminous Multi-Ring Core */}
-              <circle cx={321} cy={240} r="7" fill="#FFFFFF" opacity="1" />
-              <circle cx={321} cy={240} r="14" stroke="#FFFFFF" strokeWidth="2" fill="none" opacity="0.75" />
-              <circle cx={321} cy={240} r="22" stroke="#FFFFFF" strokeWidth="1" strokeDasharray="3 3" fill="none" opacity="0.5" />
-
-              {/* Interior Sub-matrix ambient constellation dots */}
-              {Array.from({ length: 7 }).map((_, r) => (
-                <React.Fragment key={`inner-col-${r}`}>
-                  <circle cx={140 + r * 20} cy={280} r="2" fill="#FFFFFF" opacity="0.6" />
-                  <circle cx={360 + r * 20} cy={280} r="2" fill="#FFFFFF" opacity="0.6" />
-                  <circle cx={180 + r * 18} cy={320} r="2" fill="#FFFFFF" opacity="0.5" />
-                  <circle cx={320 + r * 18} cy={320} r="2" fill="#FFFFFF" opacity="0.5" />
-                </React.Fragment>
-              ))}
+              {/* Center Seal Pulse Dot */}
+              <circle cx={270} cy={215} r="6.5" opacity="1" />
+              <circle cx={270} cy={215} r="13" fill="none" stroke="currentColor" strokeWidth="1.5" opacity="0.6" />
             </g>
           </svg>
+        </div>
+
+        {/* 4. Showcase Text & CTA Content (Matching Screenshot Content & Typography) */}
+        <div className="relative z-10 max-w-xl mx-auto flex flex-col items-center">
+          {/* Main Headline */}
+          <h2 className="text-3xl xl:text-[42px] font-bold text-white tracking-tight leading-[1.14] font-sans drop-shadow-sm">
+            Everything we learned from powering 20% of the Internet—yours by default
+          </h2>
+
+          {/* Subtitle */}
+          <p className="text-white/90 text-sm xl:text-[15px] max-w-md mt-4 sm:mt-5 leading-relaxed font-normal">
+            One platform for your apps, agents, and workforce.
+            <br />
+            Build, secure, and scale without managing infrastructure.
+          </p>
+
+          {/* White Pill Button */}
+          <button
+            type="button"
+            onClick={() => {
+              const input = document.querySelector('input[type="text"]') as HTMLInputElement;
+              if (input) input.focus();
+            }}
+            className="mt-8 px-7 py-3 rounded-full bg-white text-gray-950 font-semibold text-xs xl:text-sm hover:bg-white/95 transition-all shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 cursor-pointer"
+          >
+            Start building for free
+          </button>
         </div>
       </div>
     </div>
