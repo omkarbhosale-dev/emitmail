@@ -284,6 +284,17 @@ export class EmailsService {
           bounceType: true,
           bounceReason: true,
           createdAt: true,
+          domain: {
+            select: {
+              id: true,
+              domainName: true,
+            },
+          },
+          deliveryAttempts: true,
+          lastError: true,
+          suppressionReason: true,
+          htmlContent: true,
+          textContent: true,
         },
       }),
       prisma.email.count({ where }),

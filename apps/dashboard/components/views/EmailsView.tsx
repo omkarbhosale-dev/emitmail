@@ -1,116 +1,38 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   PaperPlaneTilt,
   MagnifyingGlass,
   ArrowsClockwise,
-  EnvelopeSimple,
   Copy,
-  Clock,
-  WarningCircle,
-  X,
-  Code,
-  Lightning,
+  CaretLeft,
+  CaretRight,
 } from "@phosphor-icons/react";
-import { ProcessedEmailItem } from "@/types";
+import { ProcessedEmailItem, ApiDomain } from "@/types";
 import { useToast } from "@/components/ui/Toast";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { useModals } from "@/components/layout/AppShell";
+import { api } from "@/lib/api";
 
-const INITIAL_EMAILS: ProcessedEmailItem[] = [
-  {
-    id: "msg_8f1b9204c3e8",
-    recipient: "sarah.connor@cyberdyne.io",
-    sender: "notifications@omkarbhosale.dev",
-    subject: "Your login security verification code is 492-108",
-    status: "delivered",
-    smtpResponse: "250 2.0.0 OK: message queued 1094821",
-    domain: "omkarbhosale.dev",
-    latencyMs: 38,
-    timestamp: "2 mins ago",
-    createdAt: "2026-10-26T12:00:22Z",
-    hasDkim: true,
-    hasSpf: true,
-    sizeBytes: 4210,
-  },
-  {
-    id: "msg_44e1a0df77b3",
-    recipient: "alex.rivera@stripe-payments.com",
-    sender: "billing@omkarbhosale.dev",
-    subject: "Receipt for Invoice #INV-2026-8819",
-    status: "delivered",
-    smtpResponse: "250 2.0.0 OK: delivered to gateway mx.stripe.com",
-    domain: "omkarbhosale.dev",
-    latencyMs: 42,
-    timestamp: "8 mins ago",
-    createdAt: "2026-10-26T11:54:10Z",
-    hasDkim: true,
-    hasSpf: true,
-    sizeBytes: 8940,
-  },
-  {
-    id: "msg_77b31c9af021",
-    recipient: "developer@emitmail.dev",
-    sender: "system@emitmail.dev",
-    subject: "BullMQ worker node auto-scaled to 12 concurrency threads",
-    status: "delivered",
-    smtpResponse: "250 2.0.0 OK: local maildir stored",
-    domain: "emitmail.dev",
-    latencyMs: 29,
-    timestamp: "18 mins ago",
-    createdAt: "2026-10-26T11:44:00Z",
-    hasDkim: true,
-    hasSpf: true,
-    sizeBytes: 3120,
-  },
-  {
-    id: "msg_90a1f28b4c5e",
-    recipient: "queue-test@bullmq.io",
-    sender: "notifications@omkarbhosale.dev",
-    subject: "BullMQ Stress Test payload #98821",
-    status: "queued",
-    smtpResponse: "Queued in Redis list 'queue:outbound-mail' (jobId: #891)",
-    domain: "omkarbhosale.dev",
-    latencyMs: 14,
-    timestamp: "24 mins ago",
-    createdAt: "2026-10-26T11:38:12Z",
-    hasDkim: true,
-    hasSpf: true,
-    sizeBytes: 2540,
-  },
-  {
-    id: "msg_33a0df44b192",
-    recipient: "invalid-user@acme-corp.net",
-    sender: "system@emitmail.dev",
-    subject: "Password Reset Request",
-    status: "bounced",
-    smtpResponse: "550 5.1.1 User mailbox unknown on acme-corp.net",
-    domain: "emitmail.dev",
-    latencyMs: 48,
-    timestamp: "45 mins ago",
-    createdAt: "2026-10-26T11:17:30Z",
-    hasDkim: true,
-    hasSpf: true,
-    sizeBytes: 3890,
-  },
-  {
-    id: "msg_12f9b8c7340e",
-    recipient: "elena.rostova@techinnovate.com",
-    sender: "notifications@omkarbhosale.dev",
-    subject: "Welcome to the EmitMail Early Access Platform",
-    status: "delivered",
-    smtpResponse: "250 2.0.0 OK: queued as 778B2A",
-    domain: "omkarbhosale.dev",
-    latencyMs: 35,
-    timestamp: "1 hour ago",
-    createdAt: "2026-10-26T11:02:44Z",
-    hasDkim: true,
-    hasSpf: true,
-    sizeBytes: 6120,
-  },
-];
+const PAGE_SIZE = 10;
+
+function formatRelativeTime(dateStr: string): string {
+  try {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffSec = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (isNaN(diffSec) || diffSec < 0) return "Just now";
+    if (diffSec < 60) return "Just now";
+    if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`;
+    if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h ago`;
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  } catch {
+    return dateStr;
+  }
+}
 
 interface EmailsViewProps {
   onTriggerSendEmail?: () => void;
@@ -128,32 +50,89 @@ export function EmailsView({ onTriggerSendEmail }: EmailsViewProps = {}) {
     }
   };
 
-  const [emails, setEmails] = useState<ProcessedEmailItem[]>(INITIAL_EMAILS);
-  const [statusFilter, setStatusFilter] = useState<"all" | "delivered" | "queued" | "bounced">("all");
-  const [domainFilter, setDomainFilter] = useState("all");
+  const [emails, setEmails] = useState<ProcessedEmailItem[]>([]);
+  const [domains, setDomains] = useState<ApiDomain[]>([]);
+  const [totalCount, setTotalCount] = useState<number>(0);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [domainFilter, setDomainFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedEmail, setSelectedEmail] = useState<ProcessedEmailItem | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Fetch emails from backend
+  const fetchEmails = useCallback(async (status: string = statusFilter, silent: boolean = false) => {
+    if (!silent) setIsLoading(true);
+    try {
+      const res = await api.emails.list({
+        status: status !== "all" ? status : undefined,
+        limit: 100,
+      });
+      setEmails(res.emails || []);
+      setTotalCount(res.total || (res.emails ? res.emails.length : 0));
+    } catch (err: any) {
+      console.error("Failed to load processed emails:", err);
+      toast({
+        title: "Failed to Fetch Emails",
+        description: err.message || "Could not synchronize processed emails feed.",
+        type: "error",
+      });
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, [statusFilter, toast]);
+
+  // Fetch domains for filter dropdown
+  const fetchDomains = useCallback(async () => {
+    try {
+      const items = await api.domains.list();
+      setDomains(items || []);
+    } catch (err) {
+      console.error("Failed to load domains:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchEmails("all");
+    fetchDomains();
+
+    // Auto-refresh when new email is sent via modal
+    const handleEmailsUpdated = () => {
+      fetchEmails(statusFilter, true);
+    };
+
+    window.addEventListener("emails-updated", handleEmailsUpdated);
+    return () => {
+      window.removeEventListener("emails-updated", handleEmailsUpdated);
+    };
+  }, [fetchEmails, fetchDomains, statusFilter]);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsRefreshing(false);
-      setIsLoading(false);
+    fetchEmails(statusFilter, true).then(() => {
       toast({
         title: "Email Feed Refreshed",
         description: "Synchronized latest BullMQ message acknowledgments.",
         type: "info",
       });
-    }, 600);
+    });
   };
 
-  const handleFilterChange = (tab: "all" | "delivered" | "queued" | "bounced") => {
-    setIsLoading(true);
+  const handleFilterChange = (tab: string) => {
     setStatusFilter(tab);
-    setTimeout(() => setIsLoading(false), 300);
+    setCurrentPage(1);
+    fetchEmails(tab);
+  };
+
+  const handleDomainFilterChange = (domain: string) => {
+    setDomainFilter(domain);
+    setCurrentPage(1);
+  };
+
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+    setCurrentPage(1);
   };
 
   const copyToClipboard = (text: string, label: string) => {
@@ -165,18 +144,52 @@ export function EmailsView({ onTriggerSendEmail }: EmailsViewProps = {}) {
     });
   };
 
-  const filteredEmails = emails.filter((item) => {
-    const matchesStatus = statusFilter === "all" ? true : item.status === statusFilter;
-    const matchesDomain = domainFilter === "all" ? true : item.domain === domainFilter;
-    const matchesSearch =
-      item.recipient.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.id.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesStatus && matchesDomain && matchesSearch;
-  });
+  // Filter in-memory for instant search and domain match
+  const filteredEmails = useMemo(() => {
+    return emails.filter((item) => {
+      const itemDomain = item.domain?.domainName || (item.from ? item.from.split("@")[1] : "") || "";
+      const matchesDomain = domainFilter === "all" ? true : itemDomain === domainFilter;
+
+      const recipientStr = Array.isArray(item.to) ? item.to.join(" ") : (item.recipient || "");
+      const q = searchQuery.toLowerCase().trim();
+      const matchesSearch =
+        !q ||
+        recipientStr.toLowerCase().includes(q) ||
+        (item.subject && item.subject.toLowerCase().includes(q)) ||
+        (item.from && item.from.toLowerCase().includes(q)) ||
+        (item.id && item.id.toLowerCase().includes(q)) ||
+        (item.messageId && item.messageId.toLowerCase().includes(q));
+
+      return matchesDomain && matchesSearch;
+    });
+  }, [emails, domainFilter, searchQuery]);
+
+  // Dynamic Telemetry KPI Calculations
+  const totalEmailsCount = totalCount || emails.length;
+  const deliveredCount = emails.filter((e) => (e.status || "").toUpperCase() === "DELIVERED").length;
+  const queuedCount = emails.filter((e) => {
+    const st = (e.status || "").toUpperCase();
+    return st === "QUEUED" || st === "SENDING";
+  }).length;
+  const deliveryRate = totalEmailsCount > 0
+    ? `${Math.round((deliveredCount / totalEmailsCount) * 100)}%`
+    : "100%";
+  const bouncedCount = emails.filter((e) => {
+    const st = (e.status || "").toUpperCase();
+    return st === "BOUNCED" || st === "SUPPRESSED" || st === "FAILED";
+  }).length;
+  const bounceRate = totalEmailsCount > 0
+    ? `${((bouncedCount / totalEmailsCount) * 100).toFixed(1)}%`
+    : "0%";
+
+  // Pagination Calculations
+  const totalPages = Math.max(1, Math.ceil(filteredEmails.length / PAGE_SIZE));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const startIndex = (safeCurrentPage - 1) * PAGE_SIZE;
+  const paginatedEmails = filteredEmails.slice(startIndex, startIndex + PAGE_SIZE);
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-200">
+    <div className="space-y-5 animate-in fade-in duration-200">
       {/* 1. Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -212,39 +225,32 @@ export function EmailsView({ onTriggerSendEmail }: EmailsViewProps = {}) {
       </div>
 
       {/* 2. Telemetry KPI Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="p-3.5 rounded-xl bg-kumo-base border border-kumo-hairline">
           <span className="text-[11px] font-medium text-kumo-subtle block">Total Messages</span>
-          <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-xl font-bold font-mono text-kumo-strong">1,248</span>
-            <span className="text-[10px] text-cf-success font-semibold">↗ 12%</span>
+          <div className="mt-1">
+            <span className="text-xl font-bold font-mono text-kumo-strong">{totalEmailsCount}</span>
           </div>
         </div>
 
         <div className="p-3.5 rounded-xl bg-kumo-base border border-kumo-hairline">
           <span className="text-[11px] font-medium text-kumo-subtle block">Delivery Rate</span>
-          <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-xl font-bold font-mono text-kumo-strong">99.2%</span>
-            <span className="text-[10px] text-cf-success font-semibold">250 OK</span>
+          <div className="mt-1">
+            <span className="text-xl font-bold font-mono text-kumo-strong">{deliveryRate}</span>
           </div>
         </div>
 
         <div className="p-3.5 rounded-xl bg-kumo-base border border-kumo-hairline">
-          <span className="text-[11px] font-medium text-kumo-subtle block">Avg Queue Latency</span>
-          <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-xl font-bold font-mono text-kumo-strong">36ms</span>
-            <span className="text-[10px] text-cf-success font-semibold flex items-center gap-0.5">
-              <Lightning size={10} weight="fill" />
-              <span>Normal</span>
-            </span>
+          <span className="text-[11px] font-medium text-kumo-subtle block">Queued</span>
+          <div className="mt-1">
+            <span className="text-xl font-bold font-mono text-kumo-strong">{queuedCount}</span>
           </div>
         </div>
 
         <div className="p-3.5 rounded-xl bg-kumo-base border border-kumo-hairline">
-          <span className="text-[11px] font-medium text-kumo-subtle block">DKIM Alignment</span>
-          <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-xl font-bold font-mono text-kumo-strong">100%</span>
-            <span className="text-[10px] text-cf-success font-semibold">RSA-2048</span>
+          <span className="text-[11px] font-medium text-kumo-subtle block">Bounce Rate</span>
+          <div className="mt-1">
+            <span className="text-xl font-bold font-mono text-kumo-strong">{bounceRate}</span>
           </div>
         </div>
       </div>
@@ -252,18 +258,22 @@ export function EmailsView({ onTriggerSendEmail }: EmailsViewProps = {}) {
       {/* 3. Filter & Search Toolbar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         {/* Status Filters */}
-        <div className="flex items-center gap-1 p-1 bg-kumo-base border border-kumo-line rounded-lg">
-          {(["all", "delivered", "queued", "bounced"] as const).map((tab) => (
+        <div className="flex items-center gap-1 p-1 bg-kumo-base border border-kumo-line rounded-lg overflow-x-auto">
+          {[
+            { key: "all", label: "All" },
+            { key: "delivered", label: "Delivered" },
+            { key: "queued", label: "Queued" },
+            { key: "bounced", label: "Bounced" },
+          ].map((tab) => (
             <button
-              key={tab}
-              onClick={() => handleFilterChange(tab)}
-              className={`px-3 py-1 rounded-md text-xs font-medium capitalize transition-colors ${
-                statusFilter === tab
+              key={tab.key}
+              onClick={() => handleFilterChange(tab.key)}
+              className={`px-3 py-1 rounded-md text-xs font-medium capitalize transition-colors cursor-pointer shrink-0 ${statusFilter.toLowerCase() === tab.key.toLowerCase()
                   ? "bg-kumo-elevated text-kumo-strong shadow-2xs font-semibold"
                   : "text-kumo-subtle hover:text-kumo-strong"
-              }`}
+                }`}
             >
-              {tab}
+              {tab.label}
             </button>
           ))}
         </div>
@@ -272,12 +282,15 @@ export function EmailsView({ onTriggerSendEmail }: EmailsViewProps = {}) {
         <div className="flex items-center gap-2">
           <select
             value={domainFilter}
-            onChange={(e) => setDomainFilter(e.target.value)}
+            onChange={(e) => handleDomainFilterChange(e.target.value)}
             className="bg-kumo-control border border-kumo-line rounded-lg px-2.5 py-1.5 text-xs text-kumo-strong focus:outline-none focus:border-cf-blue cursor-pointer"
           >
             <option value="all">All Domains</option>
-            <option value="omkarbhosale.dev">omkarbhosale.dev</option>
-            <option value="emitmail.dev">emitmail.dev</option>
+            {domains.map((dom) => (
+              <option key={dom.id} value={dom.domainName}>
+                {dom.domainName}
+              </option>
+            ))}
           </select>
 
           <div className="relative w-full sm:w-60">
@@ -288,7 +301,7 @@ export function EmailsView({ onTriggerSendEmail }: EmailsViewProps = {}) {
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="Search recipient, msg_id..."
               className="w-full pl-8 pr-3 py-1.5 text-xs bg-kumo-control border border-kumo-line rounded-lg text-kumo-strong placeholder:text-kumo-muted focus:outline-none focus:border-cf-blue"
             />
@@ -299,245 +312,148 @@ export function EmailsView({ onTriggerSendEmail }: EmailsViewProps = {}) {
       {/* 4. Processed Emails Table */}
       <div className="bg-kumo-base border border-kumo-hairline rounded-xl overflow-hidden shadow-2xs">
         {isLoading ? (
-          <TableSkeleton rows={5} cols={6} />
+          <TableSkeleton rows={10} cols={5} />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="border-b border-kumo-hairline bg-kumo-recessed/50 text-kumo-subtle font-medium">
-                  <th className="py-3 px-4">Message ID</th>
-                  <th className="py-3 px-4">Recipient & Subject</th>
-                  <th className="py-3 px-4 hidden md:table-cell">Sender / Domain</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4 hidden sm:table-cell">Security</th>
-                  <th className="py-3 px-4 hidden lg:table-cell">Latency</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                  <th className="py-2.5 px-4">Message ID</th>
+                  <th className="py-2.5 px-4">Recipient & Subject</th>
+                  <th className="py-2.5 px-4 hidden md:table-cell">Sender / Domain</th>
+                  <th className="py-2.5 px-4">Status</th>
+                  <th className="py-2.5 px-4 text-right">Dispatched</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-kumo-hairline">
-                {filteredEmails.length === 0 ? (
+                {paginatedEmails.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-12 text-center text-kumo-subtle">
+                    <td colSpan={5} className="py-12 text-center text-kumo-subtle">
                       No processed emails found matching your filters.
                     </td>
                   </tr>
                 ) : (
-                  filteredEmails.map((item) => (
-                    <tr key={item.id} className="hover:bg-kumo-tint/60 transition-colors group">
-                      {/* Message ID */}
-                      <td className="py-3.5 px-4 font-mono text-[11px] text-kumo-strong">
-                        <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-kumo-recessed border border-kumo-hairline">
-                          <span>{item.id.substring(0, 14)}...</span>
-                          <button
-                            onClick={() => copyToClipboard(item.id, "Message ID")}
-                            title="Copy message ID"
-                            className="text-kumo-muted hover:text-kumo-strong"
-                          >
-                            <Copy size={11} />
-                          </button>
-                        </div>
-                      </td>
+                  paginatedEmails.map((item) => {
+                    const recipientText = Array.isArray(item.to) && item.to.length > 0
+                      ? item.to.join(", ")
+                      : item.recipient || "No recipient";
+                    const senderText = item.from || item.sender || "System";
+                    const displayId = item.messageId || item.id;
+                    const normalizedStatus = (item.status || "QUEUED").toUpperCase();
 
-                      {/* Recipient & Subject */}
-                      <td className="py-3.5 px-4 max-w-[280px]">
-                        <div className="font-semibold text-kumo-strong truncate">
-                          {item.recipient}
-                        </div>
-                        <div className="text-[11px] text-kumo-subtle truncate mt-0.5">
-                          {item.subject}
-                        </div>
-                      </td>
+                    return (
+                      <tr key={item.id} className="hover:bg-kumo-tint/60 transition-colors group">
+                        {/* Message ID */}
+                        <td className="py-2.5 px-4 font-mono text-[11px] text-kumo-strong">
+                          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-kumo-recessed border border-kumo-hairline max-w-[160px]">
+                            <span className="truncate">{displayId}</span>
+                            <button
+                              onClick={() => copyToClipboard(displayId, "Message ID")}
+                              title="Copy message ID"
+                              className="text-kumo-muted hover:text-kumo-strong cursor-pointer shrink-0"
+                            >
+                              <Copy size={11} />
+                            </button>
+                          </div>
+                        </td>
 
-                      {/* Sender Domain */}
-                      <td className="py-3.5 px-4 text-kumo-subtle hidden md:table-cell font-mono text-[11px] truncate max-w-[180px]">
-                        <div>{item.sender}</div>
-                      </td>
+                        {/* Recipient & Subject */}
+                        <td className="py-2.5 px-4 max-w-[320px]">
+                          <div className="font-semibold text-kumo-strong truncate">
+                            {recipientText}
+                          </div>
+                          <div className="text-[11px] text-kumo-subtle truncate mt-0.5">
+                            {item.subject || "(No subject)"}
+                          </div>
+                        </td>
 
-                      {/* Cloudflare Accurate Status Badge */}
-                      <td className="py-3.5 px-4">
-                        {item.status === "delivered" ? (
-                          <StatusBadge variant="success">250 OK</StatusBadge>
-                        ) : item.status === "queued" ? (
-                          <StatusBadge variant="info" pulseDot>Queued</StatusBadge>
-                        ) : (
-                          <StatusBadge variant="danger">550 Bounce</StatusBadge>
-                        )}
-                      </td>
+                        {/* Sender Domain */}
+                        <td className="py-2.5 px-4 text-kumo-subtle hidden md:table-cell font-mono text-[11px] truncate max-w-[200px]">
+                          <div>{senderText}</div>
+                        </td>
 
-                      {/* Security Tags */}
-                      <td className="py-3.5 px-4 hidden sm:table-cell">
-                        <div className="flex items-center gap-1 font-mono text-[10px]">
-                          <span className="px-1.5 py-0.5 rounded bg-kumo-recessed border border-kumo-hairline text-cf-success font-semibold">
-                            DKIM ✓
-                          </span>
-                          <span className="px-1.5 py-0.5 rounded bg-kumo-recessed border border-kumo-hairline text-cf-success font-semibold">
-                            SPF ✓
-                          </span>
-                        </div>
-                      </td>
+                        {/* Status Badge */}
+                        <td className="py-2.5 px-4">
+                          {normalizedStatus === "DELIVERED" ? (
+                            <StatusBadge variant="success">Delivered</StatusBadge>
+                          ) : normalizedStatus === "QUEUED" ? (
+                            <StatusBadge variant="info" pulseDot>Queued</StatusBadge>
+                          ) : normalizedStatus === "SENDING" ? (
+                            <StatusBadge variant="info" pulseDot>Sending</StatusBadge>
+                          ) : normalizedStatus === "SUPPRESSED" ? (
+                            <StatusBadge variant="warning">Suppressed</StatusBadge>
+                          ) : (
+                            <StatusBadge variant="danger">Bounced</StatusBadge>
+                          )}
+                        </td>
 
-                      {/* Latency & Timestamp */}
-                      <td className="py-3.5 px-4 text-kumo-subtle hidden lg:table-cell font-mono text-[11px]">
-                        <div>{item.timestamp}</div>
-                        <div className="text-[10px] text-kumo-muted">{item.latencyMs}ms queue ACK</div>
-                      </td>
-
-                      {/* Action: Inspect */}
-                      <td className="py-3.5 px-4 text-right">
-                        <button
-                          onClick={() => setSelectedEmail(item)}
-                          className="px-2.5 py-1 rounded bg-kumo-elevated hover:bg-kumo-interact border border-kumo-line text-[11px] font-medium text-kumo-strong transition-colors cursor-pointer"
-                        >
-                          Inspect
-                        </button>
-                      </td>
-                    </tr>
-                  ))
+                        {/* Timestamp */}
+                        <td className="py-2.5 px-4 text-kumo-subtle text-right font-mono text-[11px]">
+                          <div>{formatRelativeTime(item.createdAt)}</div>
+                          <div className="text-[10px] text-kumo-muted">
+                            {item.deliveryAttempts ? `${item.deliveryAttempts} attempt(s)` : "1 attempt"}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
+
+            {/* Pagination Controls Footer */}
+            {filteredEmails.length > 0 && (
+              <div className="px-4 py-2.5 border-t border-kumo-hairline bg-kumo-recessed/40 flex items-center justify-between text-xs text-kumo-subtle select-none">
+                <div>
+                  Showing{" "}
+                  <span className="font-medium text-kumo-strong font-mono">
+                    {startIndex + 1}
+                  </span>
+                  –
+                  <span className="font-medium text-kumo-strong font-mono">
+                    {Math.min(startIndex + PAGE_SIZE, filteredEmails.length)}
+                  </span>{" "}
+                  of{" "}
+                  <span className="font-medium text-kumo-strong font-mono">
+                    {filteredEmails.length}
+                  </span>{" "}
+                  emails
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <span className="text-[11px] text-kumo-muted">
+                    Page <span className="font-mono text-kumo-strong">{safeCurrentPage}</span> of{" "}
+                    <span className="font-mono text-kumo-strong">{totalPages}</span>
+                  </span>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={safeCurrentPage <= 1}
+                      className="px-2 py-1 text-xs rounded-md border border-kumo-line bg-kumo-base hover:bg-kumo-elevated text-kumo-strong disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer flex items-center gap-1"
+                      title="Previous page"
+                    >
+                      <CaretLeft size={12} weight="bold" />
+                      <span>Previous</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={safeCurrentPage >= totalPages}
+                      className="px-2 py-1 text-xs rounded-md border border-kumo-line bg-kumo-base hover:bg-kumo-elevated text-kumo-strong disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer flex items-center gap-1"
+                      title="Next page"
+                    >
+                      <span>Next</span>
+                      <CaretRight size={12} weight="bold" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
-
-      {/* 5. Email Inspector & Delivery Timeline Modal */}
-      {selectedEmail && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
-            onClick={() => setSelectedEmail(null)}
-          />
-          <div className="relative w-full max-w-xl bg-kumo-base border border-kumo-line rounded-2xl shadow-2xl overflow-hidden z-10 animate-in fade-in zoom-in-95 duration-150">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-kumo-hairline">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-cf-blue/10 border border-cf-blue/20 flex items-center justify-center text-cf-blue">
-                  <EnvelopeSimple size={18} weight="bold" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-kumo-strong">
-                    Message Delivery Lifecycle
-                  </h3>
-                  <span className="font-mono text-[11px] text-kumo-subtle">
-                    {selectedEmail.id}
-                  </span>
-                </div>
-              </div>
-              <button
-                onClick={() => setSelectedEmail(null)}
-                className="p-1 rounded-md text-kumo-muted hover:text-kumo-strong hover:bg-kumo-tint"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
-              {/* Delivery Overview */}
-              <div className="p-3.5 rounded-xl bg-kumo-recessed border border-kumo-hairline space-y-2 text-xs">
-                <div className="flex justify-between items-center">
-                  <span className="text-kumo-subtle">Status:</span>
-                  <span className="font-mono font-bold text-cf-success">
-                    {selectedEmail.smtpResponse}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-kumo-subtle">Recipient:</span>
-                  <span className="font-semibold text-kumo-strong">
-                    {selectedEmail.recipient}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-kumo-subtle">Sender:</span>
-                  <span className="font-mono text-kumo-strong">
-                    {selectedEmail.sender}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-kumo-subtle">Subject:</span>
-                  <span className="text-kumo-strong font-medium truncate max-w-xs">
-                    {selectedEmail.subject}
-                  </span>
-                </div>
-              </div>
-
-              {/* 5-Stage Delivery Pipeline Timeline */}
-              <div>
-                <span className="text-xs font-semibold text-kumo-strong block mb-2.5">
-                  Pipeline Execution Stages
-                </span>
-                <div className="space-y-3 relative pl-6 before:content-[''] before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-kumo-line">
-                  <div className="relative">
-                    <span className="absolute -left-6 top-1 w-2.5 h-2.5 rounded-full bg-cf-success ring-4 ring-kumo-base" />
-                    <span className="text-xs font-semibold text-kumo-strong block">
-                      Stage 1: Enqueued into Redis Cluster
-                    </span>
-                    <span className="text-[11px] text-kumo-subtle block font-mono">
-                      Queue: queue:outbound-mail • Latency: 2ms
-                    </span>
-                  </div>
-
-                  <div className="relative">
-                    <span className="absolute -left-6 top-1 w-2.5 h-2.5 rounded-full bg-cf-success ring-4 ring-kumo-base" />
-                    <span className="text-xs font-semibold text-kumo-strong block">
-                      Stage 2: BullMQ Worker Claimed
-                    </span>
-                    <span className="text-[11px] text-kumo-subtle block font-mono">
-                      Worker node #3-concurrency-12 • PID 4981
-                    </span>
-                  </div>
-
-                  <div className="relative">
-                    <span className="absolute -left-6 top-1 w-2.5 h-2.5 rounded-full bg-cf-success ring-4 ring-kumo-base" />
-                    <span className="text-xs font-semibold text-kumo-strong block">
-                      Stage 3: DKIM Signed & SPF Header Embedded
-                    </span>
-                    <span className="text-[11px] text-kumo-subtle block font-mono">
-                      Selector: emitmail._domainkey.{selectedEmail.domain} • RSA 2048-bit
-                    </span>
-                  </div>
-
-                  <div className="relative">
-                    <span className="absolute -left-6 top-1 w-2.5 h-2.5 rounded-full bg-cf-success ring-4 ring-kumo-base" />
-                    <span className="text-xs font-semibold text-kumo-strong block">
-                      Stage 4: Remote MX Handshake (STARTTLS)
-                    </span>
-                    <span className="text-[11px] text-kumo-subtle block font-mono">
-                      TLSv1.3 cipher TLS_AES_256_GCM_SHA384
-                    </span>
-                  </div>
-
-                  <div className="relative">
-                    <span className={`absolute -left-6 top-1 w-2.5 h-2.5 rounded-full ring-4 ring-kumo-base ${
-                      selectedEmail.status === "delivered" ? "bg-cf-success" : selectedEmail.status === "queued" ? "bg-cf-chart-blue" : "bg-kumo-danger"
-                    }`} />
-                    <span className="text-xs font-semibold text-kumo-strong block">
-                      Stage 5: Final Delivery Acknowledgment
-                    </span>
-                    <span className="text-[11px] text-kumo-subtle block font-mono">
-                      {selectedEmail.smtpResponse}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="px-5 py-3.5 bg-kumo-recessed border-t border-kumo-hairline flex items-center justify-between">
-              <span className="text-[11px] text-kumo-subtle font-mono">
-                Payload Size: {selectedEmail.sizeBytes ? `${(selectedEmail.sizeBytes / 1024).toFixed(1)} KB` : "4.2 KB"}
-              </span>
-              <button
-                type="button"
-                onClick={() => setSelectedEmail(null)}
-                className="btn-cf-primary"
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

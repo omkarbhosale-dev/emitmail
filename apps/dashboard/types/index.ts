@@ -45,18 +45,34 @@ export interface DomainItem {
 
 export interface ProcessedEmailItem {
   id: string;
-  recipient: string;
-  sender: string;
+  from: string;
+  to: string[];
   subject: string;
-  status: "delivered" | "queued" | "bounced" | "failed";
-  smtpResponse: string;
-  domain: string;
-  latencyMs: number;
-  timestamp: string;
+  status: "QUEUED" | "SENDING" | "DELIVERED" | "BOUNCED" | "FAILED" | "SUPPRESSED" | string;
+  messageId?: string | null;
+  sentAt?: string | null;
+  bouncedAt?: string | null;
+  bounceType?: string | null;
+  bounceReason?: string | null;
   createdAt: string;
-  hasDkim: boolean;
-  hasSpf: boolean;
-  sizeBytes: number;
+  domainId?: string;
+  domain?: {
+    id: string;
+    domainName: string;
+  } | null;
+  deliveryAttempts?: number;
+  lastError?: string | null;
+  suppressionReason?: string | null;
+  htmlContent?: string | null;
+  textContent?: string | null;
+  recipient?: string;
+  sender?: string;
+  smtpResponse?: string;
+  hasDkim?: boolean;
+  hasSpf?: boolean;
+  latencyMs?: number;
+  timestamp?: string;
+  sizeBytes?: number;
 }
 
 export interface ApiKeyItem {

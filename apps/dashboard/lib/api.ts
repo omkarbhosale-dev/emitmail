@@ -1,4 +1,4 @@
-import { ApiDomain, ApiKeyItem, CreatedApiKeyResponse } from "@/types";
+import { ApiDomain, ApiKeyItem, CreatedApiKeyResponse, ProcessedEmailItem } from "@/types";
 
 const API_BASE_URL = (
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1"
@@ -327,6 +327,53 @@ export const api = {
         jobId: string;
         message: string;
       }>("/inbox/simulate-inbound", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+    },
+  },
+
+emails: {
+    list: async (query?: { status?: string; limit?: number; offset?: number }): Promise<{
+      emails: ProcessedEmailItem[];
+      total: number;
+      limit: number;
+      offset: number;
+    }> => {
+      const params = new URLSearchParams();
+      if (query?.status && query.status !== "all") params.set("status", query.status.toUpperCase());
+      if (query?.limit) params.set("limit", String(query.limit));
+      if (query?.offset) params.set("offset", String(query.offset));
+      const q = params.toString() ? `?${params.toString()}` : "";
+      return apiFetch<{
+        emails: ProcessedEmailItem[];
+        total: number;
+        limit: number;
+        offset: number;
+      }>(`/emails${q}`);
+    },
+
+    getById: async (id: string): Promise<ProcessedEmailItem> => {
+      return apiFetch<ProcessedEmailItem>(`/emails/${id}`);
+    },
+
+    send: async (data: {
+      from: string;
+      to: string | string[];
+      subject: string;
+      html?: string;
+      text?: string;
+      cc?: string[];
+      bcc?: string[];
+      replyTo?: string;
+    }): Promise<{
+      id: string;
+      from: string;
+      to: string[];
+      status: string;
+      messageId: string;
+    }> => {
+      return apiFetch("/emails", {
         method: "POST",
         body: JSON.stringify(data),
       });
