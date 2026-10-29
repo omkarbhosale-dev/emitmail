@@ -443,7 +443,7 @@ export function MailboxEmailsView({ mailboxId }: MailboxEmailsViewProps) {
               {mailbox?.emailAddress || "Mailbox"}
             </h1>
             {totalUnreadCount > 0 && (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-cf-orange text-white">
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#0066FF] text-white">
                 {totalUnreadCount} unread
               </span>
             )}
@@ -718,7 +718,7 @@ export function MailboxEmailsView({ mailboxId }: MailboxEmailsViewProps) {
                   onClick={() => router.push(`/inbox/${mailboxId}/${item.id}`)}
                   className={`flex items-center justify-between gap-3 px-4 py-3.5 transition-colors cursor-pointer group select-none relative ${
                     !item.isRead
-                      ? "bg-kumo-base hover:bg-kumo-tint/60 border-l-2 border-l-cf-orange"
+                      ? "bg-kumo-base hover:bg-kumo-tint/60 border-l-2 border-l-[#0066FF]"
                       : "bg-kumo-base/40 hover:bg-kumo-tint/60 border-l-2 border-l-transparent text-kumo-subtle"
                   } ${isSelected ? "bg-cf-blue/5" : ""}`}
                 >
@@ -748,7 +748,7 @@ export function MailboxEmailsView({ mailboxId }: MailboxEmailsViewProps) {
                     {/* Unread Orange Dot */}
                     <span
                       className={`w-2 h-2 rounded-full shrink-0 ${
-                        !item.isRead ? "bg-cf-orange" : "bg-transparent"
+                        !item.isRead ? "bg-[#0066FF]" : "bg-transparent"
                       }`}
                     />
 

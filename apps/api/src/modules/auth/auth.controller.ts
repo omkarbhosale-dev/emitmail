@@ -9,7 +9,7 @@ import { LoginInput, ChangePasswordInput } from './auth.schema.js';
 export const login = async (req: Request, res: Response): Promise<void> => {
   const { username, password } = req.body as LoginInput;
 
-  const user = await prisma.user.findFirst({
+  let user = await prisma.user.findFirst({
     where: {
       OR: [
         { username: username },
@@ -17,6 +17,20 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       ],
     },
   });
+
+  // If no user exists yet and logging in as default admin, initialize default administrator
+  if (!user && username === 'admin') {
+    const passwordHash = await bcrypt.hash('emitmail', 12);
+    user = await prisma.user.create({
+      data: {
+        username: 'admin',
+        fullName: 'EmitMail Administrator',
+        passwordHash,
+        mustChangePassword: true,
+        timezone: 'UTC',
+      },
+    });
+  }
 
   if (!user) {
     sendError(res, 'Invalid credentials provided', 401);
@@ -34,8 +48,9 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     username: user.username,
   };
 
+  // 30-day persistent session token
   const accessToken = jwt.sign(tokenPayload, env.JWT_SECRET, {
-    expiresIn: '7d',
+    expiresIn: '30d',
   });
 
   sendSuccess(
@@ -114,27 +129,13 @@ export const changePassword = async (req: Request, res: Response): Promise<void>
 
   const newPasswordHash = await bcrypt.hash(newPassword, 12);
 
-  const updatedUser = await prisma.user.update({
+  await prisma.user.update({
     where: { id: user.id },
     data: {
       passwordHash: newPasswordHash,
       mustChangePassword: false,
     },
-    select: {
-      id: true,
-      username: true,
-      email: true,
-      fullName: true,
-      timezone: true,
-      mustChangePassword: true,
-      createdAt: true,
-      updatedAt: true,
-    },
   });
 
-  sendSuccess(
-    res,
-    updatedUser,
-    'Password changed successfully. mustChangePassword has been cleared.'
-  );
+  sendSuccess(res, null, 'Password updated successfully');
 };

@@ -162,12 +162,12 @@ export function Sidebar({
 
               {/* Collapsed dot indicator for inbox */}
               {collapsedState && showInboxBadge && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-cf-orange ring-2 ring-kumo-canvas" />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#0066FF] ring-2 ring-kumo-canvas" />
               )}
 
               {/* Expanded Badges */}
               {!collapsedState && showInboxBadge ? (
-                <span className="bg-cf-orange text-white text-[11px] font-semibold px-1.5 py-0.5 rounded-full">
+                <span className="min-w-5 h-5 px-1 rounded-full bg-[#0066FF] text-white text-[11px] font-bold flex items-center justify-center shrink-0 leading-none shadow-xs">
                   {unreadCount}
                 </span>
               ) : (

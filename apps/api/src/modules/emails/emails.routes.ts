@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { sendEmail, getEmail, listEmails } from './emails.controller.js';
+import { sendEmail, getEmail, listEmails, getEmailStats } from './emails.controller.js';
 import { sendEmailSchema, emailIdParamSchema } from './emails.schema.js';
 import { validateRequest } from '../../middlewares/validate.middleware.js';
 import { authenticateApiKey } from '../../middlewares/apiKey.middleware.js';
@@ -14,6 +14,9 @@ router.post('/', validateRequest({ body: sendEmailSchema }), sendEmail);
 
 // GET /v1/emails or /api/v1/emails - List emails
 router.get('/', listEmails);
+
+// GET /v1/emails/stats or /api/v1/emails/stats - Aggregate 30-day analytics stats
+router.get('/stats', getEmailStats);
 
 // GET /v1/emails/:id or /api/v1/emails/:id - Get email status
 router.get('/:id', validateRequest({ params: emailIdParamSchema }), getEmail);

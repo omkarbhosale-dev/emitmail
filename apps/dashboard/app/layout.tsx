@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Bricolage_Grotesque, Inter } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/layout/AppShell";
@@ -50,9 +51,11 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col antialiased bg-kumo-canvas text-kumo-default font-sans">
-        <AppShell>
-          {children}
-        </AppShell>
+        <Suspense fallback={<div className="h-screen w-screen bg-kumo-canvas" />}>
+          <AppShell>
+            {children}
+          </AppShell>
+        </Suspense>
       </body>
     </html>
   );

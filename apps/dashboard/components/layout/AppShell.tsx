@@ -1,11 +1,13 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, Suspense } from "react";
+import { usePathname } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { CommandPalette } from "@/components/layout/CommandPalette";
 import { SendTestEmailModal } from "@/components/modals/SendTestEmailModal";
 import { ToastProvider } from "@/components/ui/Toast";
+import { getAuthToken, clearAuthToken, api } from "@/lib/api";
 
 interface ModalContextType {
   openCommandPalette: () => void;
@@ -24,6 +26,8 @@ const ModalContext = createContext<ModalContextType>({
 export const useModals = () => useContext(ModalContext);
 
 export function AppShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
@@ -41,6 +45,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       window.removeEventListener("open-send-email-modal", handleOpenSendModal);
     };
   }, []);
+
+  // Check auth state on client and verify token against backend
+  useEffect(() => {
+    if (pathname === "/login") return;
+
+    const token = getAuthToken();
+    if (!token) {
+      window.location.replace("/login");
+      return;
+    }
+
+    // Actively verify token validity against backend API
+    api.auth.getMe().catch((err: unknown) => {
+      console.warn("Active session invalid or expired:", err);
+      clearAuthToken();
+      window.location.replace("/login");
+    });
+  }, [pathname]);
+
+  // If on login route, render standalone login view without AppShell headers/sidebars
+  if (pathname === "/login") {
+    return <ToastProvider>{children}</ToastProvider>;
+  }
 
   return (
     <ToastProvider>

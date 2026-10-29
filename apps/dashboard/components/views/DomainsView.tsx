@@ -298,12 +298,12 @@ export function DomainsView() {
 
       {/* 2. Loading State */}
       {isLoading ? (
-        <div className="bg-[#0C0C0C] border border-[#262626] rounded-md overflow-hidden shadow-2xs">
+        <div className="bg-kumo-base border border-kumo-hairline rounded-xl overflow-hidden shadow-2xs">
           <TableSkeleton rows={4} cols={4} />
         </div>
       ) : domains.length === 0 ? (
         /* 3. Empty State / No Data (Replaces empty table when no domains are available) */
-        <div className="bg-[#0C0C0C] border border-[#262626] rounded-xl p-10 md:p-14 text-center flex flex-col items-center justify-center max-w-xl mx-auto my-6 shadow-xl">
+        <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-10 md:p-14 text-center flex flex-col items-center justify-center max-w-xl mx-auto my-6 shadow-2xs">
           <div className="w-14 h-14 rounded-2xl bg-[#141414] border border-[#2B2B2B] flex items-center justify-center text-cf-blue mb-4 shadow-inner">
             <Globe size={30} weight="duotone" className="text-cf-blue" />
           </div>
@@ -336,7 +336,7 @@ export function DomainsView() {
         <>
           {/* Full-Width Search Bar */}
           <div className="relative w-full">
-            <div className="flex items-center bg-[#141414] border border-[#262626] rounded-md px-3 py-2 text-xs text-kumo-strong focus-within:border-[#3E3E3E] transition-colors">
+            <div className="flex items-center bg-kumo-control border border-kumo-line rounded-lg px-3 py-2 text-xs text-kumo-strong focus-within:border-cf-blue transition-colors">
               <MagnifyingGlass
                 size={15}
                 className="text-[#6E6E6E] shrink-0"
@@ -362,11 +362,11 @@ export function DomainsView() {
           </div>
 
           {/* Authentic Cloudflare Domains Table */}
-          <div className="bg-[#0C0C0C] border border-[#262626] rounded-md overflow-hidden shadow-2xs">
+          <div className="bg-kumo-base border border-kumo-hairline rounded-xl overflow-hidden shadow-2xs">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="border-b border-[#262626] bg-[#0C0C0C] text-[#8E8E93] font-normal select-none">
+                  <tr className="border-b border-kumo-hairline bg-kumo-recessed/50 text-kumo-subtle font-medium select-none">
                     {/* Domain */}
                     <th className="py-2.5 px-4 font-normal">
                       <div className="flex items-center gap-1 cursor-pointer hover:text-kumo-strong transition-colors">
@@ -394,7 +394,7 @@ export function DomainsView() {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#1E1E1E]">
+                <tbody className="divide-y divide-kumo-hairline">
                   {filteredDomains.length === 0 ? (
                     <tr>
                       <td colSpan={4} className="py-12 text-center text-kumo-subtle">
@@ -412,16 +412,21 @@ export function DomainsView() {
                     filteredDomains.map((dom) => (
                       <tr
                         key={dom.id}
-                        className="hover:bg-[#141414] transition-colors group"
+                        className="hover:bg-kumo-tint/60 transition-colors group"
                       >
                         {/* Domain Name */}
-                        <td className="py-3 px-4 font-medium text-white">
-                          <Link
-                            href={`/domains/${dom.id}`}
-                            className="hover:underline hover:text-cf-orange text-left font-semibold text-white cursor-pointer select-text transition-colors"
-                          >
-                            {dom.domainName}
-                          </Link>
+                        <td className="py-3.5 px-4 font-semibold text-kumo-strong">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-7 h-7 rounded-lg bg-cf-blue/10 border border-cf-blue/20 flex items-center justify-center text-cf-blue shrink-0">
+                              <Globe size={14} weight="bold" />
+                            </div>
+                            <Link
+                              href={`/domains/${dom.id}`}
+                              className="font-mono text-xs font-semibold text-kumo-strong group-hover:text-cf-blue transition-colors truncate"
+                            >
+                              {dom.domainName}
+                            </Link>
+                          </div>
                         </td>
 
                         {/* Status: Active, Partially Failed, Failed, or Pending DNS */}
@@ -486,7 +491,7 @@ export function DomainsView() {
                         </td>
 
                         {/* Created Date */}
-                        <td className="py-3 px-4 text-[#8E8E93]">
+                        <td className="py-3.5 px-4 text-kumo-subtle font-mono text-[11px]">
                           {new Date(dom.createdAt).toLocaleDateString("en-US", {
                             month: "short",
                             day: "numeric",
@@ -495,7 +500,7 @@ export function DomainsView() {
                         </td>
 
                         {/* Actions Menu */}
-                        <td className="py-3 px-4 text-right">
+                        <td className="py-3.5 px-4 text-right">
                           <button
                             type="button"
                             onClick={(e) => handleToggleMenu(e, dom)}
@@ -540,7 +545,7 @@ export function DomainsView() {
               top: `${menuCoords.top}px`,
               right: `${menuCoords.right}px`,
             }}
-            className="w-48 bg-[#141414] border border-[#2B2B2B] rounded-lg shadow-2xl py-1 z-50 animate-in fade-in zoom-in-95 duration-100 text-left"
+            className="w-48 bg-kumo-base border border-kumo-line rounded-xl shadow-2xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 text-left"
           >
             <Link
               href={`/domains/${activeMenuDomain.id}`}
@@ -548,7 +553,7 @@ export function DomainsView() {
                 setActiveMenuDomain(null);
                 setMenuCoords(null);
               }}
-              className="w-full px-3 py-1.5 text-xs text-left text-white hover:bg-[#1E1E22] flex items-center gap-2 transition-colors"
+              className="w-full px-3 py-1.5 text-xs text-left text-kumo-default hover:bg-kumo-tint hover:text-kumo-strong flex items-center gap-2 transition-colors"
             >
               <Gear size={14} />
               <span>Domain Configuration</span>
@@ -560,7 +565,7 @@ export function DomainsView() {
                 setActiveMenuDomain(null);
                 setMenuCoords(null);
               }}
-              className="w-full px-3 py-1.5 text-xs text-left text-cf-blue hover:bg-[#1E1E22] flex items-center gap-2 transition-colors cursor-pointer"
+              className="w-full px-3 py-1.5 text-xs text-left text-kumo-danger hover:bg-kumo-danger-tint flex items-center gap-2 transition-colors cursor-pointer"
             >
               <ArrowsClockwise size={14} />
               <span>Verify DNS Now</span>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import {
   List,
@@ -9,7 +9,10 @@ import {
   MagnifyingGlass,
   Sparkle,
   User,
+  SignOut,
+  Gear,
 } from "@phosphor-icons/react";
+import { api } from "@/lib/api";
 
 interface HeaderProps {
   onOpenMobileMenu: () => void;
@@ -22,6 +25,8 @@ export function Header({
 }: HeaderProps) {
   const [themeMode, setThemeMode] = useState<"dark" | "light">("dark");
   const [mounted, setMounted] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -39,6 +44,17 @@ export function Header({
     };
     window.addEventListener("theme-changed", handleThemeChange);
     return () => window.removeEventListener("theme-changed", handleThemeChange);
+  }, []);
+
+  // Close dropdown menu on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const toggleTheme = () => {
@@ -117,16 +133,51 @@ export function Header({
           )}
         </button>
 
-        {/* User Profile Avatar */}
-        <div className="relative ml-1">
+        {/* User Profile Avatar with Dropdown */}
+        <div className="relative ml-1" ref={menuRef}>
           <button
-            className="w-7 h-7 rounded-full bg-kumo-elevated border border-kumo-line flex items-center justify-center text-kumo-strong hover:border-cf-orange transition-colors"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className="w-7 h-7 rounded-full bg-kumo-elevated border border-kumo-line flex items-center justify-center text-kumo-strong hover:border-cf-orange transition-colors cursor-pointer"
             aria-label="User Account"
-            title="omkarbhosale (Admin)"
+            title="Administrator Account"
           >
             <User size={15} weight="bold" />
           </button>
-          <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-cf-success ring-1 ring-kumo-canvas" />
+          <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-cf-success ring-1 ring-kumo-canvas pointer-events-none" />
+
+          {/* User Menu Dropdown */}
+          {isMenuOpen && (
+            <div className="absolute right-0 mt-2 w-48 rounded-xl bg-kumo-base border border-kumo-hairline shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 text-xs">
+              <div className="px-3 py-2 border-b border-kumo-hairline/60">
+                <div className="font-semibold text-kumo-strong">admin</div>
+                <div className="text-[10px] text-kumo-muted font-mono">Administrator</div>
+              </div>
+
+              <div className="py-1">
+                <Link
+                  href="/settings"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-kumo-default hover:text-kumo-strong hover:bg-kumo-elevated transition-colors"
+                >
+                  <Gear size={14} />
+                  <span>Settings</span>
+                </Link>
+              </div>
+
+              <div className="pt-1 border-t border-kumo-hairline/60">
+                <button
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    api.auth.logout();
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-kumo-danger hover:bg-kumo-danger-tint transition-colors text-left cursor-pointer"
+                >
+                  <SignOut size={14} />
+                  <span>Sign Out</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </header>

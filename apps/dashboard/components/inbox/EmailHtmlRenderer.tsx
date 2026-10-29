@@ -11,11 +11,13 @@ interface EmailHtmlRendererProps {
 export function EmailHtmlRenderer({ html, text }: EmailHtmlRendererProps) {
   const [viewMode, setViewMode] = useState<"html" | "text">(html ? "html" : "text");
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [iframeHeight, setIframeHeight] = useState<number>(300);
+  const [iframeHeight, setIframeHeight] = useState<number>(60);
 
-  // Auto-resize iframe based on its content height so double scrollbars are completely avoided
+  // Auto-resize iframe based on its content height so double scrollbars are completely avoided and content fits tightly
   useEffect(() => {
     if (viewMode !== "html" || !html) return;
+
+    let ro: ResizeObserver | null = null;
 
     const updateHeight = () => {
       const iframe = iframeRef.current;
@@ -23,15 +25,28 @@ export function EmailHtmlRenderer({ html, text }: EmailHtmlRendererProps) {
 
       try {
         const doc = iframe.contentWindow.document;
-        if (doc && doc.documentElement) {
-          const scrollHeight = Math.max(
-            doc.body?.scrollHeight || 0,
-            doc.documentElement.scrollHeight || 0,
-            doc.body?.offsetHeight || 0,
-            doc.documentElement.offsetHeight || 0
-          );
-          if (scrollHeight > 50) {
-            setIframeHeight(scrollHeight + 24);
+        if (!doc) return;
+
+        const wrapper = doc.getElementById("email-body-wrapper");
+        if (wrapper) {
+          const rectHeight = Math.ceil(wrapper.getBoundingClientRect().height);
+          if (rectHeight > 0) {
+            setIframeHeight((prev) => (Math.abs(prev - rectHeight) > 2 ? rectHeight : prev));
+          }
+
+          if (!ro && typeof ResizeObserver !== "undefined") {
+            ro = new ResizeObserver(() => {
+              const newHeight = Math.ceil(wrapper.getBoundingClientRect().height);
+              if (newHeight > 0) {
+                setIframeHeight((prev) => (Math.abs(prev - newHeight) > 2 ? newHeight : prev));
+              }
+            });
+            ro.observe(wrapper);
+          }
+        } else if (doc.body) {
+          const bodyHeight = Math.ceil(doc.body.getBoundingClientRect().height);
+          if (bodyHeight > 0) {
+            setIframeHeight((prev) => (Math.abs(prev - bodyHeight) > 2 ? bodyHeight : prev));
           }
         }
       } catch {
@@ -44,13 +59,13 @@ export function EmailHtmlRenderer({ html, text }: EmailHtmlRendererProps) {
       iframe.addEventListener("load", updateHeight);
     }
 
-    // Set interval check for lazy loaded images
-    const timer = setTimeout(updateHeight, 300);
-    const intervalTimer = setInterval(updateHeight, 1000);
+    const timer = setTimeout(updateHeight, 150);
 
     return () => {
       clearTimeout(timer);
-      clearInterval(intervalTimer);
+      if (ro) {
+        ro.disconnect();
+      }
       if (iframe) {
         iframe.removeEventListener("load", updateHeight);
       }
@@ -69,16 +84,23 @@ export function EmailHtmlRenderer({ html, text }: EmailHtmlRendererProps) {
     *, *::before, *::after {
       box-sizing: border-box;
     }
-    body {
+    html, body {
       margin: 0;
-      padding: 20px;
+      padding: 0;
+      background-color: #ffffff;
+      color: #111827;
+      height: auto !important;
+      min-height: 0 !important;
+      overflow: hidden;
+    }
+    #email-body-wrapper {
+      padding: 16px 20px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       font-size: 14px;
       line-height: 1.6;
-      color: #111827;
-      background-color: #ffffff;
       word-wrap: break-word;
       overflow-wrap: break-word;
+      display: flow-root;
     }
     img {
       max-width: 100% !important;
@@ -98,7 +120,9 @@ export function EmailHtmlRenderer({ html, text }: EmailHtmlRendererProps) {
   </style>
 </head>
 <body>
-  ${html}
+  <div id="email-body-wrapper">
+    ${html}
+  </div>
 </body>
 </html>`;
   }, [html]);

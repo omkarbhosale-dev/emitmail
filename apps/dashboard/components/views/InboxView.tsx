@@ -20,39 +20,6 @@ import { useToast } from "@/components/ui/Toast";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { api } from "@/lib/api";
 
-const STATIC_NOW = "2026-10-28T10:00:00.000Z";
-
-const INITIAL_MAILBOXES: MailboxItem[] = [
-  {
-    id: "mbx_support",
-    domainId: "dom_omkar",
-    emailAddress: "support@omkarbhosale.dev",
-    localPart: "support",
-    displayName: "EmitMail Support",
-    isCatchAll: false,
-    isActive: true,
-    totalMessages: 24,
-    totalReceived: 24,
-    unreadCount: 2,
-    createdAt: STATIC_NOW,
-    updatedAt: STATIC_NOW,
-  },
-  {
-    id: "mbx_billing",
-    domainId: "dom_omkar",
-    emailAddress: "billing@omkarbhosale.dev",
-    localPart: "billing",
-    displayName: "EmitMail Billing",
-    isCatchAll: false,
-    isActive: true,
-    totalMessages: 8,
-    totalReceived: 8,
-    unreadCount: 0,
-    createdAt: STATIC_NOW,
-    updatedAt: STATIC_NOW,
-  },
-];
-
 export function InboxView() {
   const router = useRouter();
   const { toast } = useToast();
@@ -215,7 +182,7 @@ export function InboxView() {
         ) : filteredMailboxes.length === 0 ? (
           /* Empty State */
           <div className="p-10 md:p-14 text-center flex flex-col items-center justify-center max-w-md mx-auto">
-            <div className="w-12 h-12 rounded-2xl bg-kumo-control border border-kumo-line flex items-center justify-center text-kumo-muted mb-3">
+            <div className="w-12 h-12 rounded-2xl bg-cf-blue/10 border border-cf-blue/20 flex items-center justify-center text-cf-blue mb-3">
               <Tray size={24} weight="duotone" />
             </div>
             <h3 className="text-sm font-semibold text-kumo-strong mb-1">
@@ -260,11 +227,11 @@ export function InboxView() {
                       {/* Mailbox Address & Display Name */}
                       <td className="py-3.5 px-4 font-semibold text-kumo-strong">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-lg bg-cf-orange/10 border border-cf-orange/20 flex items-center justify-center text-cf-orange shrink-0">
+                          <div className="w-7 h-7 rounded-lg bg-cf-blue/10 border border-cf-blue/20 flex items-center justify-center text-cf-blue shrink-0">
                             <Tray size={14} weight="bold" />
                           </div>
                           <div className="min-w-0">
-                            <span className="font-mono text-xs block text-kumo-strong group-hover:text-cf-orange transition-colors truncate">
+                            <span className="font-mono text-xs block text-kumo-strong group-hover:text-cf-blue transition-colors truncate">
                               {mb.emailAddress}
                             </span>
                             {mb.displayName && (
@@ -287,7 +254,7 @@ export function InboxView() {
                       {/* Unread Count Badge */}
                       <td className="py-3.5 px-4">
                         {mb.unreadCount > 0 ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-cf-orange text-white shadow-2xs">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#0066FF] text-white shadow-2xs">
                             {mb.unreadCount} unread
                           </span>
                         ) : (
@@ -304,29 +271,30 @@ export function InboxView() {
 
                       {/* Status */}
                       <td className="py-3.5 px-4 hidden sm:table-cell">
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                          <span>Active</span>
-                        </span>
+                        {mb.isActive ? (
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                            <span>Active</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-zinc-500/10 border border-zinc-500/20 text-zinc-400">
+                            <span className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
+                            <span>Disabled</span>
+                          </span>
+                        )}
                       </td>
 
                       {/* Actions */}
                       <td className="py-3.5 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <button
-                            type="button"
-                            onClick={(e) => handleDeleteMailbox(mb.id, mb.emailAddress, e)}
-                            disabled={deletingId === mb.id}
-                            className="p-1.5 rounded-md text-kumo-muted hover:text-kumo-danger hover:bg-kumo-danger-tint transition-colors cursor-pointer"
-                            title="Delete mailbox"
-                          >
-                            <Trash size={14} />
-                          </button>
-
-                          <div className="text-kumo-muted group-hover:text-kumo-strong group-hover:translate-x-0.5 transition-transform p-1">
-                            <CaretRight size={14} />
-                          </div>
-                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => handleDeleteMailbox(mb.id, mb.emailAddress, e)}
+                          disabled={deletingId === mb.id}
+                          className="p-1.5 rounded-md text-kumo-danger hover:bg-kumo-danger-tint border border-transparent hover:border-kumo-danger/30 transition-colors cursor-pointer disabled:opacity-50"
+                          title="Delete mailbox"
+                        >
+                          <Trash size={14} />
+                        </button>
                       </td>
                     </tr>
                   );
