@@ -136,7 +136,12 @@ export const listUsers = async (_req: Request, res: Response): Promise<void> => 
     orderBy: { createdAt: 'asc' },
   });
 
-  sendSuccess(res, users, 'Team members retrieved successfully');
+  const normalizedUsers = users.map((u) => ({
+    ...u,
+    role: u.username === 'admin' ? UserRole.ADMIN : (u.role || UserRole.MEMBER),
+  }));
+
+  sendSuccess(res, normalizedUsers, 'Team members retrieved successfully');
 };
 
 /**
@@ -232,6 +237,12 @@ export const updateUserRole = async (req: Request, res: Response): Promise<void>
     return;
   }
 
+  // The primary 'admin' root account is permanently the main administrator
+  if (targetUser.username === 'admin') {
+    sendError(res, 'Cannot modify the role of the primary root Administrator account', 400);
+    return;
+  }
+
   // If demoting an ADMIN, ensure at least one other active ADMIN exists
   if (targetUser.role === UserRole.ADMIN && role !== UserRole.ADMIN) {
     const adminCount = await prisma.user.count({
@@ -321,6 +332,12 @@ export const deleteUser = async (req: Request, res: Response): Promise<void> => 
 
   if (!targetUser) {
     sendError(res, 'User not found', 404);
+    return;
+  }
+
+  // The primary 'admin' root account cannot be deleted
+  if (targetUser.username === 'admin') {
+    sendError(res, 'Cannot delete the primary root Administrator account', 400);
     return;
   }
 
