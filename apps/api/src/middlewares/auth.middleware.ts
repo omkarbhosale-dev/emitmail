@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { UserRole } from '@prisma/client';
 import { env } from '../config/env.js';
 import { prisma } from '../config/db.js';
 import { sendError } from '../utils/response.js';
@@ -7,6 +8,7 @@ import { sendError } from '../utils/response.js';
 export interface JwtPayload {
   sub: string;
   username: string;
+  role?: UserRole;
   iat?: number;
   exp?: number;
 }
@@ -19,6 +21,7 @@ declare global {
         username: string;
         email: string | null;
         fullName: string | null;
+        role: UserRole;
         mustChangePassword: boolean;
       };
     }
@@ -49,6 +52,7 @@ export const authenticateJwt = async (
         username: true,
         email: true,
         fullName: true,
+        role: true,
         mustChangePassword: true,
       },
     });
@@ -71,4 +75,53 @@ export const authenticateJwt = async (
     }
     sendError(res, 'Failed to authenticate token', 401);
   }
+};
+
+/**
+ * Enforce minimum role access.
+ * Usage: router.use(requireRoles(UserRole.ADMIN, UserRole.MEMBER))
+ */
+export const requireRoles = (...roles: UserRole[]) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    if (!req.user) {
+      sendError(res, 'Authentication required', 401);
+      return;
+    }
+
+    if (!roles.includes(req.user.role)) {
+      sendError(
+        res,
+        `Access denied: requires ${roles.join(' or ')} privileges`,
+        403
+      );
+      return;
+    }
+
+    next();
+  };
+};
+
+/**
+ * Shortcut middleware strictly requiring ADMIN privileges.
+ */
+export const requireAdmin = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void => {
+  if (!req.user) {
+    sendError(res, 'Authentication required', 401);
+    return;
+  }
+
+  if (req.user.role !== UserRole.ADMIN) {
+    sendError(
+      res,
+      'Access denied: Administrator privileges required to perform this action',
+      403
+    );
+    return;
+  }
+
+  next();
 };

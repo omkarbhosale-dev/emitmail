@@ -25,6 +25,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       data: {
         username: 'admin',
         fullName: 'EmitMail Administrator',
+        role: 'ADMIN',
         passwordHash,
         mustChangePassword: true,
         timezone: 'UTC',
@@ -46,6 +47,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
   const tokenPayload = {
     sub: user.id,
     username: user.username,
+    role: user.role,
   };
 
   // 30-day persistent session token
@@ -62,6 +64,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         username: user.username,
         email: user.email,
         fullName: user.fullName,
+        role: user.role,
         mustChangePassword: user.mustChangePassword,
         timezone: user.timezone,
         createdAt: user.createdAt,
@@ -85,6 +88,7 @@ export const getMe = async (req: Request, res: Response): Promise<void> => {
       username: true,
       email: true,
       fullName: true,
+      role: true,
       timezone: true,
       mustChangePassword: true,
       createdAt: true,

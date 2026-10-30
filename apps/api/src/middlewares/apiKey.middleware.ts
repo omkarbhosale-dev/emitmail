@@ -116,7 +116,7 @@ export const authenticateApiKey = async (
 
         const user = await prisma.user.findUnique({
           where: { id: decoded.sub },
-          select: { id: true, username: true, email: true, fullName: true, mustChangePassword: true },
+          select: { id: true, username: true, email: true, fullName: true, role: true, mustChangePassword: true },
         });
 
         if (user) {

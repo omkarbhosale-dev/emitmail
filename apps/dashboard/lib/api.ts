@@ -1,4 +1,11 @@
-import { ApiDomain, ApiKeyItem, CreatedApiKeyResponse, ProcessedEmailItem } from "@/types";
+import {
+  ApiDomain,
+  ApiKeyItem,
+  CreatedApiKeyResponse,
+  ProcessedEmailItem,
+  UserRole,
+  DashboardUser,
+} from "@/types";
 
 const API_BASE_URL = (
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1"
@@ -89,6 +96,7 @@ export const api = {
         username: string;
         email?: string;
         fullName?: string;
+        role?: UserRole;
         mustChangePassword?: boolean;
       };
     }> => {
@@ -108,14 +116,8 @@ export const api = {
       return json.data;
     },
 
-    getMe: async () => {
-      return apiFetch<{
-        id: string;
-        username: string;
-        email?: string;
-        fullName?: string;
-        mustChangePassword?: boolean;
-      }>("/auth/me");
+    getMe: async (): Promise<DashboardUser> => {
+      return apiFetch<DashboardUser>("/auth/me");
     },
 
     changePassword: async (data: { currentPassword: string; newPassword: string }) => {
@@ -130,6 +132,58 @@ export const api = {
       if (typeof window !== "undefined") {
         window.location.href = "/login";
       }
+    },
+  },
+  users: {
+    list: async (): Promise<DashboardUser[]> => {
+      return apiFetch<DashboardUser[]>("/users");
+    },
+
+    create: async (data: {
+      fullName: string;
+      email: string;
+      role: UserRole;
+      username?: string;
+    }): Promise<DashboardUser> => {
+      return apiFetch<DashboardUser>("/users", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+    },
+
+    updateRole: async (id: string, role: UserRole): Promise<DashboardUser> => {
+      return apiFetch<DashboardUser>(`/users/${id}/role`, {
+        method: "PATCH",
+        body: JSON.stringify({ role }),
+      });
+    },
+
+    resetPassword: async (id: string): Promise<{ id: string; username: string }> => {
+      return apiFetch<{ id: string; username: string }>(`/users/${id}/reset-password`, {
+        method: "POST",
+      });
+    },
+
+    delete: async (id: string): Promise<{ id: string }> => {
+      return apiFetch<{ id: string }>(`/users/${id}`, {
+        method: "DELETE",
+      });
+    },
+
+    getSettings: async (): Promise<DashboardUser> => {
+      return apiFetch<DashboardUser>("/users/settings");
+    },
+
+    updateSettings: async (data: {
+      username?: string;
+      email?: string;
+      fullName?: string;
+      timezone?: string;
+    }): Promise<DashboardUser> => {
+      return apiFetch<DashboardUser>("/users/settings", {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      });
     },
   },
   domains: {

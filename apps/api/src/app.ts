@@ -118,6 +118,7 @@ export const createApp = (): Express => {
   app.use('/auth', authRoutes);
   app.use('/domains', domainRoutes);
   app.use('/api-keys', apiKeyRoutes);
+  app.use('/users', userRoutes);
 
   // Serve Built-in Testing UI
   app.use(express.static(publicDir));
