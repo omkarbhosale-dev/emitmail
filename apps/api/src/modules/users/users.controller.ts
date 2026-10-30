@@ -28,6 +28,7 @@ export const getUserSettings = async (req: Request, res: Response): Promise<void
       email: true,
       fullName: true,
       role: true,
+      avatarUrl: true,
       timezone: true,
       mustChangePassword: true,
       createdAt: true,
@@ -103,6 +104,7 @@ export const updateUserSettings = async (req: Request, res: Response): Promise<v
       email: true,
       fullName: true,
       role: true,
+      avatarUrl: true,
       timezone: true,
       mustChangePassword: true,
       createdAt: true,
@@ -125,6 +127,7 @@ export const listUsers = async (_req: Request, res: Response): Promise<void> => 
       email: true,
       fullName: true,
       role: true,
+      avatarUrl: true,
       mustChangePassword: true,
       timezone: true,
       createdAt: true,
@@ -172,6 +175,9 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
     suffix++;
   }
 
+  // Generate deterministic facehash avatar URL
+  const avatarUrl = `/api/avatar?name=${encodeURIComponent(finalUsername)}`;
+
   // Hash default password 'emitmail'
   const passwordHash = await bcrypt.hash('emitmail', 12);
 
@@ -181,6 +187,7 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
       email: normalizedEmail,
       username: finalUsername,
       role: role || UserRole.MEMBER,
+      avatarUrl,
       passwordHash,
       mustChangePassword: true,
       timezone: 'UTC',
@@ -191,6 +198,7 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
       email: true,
       fullName: true,
       role: true,
+      avatarUrl: true,
       mustChangePassword: true,
       timezone: true,
       createdAt: true,
@@ -249,6 +257,7 @@ export const updateUserRole = async (req: Request, res: Response): Promise<void>
       email: true,
       fullName: true,
       role: true,
+      avatarUrl: true,
       mustChangePassword: true,
       timezone: true,
       createdAt: true,

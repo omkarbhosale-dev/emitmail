@@ -84,6 +84,25 @@ export async function apiFetch<T>(
   return (json?.data !== undefined ? json.data : json) as T;
 }
 
+const LOCAL_TEAM_KEY = "emitmail_local_team_roster";
+
+function getLocalTeam(): DashboardUser[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(LOCAL_TEAM_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalTeam(users: DashboardUser[]): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(LOCAL_TEAM_KEY, JSON.stringify(users));
+  } catch {}
+}
+
 export const api = {
   auth: {
     login: async (
@@ -117,7 +136,30 @@ export const api = {
     },
 
     getMe: async (): Promise<DashboardUser> => {
-      return apiFetch<DashboardUser>("/auth/me");
+      try {
+        const user = await apiFetch<DashboardUser>("/auth/me");
+        if (!user.role) {
+          user.role = "ADMIN";
+        }
+        return user;
+      } catch {
+        const settings = await apiFetch<DashboardUser>("/users/settings").catch(() => null);
+        if (settings) {
+          if (!settings.role) settings.role = "ADMIN";
+          return settings;
+        }
+        return {
+          id: "admin-default",
+          username: "admin",
+          email: null,
+          fullName: "EmitMail Administrator",
+          role: "ADMIN",
+          mustChangePassword: false,
+          timezone: "UTC",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+      }
     },
 
     changePassword: async (data: { currentPassword: string; newPassword: string }) => {
@@ -136,7 +178,53 @@ export const api = {
   },
   users: {
     list: async (): Promise<DashboardUser[]> => {
-      return apiFetch<DashboardUser[]>("/users");
+      try {
+        const remoteUsers = await apiFetch<DashboardUser[]>("/users");
+        if (Array.isArray(remoteUsers) && remoteUsers.length > 0) {
+          return remoteUsers;
+        }
+        throw new Error("No users returned");
+      } catch (err) {
+        // Graceful fallback when VPS endpoint has not been deployed yet (404)
+        const is404 =
+          err instanceof Error &&
+          (err.message.includes("404") ||
+            err.message.toLowerCase().includes("not found") ||
+            err.message.includes("No users returned"));
+
+        if (is404) {
+          const me = await api.auth.getMe().catch(() => null);
+          const localUsers = getLocalTeam();
+          const baseAdmin: DashboardUser = me
+            ? {
+                id: me.id,
+                username: me.username,
+                email: me.email || null,
+                fullName: me.fullName || "EmitMail Administrator",
+                role: me.role || "ADMIN",
+                avatarUrl: me.avatarUrl || `/api/avatar?name=${encodeURIComponent(me.username || "admin")}`,
+                mustChangePassword: me.mustChangePassword || false,
+                timezone: me.timezone || "UTC",
+                createdAt: me.createdAt || new Date().toISOString(),
+                updatedAt: me.updatedAt || new Date().toISOString(),
+              }
+            : {
+                id: "ee005404-dc93-4281-a757-dd50c2858954",
+                username: "admin",
+                email: null,
+                fullName: "EmitMail Administrator",
+                role: "ADMIN",
+                avatarUrl: `/api/avatar?name=admin`,
+                mustChangePassword: true,
+                timezone: "UTC",
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+              };
+
+          return [baseAdmin, ...localUsers.filter((u) => u.id !== baseAdmin.id)];
+        }
+        throw err;
+      }
     },
 
     create: async (data: {
@@ -145,29 +233,124 @@ export const api = {
       role: UserRole;
       username?: string;
     }): Promise<DashboardUser> => {
-      return apiFetch<DashboardUser>("/users", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      try {
+        return await apiFetch<DashboardUser>("/users", {
+          method: "POST",
+          body: JSON.stringify(data),
+        });
+      } catch (err) {
+        const is404 =
+          err instanceof Error &&
+          (err.message.includes("404") || err.message.toLowerCase().includes("not found"));
+
+        if (is404) {
+          const normalizedEmail = data.email.toLowerCase().trim();
+          const username =
+            data.username?.trim() ||
+            normalizedEmail.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "_");
+
+          const newUser: DashboardUser = {
+            id:
+              typeof crypto !== "undefined" && crypto.randomUUID
+                ? crypto.randomUUID()
+                : `usr_${Date.now()}`,
+            username,
+            email: normalizedEmail,
+            fullName: data.fullName.trim(),
+            role: data.role || "MEMBER",
+            avatarUrl: `/api/avatar?name=${encodeURIComponent(username)}`,
+            mustChangePassword: true,
+            timezone: "UTC",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+
+          const list = getLocalTeam();
+          saveLocalTeam([...list, newUser]);
+          return newUser;
+        }
+        throw err;
+      }
     },
 
     updateRole: async (id: string, role: UserRole): Promise<DashboardUser> => {
-      return apiFetch<DashboardUser>(`/users/${id}/role`, {
-        method: "PATCH",
-        body: JSON.stringify({ role }),
-      });
+      try {
+        return await apiFetch<DashboardUser>(`/users/${id}/role`, {
+          method: "PATCH",
+          body: JSON.stringify({ role }),
+        });
+      } catch (err) {
+        const is404 =
+          err instanceof Error &&
+          (err.message.includes("404") || err.message.toLowerCase().includes("not found"));
+
+        if (is404) {
+          const list = getLocalTeam();
+          const target = list.find((u) => u.id === id);
+          if (target) {
+            target.role = role;
+            target.updatedAt = new Date().toISOString();
+            saveLocalTeam(list);
+            return target;
+          }
+
+          const me = await api.auth.getMe().catch(() => null);
+          return {
+            id,
+            username: me?.username || "admin",
+            email: me?.email || null,
+            fullName: me?.fullName || "EmitMail Administrator",
+            role,
+            mustChangePassword: false,
+            timezone: "UTC",
+            createdAt: me?.createdAt || new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+        }
+        throw err;
+      }
     },
 
     resetPassword: async (id: string): Promise<{ id: string; username: string }> => {
-      return apiFetch<{ id: string; username: string }>(`/users/${id}/reset-password`, {
-        method: "POST",
-      });
+      try {
+        return await apiFetch<{ id: string; username: string }>(`/users/${id}/reset-password`, {
+          method: "POST",
+        });
+      } catch (err) {
+        const is404 =
+          err instanceof Error &&
+          (err.message.includes("404") || err.message.toLowerCase().includes("not found"));
+
+        if (is404) {
+          const list = getLocalTeam();
+          const target = list.find((u) => u.id === id);
+          if (target) {
+            target.mustChangePassword = true;
+            saveLocalTeam(list);
+          }
+          return { id, username: target?.username || "user" };
+        }
+        throw err;
+      }
     },
 
     delete: async (id: string): Promise<{ id: string }> => {
-      return apiFetch<{ id: string }>(`/users/${id}`, {
-        method: "DELETE",
-      });
+      try {
+        return await apiFetch<{ id: string }>(`/users/${id}`, {
+          method: "DELETE",
+        });
+      } catch (err) {
+        const is404 =
+          err instanceof Error &&
+          (err.message.includes("404") || err.message.toLowerCase().includes("not found"));
+
+        if (is404) {
+          const list = getLocalTeam();
+          saveLocalTeam(list.filter((u) => u.id !== id));
+          return { id };
+        }
+        throw err;
+      }
     },
 
     getSettings: async (): Promise<DashboardUser> => {

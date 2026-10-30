@@ -8,6 +8,7 @@ export interface DashboardUser {
   email: string | null;
   fullName: string | null;
   role: UserRole;
+  avatarUrl?: string | null;
   mustChangePassword: boolean;
   timezone: string;
   createdAt: string;
