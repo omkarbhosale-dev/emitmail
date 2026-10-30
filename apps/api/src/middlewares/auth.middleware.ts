@@ -62,6 +62,11 @@ export const authenticateJwt = async (
       return;
     }
 
+    // The root 'admin' user is always the main administrator
+    if (user.username === 'admin') {
+      user.role = UserRole.ADMIN;
+    }
+
     req.user = user;
     next();
   } catch (err: unknown) {
@@ -88,16 +93,17 @@ export const requireRoles = (...roles: UserRole[]) => {
       return;
     }
 
-    if (!roles.includes(req.user.role)) {
-      sendError(
-        res,
-        `Access denied: requires ${roles.join(' or ')} privileges`,
-        403
-      );
+    // Root 'admin' has universal super-admin access
+    if (req.user.username === 'admin' || roles.includes(req.user.role)) {
+      next();
       return;
     }
 
-    next();
+    sendError(
+      res,
+      `Access denied: requires ${roles.join(' or ')} privileges`,
+      403
+    );
   };
 };
 
@@ -114,14 +120,15 @@ export const requireAdmin = (
     return;
   }
 
-  if (req.user.role !== UserRole.ADMIN) {
-    sendError(
-      res,
-      'Access denied: Administrator privileges required to perform this action',
-      403
-    );
+  // The 'admin' user is always the primary administrator
+  if (req.user.username === 'admin' || req.user.role === UserRole.ADMIN) {
+    next();
     return;
   }
 
-  next();
+  sendError(
+    res,
+    'Access denied: Administrator privileges required to perform this action',
+    403
+  );
 };

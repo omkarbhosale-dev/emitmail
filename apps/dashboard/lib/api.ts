@@ -132,20 +132,25 @@ export const api = {
 
       const token = json.data.accessToken as string;
       setAuthToken(token, days);
+
+      if (json.data?.user?.username === "admin") {
+        json.data.user.role = "ADMIN";
+      }
+
       return json.data;
     },
 
     getMe: async (): Promise<DashboardUser> => {
       try {
         const user = await apiFetch<DashboardUser>("/auth/me");
-        if (!user.role) {
+        if (user.username === "admin" || !user.role) {
           user.role = "ADMIN";
         }
         return user;
       } catch {
         const settings = await apiFetch<DashboardUser>("/users/settings").catch(() => null);
         if (settings) {
-          if (!settings.role) settings.role = "ADMIN";
+          if (settings.username === "admin" || !settings.role) settings.role = "ADMIN";
           return settings;
         }
         return {
@@ -181,7 +186,10 @@ export const api = {
       try {
         const remoteUsers = await apiFetch<DashboardUser[]>("/users");
         if (Array.isArray(remoteUsers) && remoteUsers.length > 0) {
-          return remoteUsers;
+          return remoteUsers.map((u) => ({
+            ...u,
+            role: u.username === "admin" ? "ADMIN" : (u.role || "MEMBER"),
+          }));
         }
         throw new Error("No users returned");
       } catch (err) {

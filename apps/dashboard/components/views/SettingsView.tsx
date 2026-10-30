@@ -69,7 +69,8 @@ export function SettingsView() {
   const [selectedRole, setSelectedRole] = useState<UserRole>("MEMBER");
   const [isUpdatingRole, setIsUpdatingRole] = useState(false);
 
-  const isAdmin = currentUser?.role === "ADMIN";
+  // The first user signing in with username 'admin' is always the main administrator
+  const isAdmin = currentUser?.username === "admin" || currentUser?.role === "ADMIN";
 
   // Fetch Current User
   useEffect(() => {
@@ -777,12 +778,8 @@ export function SettingsView() {
               <div className="divide-y divide-kumo-hairline">
                 {teamMembers.map((member) => {
                   const isSelf = currentUser?.id === member.id;
-                  const initials = (member.fullName || member.username || "U")
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")
-                    .slice(0, 2)
-                    .toUpperCase();
+                  const isMainAdmin = member.username === "admin";
+                  const displayRole = isMainAdmin ? "ADMIN" : (member.role || "MEMBER");
 
                   return (
                     <div
@@ -814,14 +811,14 @@ export function SettingsView() {
                             )}
                             <span
                               className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded tracking-wide uppercase ${
-                                member.role === "ADMIN"
+                                displayRole === "ADMIN"
                                   ? "bg-cf-orange/15 text-cf-orange border border-cf-orange/30"
-                                  : member.role === "MEMBER"
+                                  : displayRole === "MEMBER"
                                   ? "bg-cf-chart-blue/15 text-cf-chart-blue border border-cf-chart-blue/30"
                                   : "bg-kumo-elevated text-kumo-muted border border-kumo-hairline"
                               }`}
                             >
-                              {member.role}
+                              {isMainAdmin ? "Main Admin" : displayRole}
                             </span>
                           </div>
 
@@ -854,18 +851,20 @@ export function SettingsView() {
                         {/* Admin Action Buttons */}
                         {isAdmin && (
                           <div className="flex items-center gap-1.5 ml-2">
-                            {/* Change Role Button */}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setRoleChangeTarget(member);
-                                setSelectedRole(member.role);
-                              }}
-                              className="px-2.5 py-1 text-xs font-medium rounded-lg text-kumo-default hover:text-kumo-strong bg-kumo-elevated hover:bg-kumo-line/40 border border-kumo-hairline transition-colors cursor-pointer"
-                              title="Modify Role"
-                            >
-                              Role
-                            </button>
+                            {/* Change Role Button (Cannot modify root main admin) */}
+                            {!isMainAdmin && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setRoleChangeTarget(member);
+                                  setSelectedRole(member.role);
+                                }}
+                                className="px-2.5 py-1 text-xs font-medium rounded-lg text-kumo-default hover:text-kumo-strong bg-kumo-elevated hover:bg-kumo-line/40 border border-kumo-hairline transition-colors cursor-pointer"
+                                title="Modify Role"
+                              >
+                                Role
+                              </button>
+                            )}
 
                             {/* Reset Password Button */}
                             <button
@@ -878,20 +877,22 @@ export function SettingsView() {
                               <span className="hidden lg:inline">Reset</span>
                             </button>
 
-                            {/* Delete User Button (Disabled on Self) */}
-                            <button
-                              type="button"
-                              disabled={isSelf}
-                              onClick={() => setDeleteTargetUser(member)}
-                              className={`p-1.5 rounded-lg border transition-colors ${
-                                isSelf
-                                  ? "opacity-30 cursor-not-allowed text-kumo-muted border-transparent"
-                                  : "text-kumo-danger hover:bg-kumo-danger-tint border-transparent hover:border-kumo-danger/30 cursor-pointer"
-                              }`}
-                              title={isSelf ? "Cannot delete yourself" : "Remove user"}
-                            >
-                              <Trash size={15} />
-                            </button>
+                            {/* Delete User Button (Disabled on Self and Main Root Admin) */}
+                            {!isMainAdmin && (
+                              <button
+                                type="button"
+                                disabled={isSelf}
+                                onClick={() => setDeleteTargetUser(member)}
+                                className={`p-1.5 rounded-lg border transition-colors ${
+                                  isSelf
+                                    ? "opacity-30 cursor-not-allowed text-kumo-muted border-transparent"
+                                    : "text-kumo-danger hover:bg-kumo-danger-tint border-transparent hover:border-kumo-danger/30 cursor-pointer"
+                                }`}
+                                title={isSelf ? "Cannot delete yourself" : "Remove user"}
+                              >
+                                <Trash size={15} />
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>

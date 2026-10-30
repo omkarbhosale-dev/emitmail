@@ -44,10 +44,23 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
+  // The first user who signs in with the admin username is always the main administrator
+  if (user.username === 'admin' && user.role !== 'ADMIN') {
+    try {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { role: 'ADMIN' },
+      });
+    } catch {
+      // In case role column hasn't migrated yet, guarantee in-memory role
+      user.role = 'ADMIN' as any;
+    }
+  }
+
   const tokenPayload = {
     sub: user.id,
     username: user.username,
-    role: user.role,
+    role: user.username === 'admin' ? 'ADMIN' : user.role,
   };
 
   // 30-day persistent session token
@@ -99,6 +112,11 @@ export const getMe = async (req: Request, res: Response): Promise<void> => {
   if (!user) {
     sendError(res, 'User not found', 404);
     return;
+  }
+
+  // Ensure root admin always has ADMIN role
+  if (user.username === 'admin') {
+    user.role = 'ADMIN' as any;
   }
 
   sendSuccess(res, user, 'User profile retrieved successfully');
