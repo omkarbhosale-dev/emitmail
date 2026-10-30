@@ -16,6 +16,7 @@ export async function ensureDefaultAdminExists(): Promise<void> {
       data: {
         username: 'admin',
         fullName: 'EmitMail Administrator',
+        role: 'ADMIN',
         passwordHash,
         mustChangePassword: true,
         timezone: 'UTC',
@@ -24,7 +25,15 @@ export async function ensureDefaultAdminExists(): Promise<void> {
 
     console.log('✅ Default admin account seeded successfully.');
   } else {
-    console.log('ℹ️ Default administrator account already exists.');
+    if (existingAdmin.role !== 'ADMIN') {
+      await prisma.user.update({
+        where: { id: existingAdmin.id },
+        data: { role: 'ADMIN' },
+      });
+      console.log('✅ Updated existing administrator account to ADMIN role.');
+    } else {
+      console.log('ℹ️ Default administrator account already exists.');
+    }
   }
 }
 

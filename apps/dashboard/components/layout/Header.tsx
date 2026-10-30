@@ -13,6 +13,8 @@ import {
   Gear,
 } from "@phosphor-icons/react";
 import { api } from "@/lib/api";
+import { DashboardUser } from "@/types";
+import { Facehash } from "facehash";
 
 interface HeaderProps {
   onOpenMobileMenu: () => void;
@@ -23,6 +25,7 @@ export function Header({
   onOpenMobileMenu,
   onOpenCommandPalette,
 }: HeaderProps) {
+  const [currentUser, setCurrentUser] = useState<DashboardUser | null>(null);
   const [themeMode, setThemeMode] = useState<"dark" | "light">("dark");
   const [mounted, setMounted] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -35,6 +38,12 @@ export function Header({
         | "dark"
         | "light") || "dark";
     setThemeMode(currentMode);
+
+    // Fetch active session user info
+    api.auth
+      .getMe()
+      .then((user) => setCurrentUser(user))
+      .catch(() => {});
 
     const handleThemeChange = (e: Event) => {
       const customEvent = e as CustomEvent<"dark" | "light">;
@@ -137,20 +146,52 @@ export function Header({
         <div className="relative ml-1" ref={menuRef}>
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="w-7 h-7 rounded-full bg-kumo-elevated border border-kumo-line flex items-center justify-center text-kumo-strong hover:border-cf-orange transition-colors cursor-pointer"
+            className="w-7 h-7 rounded-full bg-kumo-elevated border border-kumo-line flex items-center justify-center text-kumo-strong hover:border-cf-orange transition-colors cursor-pointer overflow-hidden p-0"
             aria-label="User Account"
             title="Administrator Account"
           >
-            <User size={15} weight="bold" />
+            <Facehash
+              name={currentUser?.username || "admin"}
+              size={28}
+              interactive={false}
+              showInitial={false}
+            />
           </button>
           <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-cf-success ring-1 ring-kumo-canvas pointer-events-none" />
 
           {/* User Menu Dropdown */}
           {isMenuOpen && (
-            <div className="absolute right-0 mt-2 w-48 rounded-xl bg-kumo-base border border-kumo-hairline shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 text-xs">
-              <div className="px-3 py-2 border-b border-kumo-hairline/60">
-                <div className="font-semibold text-kumo-strong">admin</div>
-                <div className="text-[10px] text-kumo-muted font-mono">Administrator</div>
+            <div className="absolute right-0 mt-2 w-52 rounded-xl bg-kumo-base border border-kumo-hairline shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 text-xs">
+              <div className="px-3 py-2.5 border-b border-kumo-hairline/60 flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg overflow-hidden border border-kumo-hairline shrink-0 shadow-2xs">
+                  <Facehash
+                    name={currentUser?.username || "admin"}
+                    size={32}
+                    interactive
+                    enableBlink
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-1.5">
+                    <span className="font-semibold text-kumo-strong truncate max-w-[95px]">
+                      {currentUser?.fullName || currentUser?.username || "admin"}
+                    </span>
+                    <span
+                      className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded tracking-wide uppercase ${
+                        currentUser?.role === "ADMIN"
+                          ? "bg-cf-orange/10 text-cf-orange border border-cf-orange/20"
+                          : currentUser?.role === "MEMBER"
+                          ? "bg-cf-chart-blue/10 text-cf-chart-blue border border-cf-chart-blue/20"
+                          : "bg-kumo-elevated text-kumo-muted border border-kumo-hairline"
+                      }`}
+                    >
+                      {currentUser?.role || "ADMIN"}
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-kumo-muted font-mono truncate mt-0.5">
+                    {currentUser?.email || `@${currentUser?.username || "admin"}`}
+                  </div>
+                </div>
               </div>
 
               <div className="py-1">

@@ -1,5 +1,20 @@
 export type NavTab = "emails" | "inbox" | "analytics" | "domains" | "api-keys" | "webhooks" | "settings" | "home";
 
+export type UserRole = "ADMIN" | "MEMBER" | "VIEWER";
+
+export interface DashboardUser {
+  id: string;
+  username: string;
+  email: string | null;
+  fullName: string | null;
+  role: UserRole;
+  avatarUrl?: string | null;
+  mustChangePassword: boolean;
+  timezone: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface DnsRecordItem {
   fqdn: string;
   host: string;

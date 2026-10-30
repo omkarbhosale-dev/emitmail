@@ -1,8 +1,19 @@
 import { Request, Response } from 'express';
+import bcrypt from 'bcryptjs';
+import { UserRole } from '@prisma/client';
 import { prisma } from '../../config/db.js';
 import { sendSuccess, sendError } from '../../utils/response.js';
-import { UpdateUserSettingsInput } from './users.schema.js';
+import {
+  UpdateUserSettingsInput,
+  CreateUserInput,
+  UpdateUserRoleInput,
+  UserIdParamInput,
+} from './users.schema.js';
 
+/**
+ * GET /api/v1/users/settings
+ * Retrieve personal user settings for the authenticated account.
+ */
 export const getUserSettings = async (req: Request, res: Response): Promise<void> => {
   if (!req.user) {
     sendError(res, 'Unauthorized', 401);
@@ -16,6 +27,8 @@ export const getUserSettings = async (req: Request, res: Response): Promise<void
       username: true,
       email: true,
       fullName: true,
+      role: true,
+      avatarUrl: true,
       timezone: true,
       mustChangePassword: true,
       createdAt: true,
@@ -31,6 +44,10 @@ export const getUserSettings = async (req: Request, res: Response): Promise<void
   sendSuccess(res, user, 'User settings retrieved successfully');
 };
 
+/**
+ * PATCH /api/v1/users/settings
+ * Update personal profile details for the authenticated account.
+ */
 export const updateUserSettings = async (req: Request, res: Response): Promise<void> => {
   if (!req.user) {
     sendError(res, 'Unauthorized', 401);
@@ -86,6 +103,8 @@ export const updateUserSettings = async (req: Request, res: Response): Promise<v
       username: true,
       email: true,
       fullName: true,
+      role: true,
+      avatarUrl: true,
       timezone: true,
       mustChangePassword: true,
       createdAt: true,
@@ -94,4 +113,232 @@ export const updateUserSettings = async (req: Request, res: Response): Promise<v
   });
 
   sendSuccess(res, updatedUser, 'User settings updated successfully');
+};
+
+/**
+ * GET /api/v1/users
+ * List all workspace team members.
+ */
+export const listUsers = async (_req: Request, res: Response): Promise<void> => {
+  const users = await prisma.user.findMany({
+    select: {
+      id: true,
+      username: true,
+      email: true,
+      fullName: true,
+      role: true,
+      avatarUrl: true,
+      mustChangePassword: true,
+      timezone: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  sendSuccess(res, users, 'Team members retrieved successfully');
+};
+
+/**
+ * POST /api/v1/users
+ * Create a new team user with a designated role and default password 'emitmail'.
+ * Restricted to administrators only.
+ */
+export const createUser = async (req: Request, res: Response): Promise<void> => {
+  const { fullName, email, role, username } = req.body as CreateUserInput;
+  const normalizedEmail = email.toLowerCase().trim();
+
+  // Check for email collision
+  const existingEmail = await prisma.user.findFirst({
+    where: { email: normalizedEmail },
+  });
+
+  if (existingEmail) {
+    sendError(res, 'A user with this email address already exists', 409, [
+      { path: 'email', message: 'Email address is already in use' },
+    ]);
+    return;
+  }
+
+  // Derive or validate unique username
+  let candidateUsername = username?.toLowerCase().trim();
+  if (!candidateUsername) {
+    const rawPrefix = normalizedEmail.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '_');
+    candidateUsername = rawPrefix.length >= 3 ? rawPrefix : `user_${rawPrefix}`;
+  }
+
+  // Ensure username uniqueness
+  let finalUsername = candidateUsername;
+  let suffix = 1;
+  while (await prisma.user.findFirst({ where: { username: finalUsername } })) {
+    finalUsername = `${candidateUsername}_${suffix}`;
+    suffix++;
+  }
+
+  // Generate deterministic facehash avatar URL
+  const avatarUrl = `/api/avatar?name=${encodeURIComponent(finalUsername)}`;
+
+  // Hash default password 'emitmail'
+  const passwordHash = await bcrypt.hash('emitmail', 12);
+
+  const newUser = await prisma.user.create({
+    data: {
+      fullName,
+      email: normalizedEmail,
+      username: finalUsername,
+      role: role || UserRole.MEMBER,
+      avatarUrl,
+      passwordHash,
+      mustChangePassword: true,
+      timezone: 'UTC',
+    },
+    select: {
+      id: true,
+      username: true,
+      email: true,
+      fullName: true,
+      role: true,
+      avatarUrl: true,
+      mustChangePassword: true,
+      timezone: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  sendSuccess(
+    res,
+    newUser,
+    'User created successfully. Default password is set to "emitmail".',
+    201
+  );
+};
+
+/**
+ * PATCH /api/v1/users/:id/role
+ * Update role of an existing user.
+ * Restricted to administrators only.
+ */
+export const updateUserRole = async (req: Request, res: Response): Promise<void> => {
+  const { id } = req.params as unknown as UserIdParamInput;
+  const { role } = req.body as UpdateUserRoleInput;
+
+  const targetUser = await prisma.user.findUnique({
+    where: { id },
+  });
+
+  if (!targetUser) {
+    sendError(res, 'User not found', 404);
+    return;
+  }
+
+  // If demoting an ADMIN, ensure at least one other active ADMIN exists
+  if (targetUser.role === UserRole.ADMIN && role !== UserRole.ADMIN) {
+    const adminCount = await prisma.user.count({
+      where: { role: UserRole.ADMIN },
+    });
+
+    if (adminCount <= 1) {
+      sendError(
+        res,
+        'Cannot demote the last remaining Administrator. Promote another member first.',
+        400
+      );
+      return;
+    }
+  }
+
+  const updatedUser = await prisma.user.update({
+    where: { id },
+    data: { role },
+    select: {
+      id: true,
+      username: true,
+      email: true,
+      fullName: true,
+      role: true,
+      avatarUrl: true,
+      mustChangePassword: true,
+      timezone: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  sendSuccess(res, updatedUser, `User role successfully updated to ${role}`);
+};
+
+/**
+ * POST /api/v1/users/:id/reset-password
+ * Reset a user's password to the default 'emitmail'.
+ * Restricted to administrators only.
+ */
+export const resetUserPassword = async (req: Request, res: Response): Promise<void> => {
+  const { id } = req.params as unknown as UserIdParamInput;
+
+  const targetUser = await prisma.user.findUnique({
+    where: { id },
+  });
+
+  if (!targetUser) {
+    sendError(res, 'User not found', 404);
+    return;
+  }
+
+  const passwordHash = await bcrypt.hash('emitmail', 12);
+
+  await prisma.user.update({
+    where: { id },
+    data: {
+      passwordHash,
+      mustChangePassword: true,
+    },
+  });
+
+  sendSuccess(
+    res,
+    { id: targetUser.id, username: targetUser.username },
+    'Password successfully reset to default "emitmail". First login password change will be enforced.'
+  );
+};
+
+/**
+ * DELETE /api/v1/users/:id
+ * Remove a user account.
+ * Restricted to administrators only.
+ */
+export const deleteUser = async (req: Request, res: Response): Promise<void> => {
+  const { id } = req.params as unknown as UserIdParamInput;
+
+  if (req.user?.id === id) {
+    sendError(res, 'You cannot delete your own administrator account', 400);
+    return;
+  }
+
+  const targetUser = await prisma.user.findUnique({
+    where: { id },
+  });
+
+  if (!targetUser) {
+    sendError(res, 'User not found', 404);
+    return;
+  }
+
+  // Prevent deleting the last remaining admin
+  if (targetUser.role === UserRole.ADMIN) {
+    const adminCount = await prisma.user.count({
+      where: { role: UserRole.ADMIN },
+    });
+
+    if (adminCount <= 1) {
+      sendError(res, 'Cannot delete the last remaining Administrator', 400);
+      return;
+    }
+  }
+
+  await prisma.user.delete({
+    where: { id },
+  });
+
+  sendSuccess(res, { id }, 'User removed successfully');
 };
