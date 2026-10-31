@@ -988,5 +988,42 @@ export const api = {
       }> => {
         return apiFetch("/health");
       },
+
+      getVersion: async (
+        refresh = false
+      ): Promise<{
+        currentVersion: string;
+        latestVersion: string;
+        isUpdateAvailable: boolean;
+        hasUpdate: boolean;
+        isMajor: boolean;
+        releaseName: string | null;
+        publishedAt: string | null;
+        htmlUrl: string;
+        releaseUrl: string;
+        releaseNotes: string | null;
+        checkedAt: string;
+        updateCommand: string;
+      }> => {
+        const query = refresh ? "?refresh=true" : "";
+        const res = await apiFetch<{
+          success: boolean;
+          data: {
+            currentVersion: string;
+            latestVersion: string;
+            isUpdateAvailable: boolean;
+            hasUpdate: boolean;
+            isMajor: boolean;
+            releaseName: string | null;
+            publishedAt: string | null;
+            htmlUrl: string;
+            releaseUrl: string;
+            releaseNotes: string | null;
+            checkedAt: string;
+            updateCommand: string;
+          };
+        }>(`/system/version${query}`);
+        return (res as any)?.data || res;
+      },
     },
   };

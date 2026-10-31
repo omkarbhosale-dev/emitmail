@@ -18,7 +18,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           </div>
         ),
       }}
-      githubUrl="https://github.com/emitmail/emitmail"
+      githubUrl="https://github.com/omkarbhosale-dev/emitmail"
       links={[
         {
           text: 'Dashboard',

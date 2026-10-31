@@ -18,7 +18,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className="dark" suppressHydrationWarning>
       <body className="min-h-screen flex flex-col antialiased selection:bg-[#FF6600]/25 selection:text-[#FF6600]">
         <RootProvider
           search={{

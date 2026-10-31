@@ -48,7 +48,7 @@ const envSchema = z.object({
   SPF_INCLUDE_DOMAIN: z.string().min(1).default('_spf.yourdomain.com'),
   VPS_PUBLIC_IPV4: z.string().default('0.0.0.0'),
   CURRENT_VERSION: z.string().default('1.0.0'),
-  GITHUB_REPO: z.string().default('emitmail/emitmail'),
+  GITHUB_REPO: z.string().default('omkarbhosale-dev/emitmail'),
   GITHUB_TOKEN: z.string().optional(),
   ALLOW_PENDING_DOMAIN_API_KEYS: z
     .preprocess((val) => val === 'true' || val === true || val === '1', z.boolean())
@@ -107,8 +107,8 @@ const parseEnv = () => {
   const rawEnv = {
     ...process.env,
     PORT: process.env.API_PORT || process.env.PORT || '4000',
-    CURRENT_VERSION: process.env.CURRENT_VERSION || packageJsonVersion || '1.0.0',
-    GITHUB_REPO: process.env.GITHUB_REPO || 'emitmail/emitmail',
+    CURRENT_VERSION: process.env.APP_VERSION || process.env.CURRENT_VERSION || packageJsonVersion || '1.0.0',
+    GITHUB_REPO: process.env.GITHUB_REPO || 'omkarbhosale-dev/emitmail',
     SMTP_EHLO_HOSTNAME:
       process.env.SMTP_EHLO_HOSTNAME ||
       process.env.MAIL_SERVER_HOSTNAME ||

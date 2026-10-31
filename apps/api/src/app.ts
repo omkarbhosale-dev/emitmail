@@ -101,6 +101,8 @@ export const createApp = (): Express => {
   app.use('/api/v1/api-keys', apiKeyRoutes);
   app.use('/api/v1/server-config', serverConfigRoutes);
   app.use('/api/v1/system', systemRoutes);
+  app.use('/api/system', systemRoutes);
+  app.use('/system', systemRoutes);
   app.use('/api/v1/emails', emailRoutes);
   app.use('/v1/emails', emailRoutes);
   app.use('/emails', emailRoutes);
