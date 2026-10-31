@@ -1,0 +1,67 @@
+---
+title: Mail Server Hostname & Reverse DNS (PTR) Setup
+description: Setting up Forward-Confirmed Reverse DNS (FCrDNS) to achieve a 10/10 Mail-Tester score.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+Modern inbox providers (Gmail, Microsoft 365, Yahoo) immediately reject emails dispatched from servers that fail **Forward-Confirmed Reverse DNS (FCrDNS)**. This guide walks you through establishing perfect bidirectional hostname-to-IP symmetry.
+
+```text
+Forward Resolution:  mail.yourdomain.com  ──────(DNS A Record)──────►  198.51.100.1
+Reverse Resolution:  198.51.100.1        ──────(rDNS / PTR)────────►  mail.yourdomain.com
+```
+
+---
+
+## 1. Cloudflare DNS: Forward 'A' Record
+
+Add an `A` record pointing your mail hostname to your VPS public IPv4:
+
+| Type | Name / Host | IPv4 Address | Proxy Status | TTL |
+| :--- | :--- | :--- | :--- | :--- |
+| `A` | `mail` | `<YOUR_VPS_IP>` | **DNS Only (Grey Cloud)** | Auto / 1 min |
+
+<Callout type="warn" title="Grey Cloud Only">
+Do NOT enable the orange Cloudflare Proxy for `mail.yourdomain.com`. Cloudflare only proxies HTTP/HTTPS web traffic and will drop raw SMTP Port 25 connections.
+</Callout>
+
+---
+
+## 2. VPS Provider Networking Panel: Reverse DNS (PTR)
+
+Log in to your hosting provider's management console (DigitalOcean, Hetzner, Vultr, Linode, AWS) and locate the **Networking / IPv4** tab:
+
+<Steps>
+  <Step>
+    Find your primary public IPv4 address.
+  </Step>
+  <Step>
+    Click **Edit PTR / Reverse DNS**.
+  </Step>
+  <Step>
+    Set the PTR value to your exact mail server hostname:
+    ```text
+    mail.yourdomain.com
+    ```
+  </Step>
+</Steps>
+
+---
+
+## 3. Verifying FCrDNS Verification
+
+From your local machine or VPS terminal, run `dig`:
+
+```bash
+# 1. Test Forward A Resolution
+dig +short A mail.yourdomain.com
+# Output should return: <YOUR_VPS_IP>
+
+# 2. Test Reverse PTR Resolution
+dig +short -x <YOUR_VPS_IP>
+# Output should return: mail.yourdomain.com.
+```
+
+When both outputs match, your mail server satisfies strict anti-spoofing requirements.

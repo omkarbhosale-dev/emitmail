@@ -1,0 +1,64 @@
+---
+title: VPS Firewall & Port 25 Routing
+description: Configuring UFW firewall rules and iptables port forwarding for inbound SMTP without running Node as root.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+When hosting EmitMail on a Linux VPS, external mail servers (like Google, Microsoft, and Yahoo) deliver inbound emails to standard **TCP Port 25**. To allow non-root Docker execution while supporting simultaneous outbound MTA dispatch, we route Port 25 to EmitMail's internal `:2525` receiver using Linux `iptables` and `ufw`.
+
+---
+
+## 1. Firewall Rule Configuration (UFW)
+
+Ensure ports 22 (SSH), 80/443 (Web), 4000 (API), and 25/2525 (SMTP) are open:
+
+```bash
+sudo ufw allow 22/tcp
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw allow 4000/tcp
+sudo ufw allow 25/tcp
+sudo ufw allow 2525/tcp
+sudo ufw enable
+```
+
+---
+
+## 2. Inbound Port 25 -> 2525 Kernel Forwarding
+
+To route incoming traffic arriving at port `25` directly into the EmitMail ESMTP receiver on port `2525`:
+
+```bash
+# Replace <YOUR_VPS_IP> with your public server IP
+sudo iptables -t nat -A PREROUTING -p tcp -d <YOUR_VPS_IP> --dport 25 -j REDIRECT --to-port 2525
+sudo iptables -t nat -A OUTPUT -p tcp -d <YOUR_VPS_IP> --dport 25 -j REDIRECT --to-port 2525
+```
+
+### Making iptables Rules Persistent Across Reboots
+
+On Debian/Ubuntu systems, install `iptables-persistent` to preserve rules across machine restarts:
+
+```bash
+sudo apt-get update && sudo apt-get install -y iptables-persistent
+sudo netfilter-persistent save
+sudo netfilter-persistent reload
+```
+
+---
+
+## 3. Testing Local Port Forwarding
+
+Verify that connecting to port 25 locally greets you with the EmitMail ESMTP banner:
+
+```bash
+telnet localhost 25
+```
+
+**Expected response:**
+```text
+220 mail.yourdomain.com ESMTP EmitMail Inbound ESMTP Service Ready
+```
+
+Type `QUIT` to close the test connection.

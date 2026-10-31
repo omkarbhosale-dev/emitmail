@@ -1,5 +1,7 @@
 "use client";
 
+import { useSystemVersion } from "@/context/VersionContext";
+
 import React, { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import {
@@ -29,6 +31,7 @@ export function Header({
   const [themeMode, setThemeMode] = useState<"dark" | "light">("dark");
   const [mounted, setMounted] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { versionData, isUpdateAvailable, setIsUpgradeModalOpen } = useSystemVersion();
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -119,6 +122,18 @@ export function Header({
           <Sparkle size={14} className="text-cf-orange" weight="fill" />
           <span>Docs & AI</span>
         </a>
+
+        {/* Update Available Pill */}
+        {isUpdateAvailable && versionData && (
+          <button
+            onClick={() => setIsUpgradeModalOpen(true)}
+            className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cf-orange/15 border border-cf-orange/40 text-cf-orange text-xs font-medium cursor-pointer hover:bg-cf-orange hover:text-white transition-colors"
+            title={`EmitMail v${versionData.latestVersion} is available`}
+          >
+            <Sparkle size={13} weight="fill" />
+            <span>New: v{versionData.latestVersion}</span>
+          </button>
+        )}
 
         {/* Theme Mode Toggle Button */}
         <button

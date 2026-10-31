@@ -1,0 +1,79 @@
+---
+title: Official Resend NPM SDK Setup
+description: 100% drop-in compatibility with the official resend NPM package via RESEND_BASE_URL.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+
+EmitMail implements complete API compatibility with Resend. You do not need to rewrite your application or install custom client libraries—use the official `resend` SDK directly.
+
+---
+
+## 1. Install the Official SDK
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab value="pnpm">
+  ```bash
+  pnpm add resend
+  ```
+  </Tab>
+  <Tab value="npm">
+  ```bash
+  npm install resend
+  ```
+  </Tab>
+  <Tab value="yarn">
+  ```bash
+  yarn add resend
+  ```
+  </Tab>
+</Tabs>
+
+---
+
+## 2. Configure Environment Variables
+
+Set `RESEND_BASE_URL` to point to your self-hosted EmitMail instance URL:
+
+```bash
+RESEND_API_KEY=em_live_your_generated_api_key
+RESEND_BASE_URL=https://api.yourdomain.com
+# Or for local development:
+# RESEND_BASE_URL=http://localhost:4000
+```
+
+<Callout type="info" title="Automatic Base URL Override">
+The official `resend` Node.js client automatically honors `process.env.RESEND_BASE_URL` when initializing. When this variable is present, all `.send()` requests are routed to your self-hosted EmitMail cluster instead of Resend's public cloud.
+</Callout>
+
+---
+
+## 3. Sending an HTML Email (Node.js / TypeScript)
+
+```typescript
+import { Resend } from 'resend';
+
+// Automatically routes to your self-hosted EmitMail instance via RESEND_BASE_URL
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+async function sendWelcomeEmail() {
+  const { data, error } = await resend.emails.send({
+    from: 'Omkar from EmitMail <hello@yourdomain.com>',
+    to: ['user@example.com'],
+    subject: 'Welcome to EmitMail — Your workspace is ready',
+    html: '<p>Hi there,</p><p>Your self-hosted email engine is live with 2048-bit DKIM signing.</p>',
+    text: 'Hi there, Your self-hosted email engine is live with 2048-bit DKIM signing.',
+    replyTo: 'support@yourdomain.com',
+  });
+
+  if (error) {
+    console.error('EmitMail Error:', error);
+    return;
+  }
+
+  console.log('Email queued successfully with ID:', data?.id);
+}
+
+sendWelcomeEmail();
+```

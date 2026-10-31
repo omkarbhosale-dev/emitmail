@@ -1,5 +1,7 @@
 "use client";
 
+import { useSystemVersion } from "@/context/VersionContext";
+
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -14,6 +16,7 @@ import {
   Gear,
   MagnifyingGlass,
   SidebarSimple,
+  ArrowCircleUp,
   CaretUpDown,
   X,
 } from "@phosphor-icons/react";
@@ -53,6 +56,7 @@ const BOTTOM_NAV_ITEMS: NavItemConfig[] = [
 ];
 
 export function Sidebar({
+
   currentTab,
   onSelectTab,
   isCollapsed,
@@ -62,6 +66,7 @@ export function Sidebar({
   onOpenCommandPalette,
 }: SidebarProps) {
   const pathname = usePathname();
+  const { versionData, isUpdateAvailable, setIsUpgradeModalOpen } = useSystemVersion();
   const [unreadCount, setUnreadCount] = React.useState<number>(0);
 
   React.useEffect(() => {

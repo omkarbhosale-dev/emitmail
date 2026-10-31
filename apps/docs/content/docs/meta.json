@@ -3,12 +3,19 @@
   "pages": [
     "---Introduction---",
     "index",
-    "---Installing---",
-    "getting-started",
-    "domain-setup",
-    "project-setup",
-    "---Examples---",
-    "resend-sdk",
-    "inbound-routing"
+    "---Installation---",
+    "prerequisites",
+    "docker-deployment",
+    "vps-firewall",
+    "---Setup---",
+    "reverse-dns-ptr",
+    "dns-records",
+    "inbox-mailbox-setup",
+    "api-keys-webhooks",
+    "---Example (Resend)---",
+    "resend-npm-sdk",
+    "nextjs-react-email",
+    "curl-rest-api",
+    "inbound-reply-flow"
   ]
 }

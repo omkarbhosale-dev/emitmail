@@ -96,7 +96,8 @@ main[data-layout-main] {
 
 /* Default Dark Mode Center Card */
 #nd-page,
-article[data-layout-content] {
+article[data-layout-content],
+div[data-layout-content] {
   background-color: #0a0d14 !important;
   border: 1px solid #1f242e !important;
   box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.7) !important;
@@ -109,9 +110,21 @@ article[data-layout-content] {
   transition: all 0.2s ease !important;
 }
 
-/* Explicit Light Mode Override Only */
-html.light #nd-page,
-html.light article[data-layout-content] {
+/* Force dark card when in dark mode */
+html.dark #nd-page,
+html.dark article[data-layout-content],
+html.dark div[data-layout-content],
+:root:not(.light) #nd-page,
+:root:not(.light) article[data-layout-content] {
+  background-color: #0a0d14 !important;
+  border: 1px solid #1f242e !important;
+  color: #EDEDED !important;
+}
+
+/* Explicit Light Mode Override Only when html has .light AND not .dark */
+html.light:not(.dark) #nd-page,
+html.light:not(.dark) article[data-layout-content],
+html.light:not(.dark) div[data-layout-content] {
   background-color: #FFFFFF !important;
   border: 1px solid #E5E5E5 !important;
   box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05) !important;
@@ -235,26 +248,45 @@ html.light figure.shiki {
 
 figure pre,
 figure pre code,
+figure pre code *,
 .shiki,
-.shiki code {
-  color: #F3F4F6 !important;
+.shiki code,
+.shiki code .line,
+.shiki code span {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
   font-size: 0.8125rem !important;
   line-height: 1.6 !important;
 }
 
-.shiki code span {
-  color: var(--shiki-dark, #F3F4F6);
+/* Ensure crisp high-contrast text for ASCII art, diagrams, and code in Dark Mode */
+figure pre,
+figure pre code,
+.shiki,
+.shiki code,
+.shiki code .line {
+  color: #EDEDED !important;
 }
 
-.shiki code span:not([style*="--shiki-dark"]) {
-  color: #F3F4F6 !important;
+.shiki code span {
+  color: var(--shiki-dark, #EDEDED);
+}
+
+/* Override any dark/unreadable token in dark mode */
+.shiki code span[style*="#24292e"],
+.shiki code span[style*="#1f2937"],
+.shiki code span[style*="#0f172a"],
+.shiki code span[style*="#374151"],
+.shiki code span[style*="#4b5563"],
+.shiki code span[style*="#6b7280"],
+.shiki code span:not([style*="--shiki"]) {
+  color: #EDEDED !important;
 }
 
 html.light figure pre,
 html.light figure pre code,
 html.light .shiki,
-html.light .shiki code {
+html.light .shiki code,
+html.light .shiki code .line {
   color: #1E293B !important;
 }
 

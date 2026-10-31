@@ -1,0 +1,86 @@
+---
+title: API Keys & Webhook Telemetry
+description: Generate em_live_ API credentials and subscribe to cryptographically signed HMAC-SHA256 delivery webhooks.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+EmitMail provides domain-isolated API keys and an enterprise webhook dispatcher with automatic exponential-backoff retries.
+
+---
+
+## 1. Generating API Keys
+
+<Steps>
+  <Step>
+    Navigate to **Dashboard -> API Keys** and click **+ Create API Key**.
+  </Step>
+  <Step>
+    Assign a descriptive label (e.g., `Production Backend API`) and choose whether the key is scoped to a single verified domain or has multi-tenant workspace permissions.
+  </Step>
+  <Step>
+    Copy your secret API token immediately. Tokens use the standard format:
+    ```text
+    em_live_9f81a7b4892c48e89b33a5cf982e01b4
+    ```
+  </Step>
+</Steps>
+
+---
+
+## 2. Webhook Event Subscriptions
+
+Navigate to **Dashboard -> Webhooks** to register your server's callback URL. Supported events include:
+
+| Event Identifier | Trigger Condition |
+| :--- | :--- |
+| `email.delivered` | Remote MTA accepted message (250 OK status) |
+| `email.bounced` | Remote MTA rejected message (550 HardFail or Mailbox Unavailable) |
+| `email.complaint` | Recipient marked email as spam (Feedback Loop ARF report) |
+| `email.suppressed` | Outbound dispatch blocked by recipient suppression list |
+| `email.unsubscribed` | User clicked one-click `List-Unsubscribe` link |
+| `inbound.email.received` | Incoming email ingested and parsed by the `/inbox` engine |
+
+---
+
+## 3. Verifying Webhook Signatures (HMAC-SHA256)
+
+Every webhook request contains cryptographic verification headers:
+- `X-EmitMail-Signature`: `sha256=<hex_hmac_signature>`
+- `X-EmitMail-Event`: Event name (e.g. `email.delivered`)
+- `X-EmitMail-Delivery`: Unique delivery attempt UUID
+
+### Node.js / Express Signature Verification Example
+
+```typescript
+import crypto from 'node:crypto';
+import express, { Request, Response } from 'express';
+
+const app = express();
+// Ensure you capture the raw body buffer for HMAC calculation
+app.use(express.json({
+  verify: (req: any, _res, buf) => {
+    req.rawBody = buf;
+  }
+}));
+
+app.post('/api/emitmail-webhook', (req: Request, res: Response) => {
+  const signature = req.headers['x-emitmail-signature'] as string;
+  const webhookSecret = process.env.EMITMAIL_WEBHOOK_SECRET!; // e.g. whsec_...
+
+  const expectedSignature = `sha256=${crypto
+    .createHmac('sha256', webhookSecret)
+    .update((req as any).rawBody)
+    .digest('hex')}`;
+
+  if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
+    return res.status(401).json({ error: 'Invalid webhook signature' });
+  }
+
+  const { event, data } = req.body;
+  console.log(`Received verified event [${event}]:`, data);
+
+  res.status(200).json({ received: true });
+});
+```

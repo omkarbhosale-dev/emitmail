@@ -13,7 +13,9 @@ import {
   Key,
   Tray,
   CalendarBlank,
+  ArrowSquareOut,
 } from "@phosphor-icons/react";
+import { useSystemVersion } from "@/context/VersionContext";
 import { NavTab, ApiDomain } from "@/types";
 import { useModals } from "@/components/layout/AppShell";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -337,6 +339,7 @@ export function HomeView({
   onTriggerSendTestEmail,
 }: HomeViewProps) {
   const router = useRouter();
+  const { versionData, isUpdateAvailable, setIsUpgradeModalOpen } = useSystemVersion();
   const modals = useModals();
 
   const [domains, setDomains] = useState<ApiDomain[]>([]);
@@ -642,19 +645,35 @@ export function HomeView({
 
       {/* 1. Hero Command Section */}
       <section className="pt-1 sm:pt-2 pb-1 text-center">
-        {/* Top Floating Status Pill */}
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-kumo-base border border-kumo-line text-xs font-medium text-kumo-strong shadow-2xs hover:border-cf-blue/40 transition-colors cursor-default">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cf-success opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-cf-success" />
-          </span>
-          <span className="text-kumo-strong font-medium">
-            High-Throughput SMTP Engine & DKIM Signing
-          </span>
-          <span className="text-cf-blue font-semibold text-[11px] bg-cf-blue/10 px-2 py-0.5 rounded-full border border-cf-blue/20">
-            All Systems Operational
-          </span>
-        </div>
+        {/* Top Floating Status / Update Pill */}
+        {isUpdateAvailable && versionData ? (
+          <button
+            onClick={() => setIsUpgradeModalOpen(true)}
+            className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-cf-orange-tint border border-cf-orange-border text-xs font-medium text-cf-orange hover:bg-cf-orange hover:text-white transition-all shadow-xs cursor-pointer group"
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cf-orange opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-cf-orange" />
+            </span>
+            <span className="font-semibold">
+              🚀 EmitMail v{versionData.latestVersion} is available — Click to view release notes & upgrade
+            </span>
+            <ArrowSquareOut size={13} className="opacity-70 group-hover:opacity-100" />
+          </button>
+        ) : (
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-kumo-base border border-kumo-line text-xs font-medium text-kumo-strong shadow-2xs hover:border-cf-blue/40 transition-colors cursor-default">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cf-success opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-cf-success" />
+            </span>
+            <span className="text-kumo-strong font-medium">
+              High-Throughput SMTP Engine & DKIM Signing
+            </span>
+            <span className="text-cf-blue font-semibold text-[11px] bg-cf-blue/10 px-2 py-0.5 rounded-full border border-cf-blue/20">
+              All Systems Operational
+            </span>
+          </div>
+        )}
 
         {/* Hero Greeting */}
         <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-kumo-strong my-3.5">

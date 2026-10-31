@@ -18,11 +18,11 @@ export default function Layout({ children }: { children: ReactNode }) {
           </div>
         ),
       }}
-      githubUrl="https://github.com/emitmail/emitmail"
+      githubUrl="https://github.com/omkarbhosale-dev/emitmail"
       links={[
         {
-          text: 'Dashboard',
-          url: 'http://localhost:3000',
+          text: 'Back to Dashboard',
+          url: process.env.NEXT_PUBLIC_DASHBOARD_URL || 'http://localhost:3000',
           external: true,
         },
       ]}

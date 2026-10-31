@@ -4,8 +4,13 @@ import { sendSuccess, sendError } from '../../utils/response.js';
 
 export const getSystemVersion = async (req: Request, res: Response): Promise<void> => {
   try {
-    const force = req.query.force === 'true' || req.query.force === '1';
-    const updateInfo = await SystemService.checkSystemUpdate(force);
+    const refresh =
+      req.query.refresh === 'true' ||
+      req.query.refresh === '1' ||
+      req.query.force === 'true' ||
+      req.query.force === '1';
+
+    const updateInfo = await SystemService.checkSystemUpdate(refresh);
 
     sendSuccess(
       res,

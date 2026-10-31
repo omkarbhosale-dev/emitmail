@@ -1,0 +1,56 @@
+---
+title: System & VPS Prerequisites
+description: Hardware requirements, network firewall policies, and unblocking outbound Port 25 for EmitMail.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+Before deploying EmitMail, ensure your server environment satisfies these three fundamental network prerequisites:
+
+<Steps>
+  <Step>
+    ### Linux Server (VPS or Dedicated Host)
+    - **OS:** Ubuntu 22.04 LTS, Ubuntu 24.04 LTS, or Debian 12 recommended.
+    - **Hardware:** Minimum 1 vCPU, 2 GB RAM, 20 GB SSD storage.
+    - **IP Address:** A dedicated, static public IPv4 address with clean IP reputation (not listed on Spamhaus or Barracuda RBLs).
+  </Step>
+
+  <Step>
+    ### Unblocked Inbound & Outbound Port 25 (CRITICAL)
+    SMTP mail dispatch and receiving strictly operate on **TCP Port 25**. Many cloud providers (AWS EC2, DigitalOcean, Hetzner, Linode) block outbound Port 25 by default to prevent spam.
+    
+    <Callout type="warn" title="Requesting Port 25 Unblocking">
+      Open a support ticket with your VPS hosting provider to request opening outbound TCP Port 25. Explain that you are self-hosting a transactional email server with strict SPF, 2048-bit DKIM, and DMARC policies.
+    </Callout>
+  </Step>
+
+  <Step>
+    ### Cloudflare DNS Management
+    Ensure your root domain (e.g. `yourdomain.com`) is managed under Cloudflare DNS so you can configure custom TXT, MX, and A records.
+    
+    <Callout type="info" title="Important Cloudflare Proxy Setting">
+      All mail-related records (`mail.yourdomain.com`, `send.yourdomain.com`) MUST have the Cloudflare Proxy set to **DNS Only (Grey Cloud)**. Cloudflare CDN proxies only HTTP/HTTPS traffic (Ports 80/443) and blocks raw SMTP Port 25 traffic.
+    </Callout>
+  </Step>
+</Steps>
+
+---
+
+## Verifying Port 25 Connectivity
+
+To test whether outbound Port 25 is open from your VPS, run this test command:
+
+```bash
+telnet gmail-smtp-in.l.google.com 25
+# or using netcat:
+nc -zv gmail-smtp-in.l.google.com 25
+```
+
+**Expected successful response:**
+```text
+Connection to gmail-smtp-in.l.google.com 25 port [tcp/smtp] succeeded!
+220 mx.google.com ESMTP
+```
+
+If the connection times out, outbound Port 25 is blocked at your hosting provider's network edge.

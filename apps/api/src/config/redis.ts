@@ -20,11 +20,12 @@ redis.on('error', (err) => {
 });
 
 export const REDIS_KEYS = {
-  LATEST_RELEASE: 'emitmail:system:latest_release',
+  LATEST_RELEASE: 'emitmail:system:github_latest_release',
+  LEGACY_LATEST_RELEASE: 'emitmail:system:latest_release',
 } as const;
 
 export const SYSTEM_CACHE_TTL = {
-  LATEST_RELEASE_SECONDS: 21600, // 6 hours (21,600s)
+  LATEST_RELEASE_SECONDS: 3600, // 1 hour (3600s)
 } as const;
 
 export const parseRedisConnection = () => {

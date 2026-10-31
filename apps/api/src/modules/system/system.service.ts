@@ -1,5 +1,5 @@
 import semver from 'semver';
-import { env } from '../../config/env.js';
+import { env, OFFICIAL_GITHUB_REPO } from '../../config/env.js';
 import { redis, REDIS_KEYS, SYSTEM_CACHE_TTL } from '../../config/redis.js';
 
 export interface CachedReleaseData {
@@ -15,38 +15,44 @@ export interface CachedReleaseData {
 export interface SystemVersionResponse {
   currentVersion: string;
   latestVersion: string;
+  isUpdateAvailable: boolean;
   hasUpdate: boolean;
   isMajor: boolean;
   releaseName: string | null;
   publishedAt: string | null;
+  htmlUrl: string;
   releaseUrl: string;
   releaseNotes: string | null;
+  checkedAt: string;
   updateCommand: string;
 }
 
 export class SystemService {
-  private static readonly UPDATE_COMMAND = 'docker compose pull && docker compose up -d';
+  private static readonly UPDATE_COMMAND =
+    'git pull origin main && docker compose up -d --build';
 
   /**
    * Checks current running version against the latest GitHub release.
-   * Utilizes Redis cache with a 6-hour TTL unless force=true is provided.
+   * Utilizes Redis cache with a 1-hour TTL unless refresh=true is provided.
    * Gracefully degrades in offline/firewalled/rate-limited environments.
    */
-  static async checkSystemUpdate(force = false): Promise<SystemVersionResponse> {
+  static async checkSystemUpdate(refresh = false): Promise<SystemVersionResponse> {
     const rawCurrent = (env.CURRENT_VERSION || '1.0.0').trim();
-    const cleanCurrent = semver.clean(rawCurrent) || semver.valid(semver.coerce(rawCurrent));
+    const cleanCurrent =
+      semver.clean(rawCurrent) ||
+      semver.valid(semver.coerce(rawCurrent)) ||
+      rawCurrent.replace(/^v/i, '');
     const currentVersionDisplay = cleanCurrent || rawCurrent.replace(/^v/i, '');
 
     // Edge case: Development builds or unparseable versions
     const isDevBuild =
       rawCurrent.toLowerCase().includes('dev') ||
-      rawCurrent === '0.0.0' ||
-      cleanCurrent === null;
+      rawCurrent === '0.0.0';
 
     let releaseData: CachedReleaseData | null = null;
 
-    // 1. Fetch from Redis Cache if not forced
-    if (!force) {
+    // 1. Fetch from Redis Cache if not refreshing
+    if (!refresh) {
       try {
         const cachedRaw = await redis.get(REDIS_KEYS.LATEST_RELEASE);
         if (cachedRaw) {
@@ -65,7 +71,7 @@ export class SystemService {
       releaseData = await this.fetchLatestGitHubRelease();
 
       if (releaseData) {
-        // Cache in Redis with 6-hour TTL
+        // Cache in Redis with 1-hour TTL
         try {
           await redis.set(
             REDIS_KEYS.LATEST_RELEASE,
@@ -79,8 +85,8 @@ export class SystemService {
             err instanceof Error ? err.message : err
           );
         }
-      } else if (force) {
-        // If force requested but GitHub failed (e.g. rate limit), try falling back to existing cache
+      } else if (refresh) {
+        // If refresh requested but GitHub failed (e.g. rate limit), try falling back to existing cache
         try {
           const cachedRaw = await redis.get(REDIS_KEYS.LATEST_RELEASE);
           if (cachedRaw) {
@@ -92,17 +98,22 @@ export class SystemService {
       }
     }
 
+    const checkedAt = new Date().toISOString();
+
     // 3. Fallback when GitHub is unavailable and no cache exists
     if (!releaseData) {
       return {
         currentVersion: currentVersionDisplay,
         latestVersion: currentVersionDisplay,
+        isUpdateAvailable: false,
         hasUpdate: false,
         isMajor: false,
         releaseName: null,
         publishedAt: null,
-        releaseUrl: `https://github.com/${env.GITHUB_REPO}/releases`,
+        htmlUrl: `https://github.com/${OFFICIAL_GITHUB_REPO}/releases`,
+        releaseUrl: `https://github.com/${OFFICIAL_GITHUB_REPO}/releases`,
         releaseNotes: null,
+        checkedAt,
         updateCommand: this.UPDATE_COMMAND,
       };
     }
@@ -110,27 +121,36 @@ export class SystemService {
     // 4. Semantic Version Comparison
     const cleanLatest =
       semver.clean(releaseData.cleanVersion || releaseData.tagName) ||
-      semver.valid(semver.coerce(releaseData.tagName));
+      semver.valid(semver.coerce(releaseData.tagName)) ||
+      (releaseData.cleanVersion || releaseData.tagName).replace(/^v/i, '');
 
-    let hasUpdate = false;
+    let isUpdateAvailable = false;
     let isMajor = false;
 
     if (!isDevBuild && cleanCurrent && cleanLatest) {
-      hasUpdate = semver.gt(cleanLatest, cleanCurrent);
-      if (hasUpdate) {
-        isMajor = semver.major(cleanLatest) > semver.major(cleanCurrent);
+      try {
+        isUpdateAvailable = semver.gt(cleanLatest, cleanCurrent);
+        if (isUpdateAvailable) {
+          isMajor = semver.major(cleanLatest) > semver.major(cleanCurrent);
+        }
+      } catch {
+        // Fallback numeric comparator if semver fails
+        isUpdateAvailable = cleanLatest !== cleanCurrent;
       }
     }
 
     return {
       currentVersion: currentVersionDisplay,
       latestVersion: cleanLatest || releaseData.cleanVersion || releaseData.tagName,
-      hasUpdate,
+      isUpdateAvailable,
+      hasUpdate: isUpdateAvailable,
       isMajor,
       releaseName: releaseData.name || `EmitMail ${releaseData.tagName}`,
       publishedAt: releaseData.publishedAt,
+      htmlUrl: releaseData.htmlUrl,
       releaseUrl: releaseData.htmlUrl,
       releaseNotes: releaseData.releaseNotes,
+      checkedAt,
       updateCommand: this.UPDATE_COMMAND,
     };
   }
@@ -139,10 +159,10 @@ export class SystemService {
    * Queries GitHub Releases API with timeout, rate limit handling, and custom User-Agent.
    */
   private static async fetchLatestGitHubRelease(): Promise<CachedReleaseData | null> {
-    const repo = env.GITHUB_REPO.trim();
+    const repo = OFFICIAL_GITHUB_REPO;
     const url = `https://api.github.com/repos/${repo}/releases/latest`;
     const headers: Record<string, string> = {
-      'User-Agent': 'EmitMail-SelfHosted-Server',
+      'User-Agent': 'EmitMail-SelfHosted-Updater',
       Accept: 'application/vnd.github+json',
     };
 

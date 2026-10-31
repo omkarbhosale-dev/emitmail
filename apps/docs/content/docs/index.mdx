@@ -1,84 +1,101 @@
 ---
 title: Welcome to EmitMail
-description: EmitMail is an open source, Cloudflare-grade alternative to Resend, SendGrid, and Postmark.
+description: High-performance, sovereign email delivery platform and inbound mailbox engine built for engineering teams.
 ---
 
-EmitMail is a high-performance, easy-to-use email infrastructure solution designed to give engineering teams total control over their email deliverability, data privacy, and costs. Built on **BullMQ**, **Redis**, and modern cryptographic isolation with **DKIM (2048-bit)**, **SPF**, and **DMARC**.
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Card, Cards } from 'fumadocs-ui/components/card';
 
-<div className="dokploy-hero-banner">
-  <div className="w-16 h-16 rounded-2xl bg-[#F38020] flex items-center justify-center font-bold text-black text-2xl font-logo shadow-[0_0_30px_rgba(243,128,32,0.4)] mb-3">
-    E
-  </div>
-  <div className="text-3xl font-extrabold text-white tracking-tight font-logo">
-    EmitMail
-  </div>
-  <div className="text-xs text-[#8E8E93] mt-1 font-mono tracking-wider uppercase">
-    Sovereign Email Infrastructure
-  </div>
-</div>
+## 1. What is EmitMail?
 
-## Why Choose EmitMail?
+**EmitMail** is a self-hosted, Cloudflare-grade Email Service Provider (ESP) and Inbound Mailbox Engine. Built with Node.js, TypeScript, PostgreSQL, Redis, and BullMQ, EmitMail gives engineering teams complete control over their email deliverability, cryptographic keys, inbound routing, and operational privacy—without artificial per-email rate limits or monthly SaaS invoices.
 
-- **Simplicity**: 100% drop-in compatibility with the official Resend SDK—migrate your app by simply changing `baseUrl`.
-- **Flexibility**: Complete multi-tenant domain isolation, granular Role-Based Access Control (`ADMIN`, `MEMBER`, `VIEWER`), and unified inbox.
-- **Open Source & Sovereign**: Free and self-hostable on your own VPS with zero per-email fees or artificial deliverability throttle.
+```text
+               ┌────────────────────────────────────────────────────────┐
+               │                     EmitMail ESP                       │
+               ├────────────────────────────┬───────────────────────────┤
+               │       Outbound Engine      │       Inbound Engine      │
+               ├────────────────────────────┼───────────────────────────┤
+               │ • 2048-bit RSA DKIM Keys   │ • ESMTP Port 25 Receiver  │
+               │ • Return-Path Alignment    │ • Alias & Catch-all Mail  │
+               │ • BullMQ Worker Pipeline   │ • Real-time Webhooks      │
+               │ • Resend SDK Drop-In       │ • In-Dashboard Reader/Sent│
+               └────────────────────────────┴───────────────────────────┘
+```
+
+<Callout type="info" title="100% Drop-In Resend SDK Compatibility">
+Migrate existing applications from Resend to EmitMail in under 60 seconds by changing only your `RESEND_BASE_URL` to point to your self-hosted instance. No code refactoring required.
+</Callout>
 
 ---
 
-## Setting up EmitMail
+## 2. Core Architecture & Processing Flow
 
-Follow our step-by-step guides to configure your infrastructure, verify DNS records, and start dispatching emails.
+EmitMail decouples API intake from SMTP network dispatch using Redis-backed distributed queues. This guarantees that your web applications receive immediate `<50ms` HTTP responses while background workers handle DNS MX resolution, cryptographic DKIM signing, and TLS socket connections.
 
-<div className="dokploy-grid">
-  <a href="/docs/getting-started" className="dokploy-card">
-    <div className="dokploy-card-title">
-      <span>🚀 Getting Started</span>
-    </div>
-    <div className="dokploy-card-desc">
-      VPS provider selection, unblocking outbound Port 25, and reverse DNS (PTR) setup.
-    </div>
-  </a>
+### Outbound Dispatch Pipeline
 
-  <a href="/docs/domain-setup" className="dokploy-card">
-    <div className="dokploy-card-title">
-      <span>🌐 Setting Up the Domain</span>
-    </div>
-    <div className="dokploy-card-desc">
-      Configure SPF, 2048-bit RSA DKIM keys, DMARC, MX, and automated 5-point DNS probe.
-    </div>
-  </a>
+```text
+[ Client App / SDK ]
+        │
+        ▼ (POST /emails with Bearer em_live_...)
+[ EmitMail Express API ] ──(Fast Validation <20ms)──► Return { id: "em_..." }
+        │
+        ▼ (Enqueue Job: email-delivery-queue)
+[ Redis 7 + BullMQ ]
+        │
+        ▼ (Distributed Job Consumption)
+[ EmitMail Worker Engine ]
+        │
+        ├─► [ PostgreSQL ] : Tenant suppression list check & domain verification
+        ├─► [ Crypto Subsystem ] : Signs raw MIME payload with 2048-bit RSA DKIM private key
+        ├─► [ DNS Resolver ] : Queries remote MX records for recipient domain
+        ▼
+[ Direct MX Dispatch ] ──(TLS 1.3 / Port 25)──► [ Receiving MTA: Gmail, Outlook, Yahoo ]
+        │
+        ▼ (Delivery or Bounce Event)
+[ Webhook Dispatcher ] ──► [ Your Backend Server ]
+```
 
-  <a href="/docs/project-setup" className="dokploy-card">
-    <div className="dokploy-card-title">
-      <span>🐳 Setting Up the Project</span>
-    </div>
-    <div className="dokploy-card-desc">
-      Deploy with Docker Compose, configure PostgreSQL & Redis, and run Prisma migrations.
-    </div>
-  </a>
+### Inbound Ingestion Pipeline
 
-  <a href="/docs/resend-sdk" className="dokploy-card">
-    <div className="dokploy-card-title">
-      <span>⚡ Resend SDK Integration</span>
-    </div>
-    <div className="dokploy-card-desc">
-      Use the official Resend npm/Python SDK with baseUrl override and instant suppression protection.
-    </div>
-  </a>
+```text
+[ External Sender (e.g. Gmail) ]
+        │
+        ▼ (Port 25 TCP Connection)
+[ Host Firewall: iptables REDIRECT 25 -> 2525 ]
+        │
+        ▼
+[ EmitMail Inbound SMTP Server (smtp-server) ]
+        │
+        ├─► [ onRcptTo Hook ] : Validates active mailbox (exact alias or catch-all *)
+        ▼
+[ Redis Queue (inbound-email) ]
+        │
+        ▼
+[ Inbound BullMQ Worker ]
+        │
+        ├─► [ mailparser ] : Parses MIME body, extracts HTML/text & attachments
+        ├─► [ PostgreSQL ] : Stores thread in Inbox for dashboard viewing
+        ▼
+[ Webhook Dispatcher ] ──► HTTP POST webhook event (inbound.email.received)
+```
 
-  <a href="/docs/inbound-routing" className="dokploy-card">
-    <div className="dokploy-card-title">
-      <span>📥 Inbound Emails & Webhooks</span>
-    </div>
-    <div className="dokploy-card-desc">
-      Receive mail over Port 25, spam scoring, and forward parsed emails to backend webhooks.
-    </div>
-  </a>
-</div>
+---
 
-<a href="/docs/getting-started" className="dokploy-nav-next">
-  <span className="text-xs text-gray-400">Next Guide</span>
-  <span className="text-sm font-semibold text-white flex items-center gap-1.5 mt-0.5">
-    Getting Started & Prerequisites →
-  </span>
-</a>
+## 3. Key Features
+
+<Cards>
+  <Card title="100% Drop-In Resend SDK Compatibility" href="/docs/resend-npm-sdk">
+    Point the official `resend` NPM package to your EmitMail instance via a single base URL override. Works with Next.js, Node.js, and React Email.
+  </Card>
+  <Card title="10/10 Deliverability by Default" href="/docs/dns-records">
+    Automated 2048-bit RSA DKIM key generation, Return-Path (`bounces@send.<domain>`) SPF alignment, strict DMARC, and pre-flight PTR diagnostics.
+  </Card>
+  <Card title="Inbound Mailbox Engine (/inbox)" href="/docs/inbox-mailbox-setup">
+    Receive emails on any verified domain. Create unlimited aliases (`support@`, `hello@`, or catch-all `*@`), read rich HTML, and send replies.
+  </Card>
+  <Card title="Cryptographic Webhook Telemetry" href="/docs/api-keys-webhooks">
+    Receive signed HMAC-SHA256 webhooks for `email.delivered`, `email.bounced`, `email.complaint`, and `inbound.email.received`.
+  </Card>
+</Cards>

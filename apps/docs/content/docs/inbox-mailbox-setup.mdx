@@ -1,0 +1,52 @@
+---
+title: Inbound Mailbox Setup (/inbox)
+description: Configure root-domain MX receiving to accept inbound emails at support@yourdomain.com with aliases and catch-all routing.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+EmitMail includes a complete Inbound Mailbox Engine that allows you to receive, inspect, search, and reply to inbound emails directly from the EmitMail Dashboard (`/inbox`) or stream incoming emails to your webhooks.
+
+---
+
+## 1. Cloudflare DNS: Inbound Root MX Record
+
+To direct incoming mail for your root domain (`@yourdomain.com`) to your EmitMail server, add this MX record in Cloudflare:
+
+| Type | Host / Name | Mail Server Target | Priority | Proxy Status |
+| :--- | :--- | :--- | :--- | :--- |
+| `MX` | `@` (root domain) | `mail.yourdomain.com` | `10` | **DNS Only (Grey Cloud)** |
+
+<Callout type="warn" title="Single MX Routing">
+If you currently receive mail through Google Workspace or Microsoft 365 on your root domain, adding EmitMail as an MX record will share incoming delivery. For dedicated application inboxes, use a subdomain like `support.yourdomain.com` or replace existing MX records if EmitMail is your primary mail provider.
+</Callout>
+
+---
+
+## 2. Creating Mailboxes in Dashboard
+
+<Steps>
+  <Step>
+    ### Verify MX Records
+    Navigate to **Dashboard -> Inbox (`/inbox`)** and click **Verify MX Record**. EmitMail performs an active DNS query to confirm that your domain's MX points to `mail.yourdomain.com`.
+  </Step>
+
+  <Step>
+    ### Create an Inbound Mailbox Alias
+    Click **+ Create Mailbox** and select your verified domain:
+    - **Exact Alias:** Enter `support` to receive mail at `support@yourdomain.com`.
+    - **Team Alias:** Enter `hello`, `contact`, or `billing`.
+    - **Catch-All Mailbox:** Enter `*` to capture any email sent to an unassigned address on your domain (e.g. `anything@yourdomain.com`).
+  </Step>
+
+  <Step>
+    ### Send a Test Email
+    From an external email client (such as your personal Gmail or Outlook account), send an email to `support@yourdomain.com`.
+  </Step>
+
+  <Step>
+    ### Real-Time Ingestion & Thread Replies
+    The incoming message arrives at your VPS on port 25, is validated by EmitMail's recipient gate (`onRcptTo`), parsed via `mailparser`, and appears inside `/inbox` in real time. Click the email thread to read rich HTML, view attachments, and reply directly.
+  </Step>
+</Steps>

@@ -22,7 +22,9 @@ import {
   IdentificationCard,
   User,
   Info,
+  RocketLaunch,
 } from "@phosphor-icons/react";
+import { useSystemVersion } from "@/context/VersionContext";
 import { useToast } from "@/components/ui/Toast";
 import { api } from "@/lib/api";
 import { DashboardUser, UserRole } from "@/types";
@@ -30,6 +32,7 @@ import { Facehash } from "facehash";
 
 export function SettingsView() {
   const { toast } = useToast();
+  const { versionData, isChecking, refresh, setIsUpgradeModalOpen } = useSystemVersion();
 
   // Active top tab: "workspace" or "team"
   const [activeTab, setActiveTab] = useState<"workspace" | "team">("workspace");
@@ -583,6 +586,92 @@ export function SettingsView() {
                   Automatically synchronize with OS color scheme
                 </span>
               </button>
+            </div>
+          </section>
+
+          {/* System Version & Updates Card */}
+          <section className="bg-kumo-base border border-kumo-hairline rounded-xl p-5 space-y-4 shadow-2xs">
+            <div className="flex items-center justify-between pb-3 border-b border-kumo-hairline flex-wrap gap-2">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-cf-orange/10 border border-cf-orange/20 flex items-center justify-center text-cf-orange">
+                  <RocketLaunch size={18} weight="bold" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-kumo-strong">
+                    System Version & Updates
+                  </h3>
+                  <p className="text-[11px] text-kumo-subtle">
+                    Self-hosted release telemetry, semver comparison, and Docker upgrade pipeline
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => refresh(true)}
+                  disabled={isChecking}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-kumo-default hover:text-kumo-strong hover:bg-kumo-recessed border border-kumo-hairline transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  <ArrowsClockwise
+                    size={14}
+                    className={isChecking ? "animate-spin" : ""}
+                  />
+                  <span>Check for Updates</span>
+                </button>
+                <button
+                  onClick={() => setIsUpgradeModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-cf-orange text-white hover:bg-cf-orange-hover transition-colors shadow-xs cursor-pointer"
+                >
+                  <span>View Changelog</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+              <div className="p-3.5 rounded-lg bg-kumo-recessed border border-kumo-hairline">
+                <span className="text-[11px] text-kumo-subtle block uppercase tracking-wider font-semibold">
+                  Installed Version
+                </span>
+                <span className="text-sm font-mono font-bold text-kumo-strong mt-1 block">
+                  v{versionData?.currentVersion || "1.0.0"}
+                </span>
+              </div>
+
+              <div className="p-3.5 rounded-lg bg-kumo-recessed border border-kumo-hairline">
+                <span className="text-[11px] text-kumo-subtle block uppercase tracking-wider font-semibold">
+                  Latest GitHub Release
+                </span>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-sm font-mono font-bold text-kumo-strong">
+                    v{versionData?.latestVersion || "1.0.0"}
+                  </span>
+                  {versionData?.isUpdateAvailable ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-cf-orange-tint text-cf-orange border border-cf-orange-border">
+                      <span className="w-1.5 h-1.5 rounded-full bg-cf-orange animate-pulse" />
+                      Update Available
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-cf-success/15 text-cf-success border border-cf-success/30">
+                      <span className="w-1.5 h-1.5 rounded-full bg-cf-success" />
+                      Up to Date
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-lg bg-kumo-recessed border border-kumo-hairline">
+                <span className="text-[11px] text-kumo-subtle block uppercase tracking-wider font-semibold">
+                  Last Telemetry Sync
+                </span>
+                <span className="text-xs text-kumo-default mt-1 block">
+                  {versionData?.checkedAt
+                    ? new Date(versionData.checkedAt).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit",
+                      })
+                    : "Just now"}
+                </span>
+              </div>
             </div>
           </section>
 
