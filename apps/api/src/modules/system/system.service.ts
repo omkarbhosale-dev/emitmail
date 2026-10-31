@@ -1,5 +1,5 @@
 import semver from 'semver';
-import { env } from '../../config/env.js';
+import { env, OFFICIAL_GITHUB_REPO } from '../../config/env.js';
 import { redis, REDIS_KEYS, SYSTEM_CACHE_TTL } from '../../config/redis.js';
 
 export interface CachedReleaseData {
@@ -110,8 +110,8 @@ export class SystemService {
         isMajor: false,
         releaseName: null,
         publishedAt: null,
-        htmlUrl: `https://github.com/${env.GITHUB_REPO}/releases`,
-        releaseUrl: `https://github.com/${env.GITHUB_REPO}/releases`,
+        htmlUrl: `https://github.com/${OFFICIAL_GITHUB_REPO}/releases`,
+        releaseUrl: `https://github.com/${OFFICIAL_GITHUB_REPO}/releases`,
         releaseNotes: null,
         checkedAt,
         updateCommand: this.UPDATE_COMMAND,
@@ -159,7 +159,7 @@ export class SystemService {
    * Queries GitHub Releases API with timeout, rate limit handling, and custom User-Agent.
    */
   private static async fetchLatestGitHubRelease(): Promise<CachedReleaseData | null> {
-    const repo = env.GITHUB_REPO.trim();
+    const repo = OFFICIAL_GITHUB_REPO;
     const url = `https://api.github.com/repos/${repo}/releases/latest`;
     const headers: Record<string, string> = {
       'User-Agent': 'EmitMail-SelfHosted-Updater',

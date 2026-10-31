@@ -1,3 +1,4 @@
+export const OFFICIAL_GITHUB_REPO = 'omkarbhosale-dev/emitmail' as const;
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
@@ -107,8 +108,8 @@ const parseEnv = () => {
   const rawEnv = {
     ...process.env,
     PORT: process.env.API_PORT || process.env.PORT || '4000',
-    CURRENT_VERSION: process.env.APP_VERSION || process.env.CURRENT_VERSION || packageJsonVersion || '1.0.0',
-    GITHUB_REPO: process.env.GITHUB_REPO || 'omkarbhosale-dev/emitmail',
+    CURRENT_VERSION: packageJsonVersion || '1.0.0',
+    GITHUB_REPO: OFFICIAL_GITHUB_REPO,
     SMTP_EHLO_HOSTNAME:
       process.env.SMTP_EHLO_HOSTNAME ||
       process.env.MAIL_SERVER_HOSTNAME ||
