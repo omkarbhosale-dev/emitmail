@@ -222,6 +222,42 @@ export function DomainsView() {
     }
   };
 
+  const handleRotateDkim = async (domain: DisplayDomainItem) => {
+    const confirm = window.confirm(
+      `Regenerate a brand-new 2048-bit RSA DKIM key for "${domain.domainName}"?\n\nThis will invalidate the previous key. You must update your DKIM TXT record in Cloudflare and click Verify.`
+    );
+    if (!confirm) return;
+
+    try {
+      const res = await api.domains.rotateDkim(domain.id);
+      if (res && res.domain) {
+        setDomains((prev) =>
+          prev.map((d) =>
+            d.id === domain.id
+              ? {
+                  ...d,
+                  ...res.domain,
+                  status: "PENDING",
+                  dkimVerified: false,
+                }
+              : d
+          )
+        );
+        toast({
+          title: "2048-bit DKIM Key Generated",
+          description: `New 2048-bit DKIM record created for ${domain.domainName}. Please update the TXT record in your DNS provider.`,
+          type: "success",
+        });
+      }
+    } catch (err: unknown) {
+      toast({
+        title: "DKIM Rotation Failed",
+        description: err instanceof Error ? err.message : "Failed to rotate DKIM key",
+        type: "error",
+      });
+    }
+  };
+
   const toggleStar = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setStarredDomainIds((prev) => {
@@ -569,6 +605,18 @@ export function DomainsView() {
             >
               <ArrowsClockwise size={14} />
               <span>Verify DNS Now</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                handleRotateDkim(activeMenuDomain);
+                setActiveMenuDomain(null);
+                setMenuCoords(null);
+              }}
+              className="w-full px-3 py-1.5 text-xs text-left text-kumo-default hover:bg-kumo-tint hover:text-kumo-strong flex items-center gap-2 transition-colors cursor-pointer"
+            >
+              <ArrowsClockwise size={14} className="text-cf-orange" />
+              <span>Rotate DKIM (2048-bit)</span>
             </button>
             <div className="border-t border-[#262626] my-1" />
             <button

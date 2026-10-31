@@ -193,9 +193,13 @@ export const processEmailDeliveryJob = async (
 
     const dkimOptions = {
       domainName: email.domain.domainName,
-      keySelector: email.domain.dkimSelector,
+      keySelector: email.domain.dkimSelector || 'esp',
       privateKey: dkimPrivateKey,
       headerFieldNames: dkimHeaderFields.join(':'),
+      cacheDir: false,
+      hashAlgo: 'sha256',
+      canonicalization: 'relaxed/relaxed',
+      c: 'relaxed/relaxed',
     };
 
     // 7. Configure Transporter: Upstream SMTP Relay or Direct MX Delivery with MTA-STS & TLS Policies

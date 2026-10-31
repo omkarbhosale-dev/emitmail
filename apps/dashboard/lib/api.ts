@@ -418,6 +418,23 @@ export const api = {
       });
     },
 
+    rotateDkim: async (
+      id: string
+    ): Promise<{
+      domain: ApiDomain;
+      dnsRecord: {
+        type: 'TXT';
+        host: string;
+        fqdn?: string;
+        value: string;
+        keyBits: number;
+      };
+    }> => {
+      return apiFetch(`/domains/${id}/rotate-dkim`, {
+        method: "POST",
+      });
+    },
+
     delete: async (id: string): Promise<{ id: string; domainName: string }> => {
       return apiFetch<{ id: string; domainName: string }>(`/domains/${id}`, {
         method: "DELETE",

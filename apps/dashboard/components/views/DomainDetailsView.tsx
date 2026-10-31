@@ -29,6 +29,7 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
   const [domain, setDomain] = useState<ApiDomain | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [isRotatingDkim, setIsRotatingDkim] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -109,6 +110,37 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
       });
     } finally {
       setIsVerifying(false);
+    }
+  };
+
+  const handleRotateDkim = async () => {
+    if (!domain) return;
+    const confirm = window.confirm(
+      `Regenerate a brand-new 2048-bit RSA DKIM key for "${domain.domainName}"?\n\nThis will invalidate the previous key. You must update the DKIM TXT record in your DNS provider (Cloudflare) and click "Verify DNS Now".`
+    );
+    if (!confirm) return;
+
+    setIsRotatingDkim(true);
+    try {
+      const res = await api.domains.rotateDkim(domain.id);
+      if (res && res.domain) {
+        setDomain(res.domain);
+        setIsDnsCollapsed(false);
+        toast({
+          title: "2048-bit DKIM Key Generated",
+          description: `New 2048-bit DKIM record created for ${domain.domainName}. Please update the TXT record in Cloudflare and verify.`,
+          type: "success",
+        });
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to rotate DKIM key";
+      toast({
+        title: "DKIM Rotation Failed",
+        description: msg,
+        type: "error",
+      });
+    } finally {
+      setIsRotatingDkim(false);
     }
   };
 
@@ -226,9 +258,28 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
 
     return (
       <div className="space-y-2.5">
-        <div className="flex items-center gap-1.5 text-sm font-bold text-white">
-          <span>{title}</span>
-          <ArrowUpRight size={14} className="text-[#8E8E93]" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5 text-sm font-bold text-white">
+            <span>{title}</span>
+            <ArrowUpRight size={14} className="text-[#8E8E93]" />
+            {title === "DKIM" && (
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cf-orange/15 text-cf-orange border border-cf-orange/30">
+                2048-bit RSA
+              </span>
+            )}
+          </div>
+          {title === "DKIM" && (
+            <button
+              type="button"
+              onClick={handleRotateDkim}
+              disabled={isRotatingDkim || isVerifying}
+              className="text-xs font-medium px-2.5 py-1 rounded-md bg-[#1C1C1E] hover:bg-[#2C2C2E] border border-[#333336] text-white flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+              title="Regenerate a brand-new 2048-bit RSA DKIM key"
+            >
+              <ArrowsClockwise size={12} className={isRotatingDkim ? "animate-spin text-cf-orange" : ""} />
+              <span>{isRotatingDkim ? "Generating..." : "Regenerate 2048-bit Key"}</span>
+            </button>
+          )}
         </div>
 
         <div className="bg-[#0C0C0E] border border-[#222226] rounded-xl overflow-hidden shadow-2xs">
@@ -411,6 +462,20 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
 
           {/* Action Buttons */}
           <div className="flex items-center gap-2.5 shrink-0">
+            <button
+              type="button"
+              onClick={handleRotateDkim}
+              disabled={isRotatingDkim || isVerifying}
+              className="h-9 px-3.5 rounded-md bg-[#1C1C1E] hover:bg-[#2C2C2E] text-white text-xs font-medium inline-flex items-center justify-center gap-1.5 border border-[#333336] shadow-sm transition-all duration-120 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed select-none"
+              title="Regenerate a brand-new 2048-bit RSA DKIM key"
+            >
+              <ArrowsClockwise
+                size={14}
+                className={isRotatingDkim ? "animate-spin text-[#FF6600]" : "text-[#8E8E93]"}
+              />
+              <span>{isRotatingDkim ? "Rotating DKIM..." : "Rotate DKIM (2048-bit)"}</span>
+            </button>
+
             <button
               type="button"
               onClick={handleVerifyDns}

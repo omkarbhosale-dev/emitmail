@@ -4,6 +4,7 @@ import {
   listDomains,
   getDomainById,
   verifyDomain,
+  rotateDkim,
   deleteDomain,
 } from './domains.controller.js';
 import {
@@ -30,6 +31,9 @@ router.get('/:id', validateRequest({ params: domainIdParamSchema }), getDomainBy
 
 // POST /api/v1/domains/:id/verify - Live DNS Verification
 router.post('/:id/verify', validateRequest({ params: domainIdParamSchema }), verifyDomain);
+
+// POST /api/v1/domains/:id/rotate-dkim - Rotate / Upgrade DKIM key to 2048-bit
+router.post('/:id/rotate-dkim', validateRequest({ params: domainIdParamSchema }), rotateDkim);
 
 // DELETE /api/v1/domains/:id - Delete domain
 router.delete('/:id', validateRequest({ params: domainIdParamSchema }), deleteDomain);

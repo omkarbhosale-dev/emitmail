@@ -69,8 +69,13 @@ export const generateDkimKeyPair = (): {
   publicKeyPem: string;
   privateKeyPem: string;
   publicKeyDnsTxt: string;
+  publicKey: string;
+  privateKey: string;
+  publicKeyBase64: string;
+  dnsTxtValue: string;
+  keyBits: number;
 } => {
-  const { publicKey: publicKeyPem, privateKey: privateKeyPem } = crypto.generateKeyPairSync(
+  const { publicKey, privateKey } = crypto.generateKeyPairSync(
     'rsa',
     {
       modulusLength: 2048,
@@ -85,16 +90,24 @@ export const generateDkimKeyPair = (): {
     }
   );
 
-  // Strip PEM headers, footers, carriage returns, and newlines
-  const publicKeyDnsTxt = publicKeyPem
+  // Strip PEM headers/footers and ALL whitespace/newlines for the DNS TXT value
+  const publicKeyBase64 = publicKey
     .replace(/-----BEGIN PUBLIC KEY-----/g, '')
     .replace(/-----END PUBLIC KEY-----/g, '')
-    .replace(/[\r\n\s]/g, '');
+    .replace(/\s+/g, '');
+
+  const dnsTxtValue = `v=DKIM1; k=rsa; p=${publicKeyBase64}`;
 
   return {
-    publicKeyPem,
-    privateKeyPem,
-    publicKeyDnsTxt,
+    privateKey,
+    publicKey,
+    publicKeyBase64,
+    dnsTxtValue,
+    keyBits: 2048,
+    // Backwards-compatible aliases
+    publicKeyPem: publicKey,
+    privateKeyPem: privateKey,
+    publicKeyDnsTxt: publicKeyBase64,
   };
 };
 
