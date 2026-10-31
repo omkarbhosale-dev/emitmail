@@ -111,7 +111,7 @@ export function Header({
 
         {/* Ask AI / Docs Link */}
         <a
-          href="https://github.com/omkarbhosale-dev/emitmail"
+          href={process.env.NEXT_PUBLIC_DOCS_URL || "http://localhost:3001"}
           target="_blank"
           rel="noopener noreferrer"
           className="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium text-kumo-default hover:text-kumo-strong px-2.5 py-1.5 rounded-md hover:bg-kumo-tint transition-colors"

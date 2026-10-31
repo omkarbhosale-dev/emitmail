@@ -1,0 +1,14 @@
+{
+  "title": "Documentation",
+  "pages": [
+    "---Introduction---",
+    "index",
+    "---Installing---",
+    "getting-started",
+    "domain-setup",
+    "project-setup",
+    "---Examples---",
+    "resend-sdk",
+    "inbound-routing"
+  ]
+}

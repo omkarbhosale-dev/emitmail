@@ -1,20 +1,14 @@
-import type { NextConfig } from "next";
+import { createMDX } from 'fumadocs-mdx/next';
+import type { NextConfig } from 'next';
+
+const withMDX = createMDX();
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  reactStrictMode: true,
   experimental: {
-    agentFeedback: true,
-  },
-  cacheComponents: true,
-  partialPrefetching: true,
-  turbopack: {
-    rules: {
-      "*.css": {
-        loaders: ["@tailwindcss/turbopack"],
-        as: "*.css",
-      },
-    },
+    cpus: 1,
   },
 };
 
-export default nextConfig;
+export default withMDX(nextConfig);
+
