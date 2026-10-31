@@ -22,7 +22,9 @@
     "db:seed": "pnpm --filter emitmail-api db:seed",
     "test:workflow": "pnpm --filter emitmail-api test:workflow",
     "test:resend-worker": "dotenv -e .env -- tsx scripts/test-resend-queue-worker.ts",
-    "test:deliverability": "dotenv -e .env -- tsx scripts/test-deliverability-security.ts"
+    "test:deliverability": "dotenv -e .env -- tsx scripts/test-deliverability-security.ts",
+    "dev:docs": "pnpm --filter emitmail-docs dev",
+    "build:docs": "pnpm --filter emitmail-docs build"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",
