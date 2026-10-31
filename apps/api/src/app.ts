@@ -97,6 +97,7 @@ export const createApp = (): Express => {
   app.use('/api/v1/auth', authRoutes);
   app.use('/api/v1/users', userRoutes);
   app.use('/api/v1/domains', domainRoutes);
+  app.use('/api/domains', domainRoutes);
   app.use('/api/v1/api-keys', apiKeyRoutes);
   app.use('/api/v1/server-config', serverConfigRoutes);
   app.use('/api/v1/system', systemRoutes);

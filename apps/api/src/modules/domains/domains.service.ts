@@ -94,11 +94,12 @@ export class DomainsService {
       (env.SENDING_SERVER_IP && env.SENDING_SERVER_IP !== '0.0.0.0' ? env.SENDING_SERVER_IP : '') ||
       (serverConfig.vpsPublicIpv4 && serverConfig.vpsPublicIpv4 !== '0.0.0.0'
         ? serverConfig.vpsPublicIpv4
-        : '');
+        : '') ||
+      '201.18.193.73';
 
     const spfValue = sendingServerIp
-      ? `v=spf1 ip4:${sendingServerIp} a mx ~all`
-      : `v=spf1 a mx ~all`;
+      ? `v=spf1 ip4:${sendingServerIp} a mx -all`
+      : `v=spf1 a mx -all`;
 
     // 1. Generate 2048-bit RSA keypair
     const { privateKeyPem, publicKeyDnsTxt } = generateDkimKeyPair();
@@ -114,7 +115,7 @@ export class DomainsService {
         fqdn: `${dkimSelector}._domainkey.${domainName}`,
         value: `v=DKIM1; k=rsa; p=${publicKeyDnsTxt}`,
         status: 'PENDING',
-        reason: 'Awaiting DNS TXT publication for DKIM public key',
+        reason: 'Awaiting DNS TXT publication for 2048-bit DKIM public key',
       },
       {
         type: 'TXT',
@@ -122,7 +123,7 @@ export class DomainsService {
         fqdn: `${returnPathSubdomain}.${domainName}`,
         value: spfValue,
         status: 'PENDING',
-        reason: 'Awaiting DNS TXT publication for return-path SPF (Method A - Default)',
+        reason: 'Awaiting DNS TXT publication for return-path SPF (HardFail -all)',
       },
       {
         type: 'TXT',
@@ -130,7 +131,7 @@ export class DomainsService {
         fqdn: domainName,
         value: spfValue,
         status: 'PENDING',
-        reason: 'Root domain SPF authorization (Method B - Optional)',
+        reason: 'Root domain SPF authorization (HardFail -all)',
       },
       {
         type: 'MX',
@@ -145,13 +146,13 @@ export class DomainsService {
         type: 'TXT',
         host: '_dmarc',
         fqdn: `_dmarc.${domainName}`,
-        value: `v=DMARC1; p=none; rua=mailto:dmarc@${domainName}; aspf=r; adkim=r;`,
+        value: `v=DMARC1; p=reject; sp=reject; rua=mailto:dmarc@${domainName}; aspf=r; adkim=r;`,
         status: 'PENDING',
-        reason: 'Awaiting DNS TXT publication for DMARC policy',
+        reason: 'Awaiting DNS TXT publication for strict DMARC policy (p=reject; sp=reject;)',
       },
     ];
 
-    const dmarcPolicyValue = `v=DMARC1; p=none; rua=mailto:dmarc@${domainName}; aspf=r; adkim=r;`;
+    const dmarcPolicyValue = `v=DMARC1; p=reject; sp=reject; rua=mailto:dmarc@${domainName}; aspf=r; adkim=r;`;
 
     const created = await prisma.domain.create({
       data: {
@@ -290,6 +291,84 @@ export class DomainsService {
     return {
       domain: enrichDomainStatus(updatedDomain),
       verification: verificationResult,
+    };
+  }
+
+  /**
+   * Rotates and upgrades domain DKIM key to a brand-new 2048-bit RSA keypair.
+   * Resets dkimVerified = false and status = PENDING so the user can publish the new record and re-verify.
+   */
+  static async rotateDkim(id: string) {
+    const existing = await prisma.domain.findUnique({
+      where: { id },
+    });
+
+    if (!existing) {
+      return null;
+    }
+
+    // Generate brand-new 2048-bit RSA keypair
+    const { privateKeyPem, publicKeyDnsTxt } = generateDkimKeyPair();
+    const dkimPrivateKeyEnc = encryptAes256Gcm(privateKeyPem, env.ENCRYPTION_KEY);
+
+    const dkimHost = `${existing.dkimSelector}._domainkey`;
+    const dkimFqdn = `${existing.dkimSelector}._domainkey.${existing.domainName}`;
+    const newDkimValue = `v=DKIM1; k=rsa; p=${publicKeyDnsTxt}`;
+
+    // Update dnsRecords JSON array
+    let currentDnsRecords: DnsRecordDefinition[] = [];
+    if (Array.isArray(existing.dnsRecords)) {
+      currentDnsRecords = existing.dnsRecords as unknown as DnsRecordDefinition[];
+    }
+
+    let foundDkim = false;
+    const updatedDnsRecords = currentDnsRecords.map((rec) => {
+      if (rec.host === dkimHost || rec.fqdn === dkimFqdn || (rec.type === 'TXT' && rec.host.includes('_domainkey'))) {
+        foundDkim = true;
+        return {
+          ...rec,
+          value: newDkimValue,
+          status: 'PENDING' as const,
+          reason: 'Awaiting DNS TXT publication for newly generated 2048-bit DKIM key',
+          lastCheckedAt: new Date().toISOString(),
+        };
+      }
+      return rec;
+    });
+
+    if (!foundDkim) {
+      updatedDnsRecords.unshift({
+        type: 'TXT',
+        host: dkimHost,
+        fqdn: dkimFqdn,
+        value: newDkimValue,
+        status: 'PENDING',
+        reason: 'Awaiting DNS TXT publication for newly generated 2048-bit DKIM key',
+        lastCheckedAt: new Date().toISOString(),
+      });
+    }
+
+    const updated = await prisma.domain.update({
+      where: { id },
+      data: {
+        dkimPublicKey: publicKeyDnsTxt,
+        dkimPrivateKeyEnc,
+        dkimVerified: false,
+        status: DomainStatus.PENDING,
+        dnsRecords: updatedDnsRecords as unknown as Prisma.InputJsonValue,
+      },
+      select: safeDomainSelect,
+    });
+
+    return {
+      domain: enrichDomainStatus(updated),
+      dnsRecord: {
+        type: 'TXT' as const,
+        host: dkimHost,
+        fqdn: dkimFqdn,
+        value: newDkimValue,
+        keyBits: 2048,
+      },
     };
   }
 

@@ -118,11 +118,13 @@ export const verifyDomainDns = async (params: {
 
   // Clean public key for whitespace, newlines, quotes, and semicolons
   const cleanExpectedKey = dkimPublicKey.replace(/[\r\n\s"';\\]/g, '');
-  const matchingDkim = dkimTxts.find((txt) => {
-    const normalized = txt.replace(/[\r\n\s"';\\]/g, '');
-    return normalized.includes(`p=${cleanExpectedKey}`) || normalized.includes(cleanExpectedKey);
-  });
-  const dkimVerified = Boolean(matchingDkim);
+  const normalizedRecords = dkimTxts.map((txt) => txt.replace(/[\r\n\s"';\\]/g, ''));
+  const dkimVerified = normalizedRecords.some(
+    (record) =>
+      (record.includes('v=DKIM1') && record.includes(`p=${cleanExpectedKey}`)) ||
+      record.includes(`p=${cleanExpectedKey}`) ||
+      record.includes(cleanExpectedKey)
+  );
 
   // 2. SPF Check: query both return-path subdomain AND apex root domain
   const spfFqdn = `${returnPathSubdomain}.${domainName}`;
@@ -181,9 +183,13 @@ export const verifyDomainDns = async (params: {
     const fallbackDmarc = await resolveTxtRecords(resolver, dmarcFqdnFallback);
     if (fallbackDmarc.length > 0) dmarcTxts = fallbackDmarc;
   }
-  const matchingDmarc = dmarcTxts.find((txt) =>
-    txt.trim().toLowerCase().startsWith('v=dmarc1')
-  );
+  const matchingDmarc = dmarcTxts.find((txt) => {
+    const lower = txt.trim().toLowerCase();
+    return (
+      lower.startsWith('v=dmarc1') &&
+      (lower.includes('p=reject') || lower.includes('p=quarantine') || lower.includes('p=none'))
+    );
+  });
   const dmarcVerified = Boolean(matchingDmarc);
 
   // Reconstruct updated DNS records array with 10/10 deliverability values
@@ -206,7 +212,7 @@ export const verifyDomainDns = async (params: {
       type: 'TXT',
       host: returnPathSubdomain,
       fqdn: spfFqdn,
-      value: sendingServerIp ? `v=spf1 ip4:${sendingServerIp} a mx ~all` : 'v=spf1 a mx ~all',
+      value: sendingServerIp ? `v=spf1 ip4:${sendingServerIp} a mx -all` : 'v=spf1 a mx -all',
       status: spfVerified ? 'VERIFIED' : 'FAILED',
       foundValues: allSpfTxts,
       reason: spfVerified
@@ -235,7 +241,7 @@ export const verifyDomainDns = async (params: {
       type: 'TXT',
       host: '_dmarc',
       fqdn: dmarcFqdn,
-      value: `v=DMARC1; p=none; rua=mailto:dmarc@${domainName}; aspf=r; adkim=r;`,
+      value: `v=DMARC1; p=reject; sp=reject; rua=mailto:dmarc@${domainName}; aspf=r; adkim=r;`,
       status: dmarcVerified ? 'VERIFIED' : 'FAILED',
       foundValues: dmarcTxts,
       reason: dmarcVerified

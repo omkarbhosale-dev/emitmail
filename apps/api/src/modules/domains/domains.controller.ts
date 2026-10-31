@@ -87,6 +87,27 @@ export const verifyDomain = async (req: Request, res: Response): Promise<void> =
   }
 };
 
+export const rotateDkim = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params as unknown as DomainIdParam;
+    const result = await DomainsService.rotateDkim(id);
+
+    if (!result) {
+      sendError(res, 'Domain not found', 404);
+      return;
+    }
+
+    sendSuccess(
+      res,
+      result,
+      '2048-bit DKIM key generated successfully. Please update the TXT record in your DNS provider and click Verify.'
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to rotate DKIM key';
+    sendError(res, message, 500);
+  }
+};
+
 export const deleteDomain = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params as unknown as DomainIdParam;
