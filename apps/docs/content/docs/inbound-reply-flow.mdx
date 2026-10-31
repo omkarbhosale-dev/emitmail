@@ -1,0 +1,72 @@
+---
+title: Inbound Processing & Threaded Replies
+description: Process inbound messages via webhooks and reply directly inside email conversation threads.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+When an external customer sends an email to your EmitMail mailbox (`support@yourdomain.com`), EmitMail streams the full MIME payload to your application via an `inbound.email.received` webhook event.
+
+---
+
+## 1. Webhook Inbound Payload Schema
+
+```json
+{
+  "id": "evt_4a7bc910283e4c76",
+  "event": "inbound.email.received",
+  "timestamp": "2026-10-31T12:00:00.000Z",
+  "data": {
+    "messageId": "<CABc123_xyz@mail.gmail.com>",
+    "mailbox": "support@yourdomain.com",
+    "from": "Alex Carter <alex@customer.com>",
+    "to": ["support@yourdomain.com"],
+    "subject": "Help with API authentication",
+    "text": "Hi team, I am getting a 401 when calling the /emails endpoint. Can you help?",
+    "html": "<p>Hi team, I am getting a 401 when calling the /emails endpoint. Can you help?</p>",
+    "headers": {
+      "message-id": "<CABc123_xyz@mail.gmail.com>",
+      "references": "<em_prev123@yourdomain.com>"
+    },
+    "attachments": []
+  }
+}
+```
+
+---
+
+## 2. Replying to an Inbound Thread (Node.js)
+
+To maintain RFC 5322 thread alignment in customer email clients (such as Gmail, Apple Mail, and Outlook), preserve the original `Message-ID` in the `In-Reply-To` and `References` headers:
+
+```typescript
+import { Resend } from 'resend';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+async function replyToCustomer(inboundData: any, replyText: string) {
+  const { data, error } = await resend.emails.send({
+    from: 'EmitMail Support <support@yourdomain.com>',
+    to: [inboundData.from],
+    subject: inboundData.subject.startsWith('Re:')
+      ? inboundData.subject
+      : `Re: ${inboundData.subject}`,
+    text: replyText,
+    html: `<p>${replyText.replace(/\n/g, '<br/>')}</p>`,
+    headers: {
+      'In-Reply-To': inboundData.messageId,
+      'References': inboundData.headers['references']
+        ? `${inboundData.headers['references']} ${inboundData.messageId}`
+        : inboundData.messageId,
+    },
+  });
+
+  if (error) {
+    console.error('Failed to send reply:', error);
+    return;
+  }
+
+  console.log('Reply dispatched into thread:', data?.id);
+}
+```

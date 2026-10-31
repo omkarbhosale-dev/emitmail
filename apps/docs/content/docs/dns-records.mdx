@@ -1,0 +1,64 @@
+---
+title: Outbound DNS Records (10/10 Deliverability)
+description: Exact DNS records for 2048-bit RSA DKIM, custom Return-Path SPF, MX bounce handling, and DMARC.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+To guarantee inbox placement and reach 10/10 on mail deliverability testers (like Mail-Tester.com), configure the following 4 records in your DNS management console (Cloudflare).
+
+---
+
+## 1. Required DNS Records Table
+
+| Type | Name / Host | Value / Target | Priority | Purpose |
+| :--- | :--- | :--- | :--- | :--- |
+| `TXT` | `esp._domainkey` | `v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...` | — | Cryptographic 2048-bit DKIM signature verification |
+| `TXT` | `send` | `v=spf1 ip4:<YOUR_VPS_IP> a mx -all` | — | Return-Path (`bounces@send.<domain>`) SPF authorization |
+| `MX` | `send` | `mail.yourdomain.com` | `10` | Bounce server MX pointer (prevents -3 Mail-Tester penalty) |
+| `TXT` | `_dmarc` | `v=DMARC1; p=reject; sp=reject; rua=mailto:dmarc@yourdomain.com; adkim=r; aspf=r;` | — | Strict anti-spoofing DMARC policy |
+
+<Callout type="info" title="Root Apex SPF Record">
+If your domain does not yet have an apex SPF record, add one at `@` to authorize your server:
+`v=spf1 ip4:<YOUR_VPS_IP> include:send.yourdomain.com -all`
+</Callout>
+
+---
+
+## 2. Step-by-Step DNS Walkthrough
+
+<Steps>
+  <Step>
+    ### Generate 2048-Bit RSA DKIM Key
+    In the EmitMail Dashboard, navigate to **Domains -> + Add Domain**. Enter your domain name (`yourdomain.com`). EmitMail automatically generates an enterprise-grade 2048-bit RSA key pair with AES-256-GCM encrypted database storage.
+  </Step>
+
+  <Step>
+    ### Add the DKIM TXT Record in Cloudflare
+    - **Type:** `TXT`
+    - **Name:** `esp._domainkey`
+    - **Value:** Copy the full `v=DKIM1; k=rsa; p=...` string from the dashboard.
+    - **Proxy Status:** DNS Only
+  </Step>
+
+  <Step>
+    ### Add Return-Path Subdomain SPF & MX Records
+    EmitMail routes RFC 5321 Return-Path bounce traffic through a dedicated subdomain (`send.yourdomain.com`):
+    - **TXT Record:** Name `send`, Content `v=spf1 ip4:<YOUR_VPS_IP> a mx -all`.
+    - **MX Record:** Name `send`, Mail Server `mail.yourdomain.com`, Priority `10`.
+  </Step>
+
+  <Step>
+    ### Add DMARC Policy TXT Record
+    Protect your brand from phishing with strict DMARC rejection:
+    - **Type:** `TXT`
+    - **Name:** `_dmarc`
+    - **Value:** `v=DMARC1; p=reject; sp=reject; rua=mailto:dmarc@yourdomain.com; adkim=r; aspf=r;`
+  </Step>
+
+  <Step>
+    ### Click "Verify Records" in Dashboard
+    Click **Verify DNS Records** in the EmitMail domain drawer. The public DNS resolver will check all 4 records across Cloudflare's edge nameservers and activate your domain.
+  </Step>
+</Steps>

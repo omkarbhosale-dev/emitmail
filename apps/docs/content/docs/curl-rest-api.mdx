@@ -1,0 +1,105 @@
+---
+title: cURL & Direct REST API Reference
+description: Dispatch emails, upload attachments, and query delivery status using standard HTTP without an SDK.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+
+EmitMail mounts native REST endpoints at `/api/v1/emails`, `/v1/emails`, and `/emails` for seamless compatibility with any programming language.
+
+---
+
+## 1. Quick Dispatch via cURL
+
+```bash
+curl -X POST "https://api.yourdomain.com/emails" \
+  -H "Authorization: Bearer em_live_your_generated_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "from": "Omkar from EmitMail <hello@yourdomain.com>",
+    "to": ["recipient@example.com"],
+    "subject": "Deploying EmitMail via REST API",
+    "html": "<h1>Hello from EmitMail</h1><p>Dispatched with 2048-bit DKIM signature.</p>",
+    "text": "Hello from EmitMail. Dispatched with 2048-bit DKIM signature."
+  }'
+```
+
+### Server Response Payload (< 50ms)
+
+```json
+{
+  "id": "em_5ff8cdb59a274161ba78f4628da2f8b5",
+  "from": "hello@yourdomain.com",
+  "to": ["recipient@example.com"],
+  "created_at": "2026-10-31T12:00:00.000Z",
+  "status": "queued",
+  "message": "Email successfully accepted and queued for delivery",
+  "suppressed": false,
+  "suppressionReason": null,
+  "success": true,
+  "data": {
+    "id": "em_5ff8cdb59a274161ba78f4628da2f8b5",
+    "from": "hello@yourdomain.com",
+    "to": ["recipient@example.com"],
+    "status": "QUEUED",
+    "messageId": "<em_5ff8cdb59a274161ba78f4628da2f8b5@mail.yourdomain.com>",
+    "createdAt": "2026-10-31T12:00:00.000Z"
+  }
+}
+```
+
+---
+
+## 2. Attachments & Custom RFC Headers
+
+You can include Base64-encoded attachments, custom headers, and one-click `List-Unsubscribe` directives:
+
+```bash
+curl -X POST "https://api.yourdomain.com/emails" \
+  -H "Authorization: Bearer em_live_your_generated_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "from": "Billing <invoices@yourdomain.com>",
+    "to": ["customer@example.com"],
+    "subject": "Your Monthly Statement",
+    "html": "<p>Please find your monthly invoice attached below.</p>",
+    "reply_to": "support@yourdomain.com",
+    "headers": {
+      "X-Entity-Ref-ID": "inv_984128",
+      "List-Unsubscribe": "<https://yourdomain.com/unsubscribe/user123>",
+      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click"
+    },
+    "attachments": [
+      {
+        "filename": "invoice-october-2026.pdf",
+        "content": "JVBERi0xLjQKJcOkw1...[base64_string]...",
+        "contentType": "application/pdf"
+      }
+    ]
+  }'
+```
+
+---
+
+## 3. Query Email Status
+
+```bash
+curl -X GET "https://api.yourdomain.com/api/v1/emails/em_5ff8cdb59a274161ba78f4628da2f8b5" \
+  -H "Authorization: Bearer em_live_your_generated_api_key"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "em_5ff8cdb59a274161ba78f4628da2f8b5",
+    "status": "DELIVERED",
+    "from": "hello@yourdomain.com",
+    "to": ["recipient@example.com"],
+    "subject": "Deploying EmitMail via REST API",
+    "deliveredAt": "2026-10-31T12:00:02.312Z"
+  }
+}
+```
