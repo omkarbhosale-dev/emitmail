@@ -1,11 +1,16 @@
 import { z } from 'zod';
 
 export const allowedWebhookEvents = [
+  'email.sent',
   'email.delivered',
   'email.bounced',
   'email.complaint',
+  'email.complained',
   'email.suppressed',
   'email.unsubscribed',
+  'email.opened',
+  'email.clicked',
+  'inbound.email.received',
   'domain.verified',
   'domain.failed',
 ] as const;
@@ -32,6 +37,22 @@ export type CreateWebhookSubscriptionInput = z.infer<
   typeof createWebhookSubscriptionSchema
 >;
 
+export const updateWebhookSubscriptionSchema = z.object({
+  events: z
+    .array(z.enum(allowedWebhookEvents))
+    .min(1, 'At least one event subscription is required')
+    .optional(),
+  isActive: z.boolean().optional(),
+  url: z
+    .string()
+    .url('Must be a valid HTTP or HTTPS webhook URL')
+    .optional(),
+});
+
+export type UpdateWebhookSubscriptionInput = z.infer<
+  typeof updateWebhookSubscriptionSchema
+>;
+
 export const inboundBounceSchema = z.object({
   messageId: z.string().optional(),
   emailId: z.string().uuid().optional(),
@@ -49,3 +70,9 @@ export const webhookIdParamSchema = z.object({
 });
 
 export type WebhookIdParam = z.infer<typeof webhookIdParamSchema>;
+
+export const testWebhookSchema = z.object({
+  event: z.enum(allowedWebhookEvents).optional(),
+});
+
+export type TestWebhookInput = z.infer<typeof testWebhookSchema>;

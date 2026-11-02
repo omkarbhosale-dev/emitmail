@@ -130,20 +130,40 @@ export interface WebhookEndpoint {
   id: string;
   url: string;
   secret: string;
-  status: "active" | "disabled";
+  isActive: boolean;
+  status?: "active" | "disabled";
   events: string[];
+  domainId?: string | null;
+  domain?: {
+    id: string;
+    domainName: string;
+  } | null;
+  _count?: {
+    deliveries: number;
+  };
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface WebhookDeliveryLog {
   id: string;
   event: string;
-  url: string;
-  statusCode: number;
-  statusText: string;
+  url?: string;
+  subscriptionId?: string;
+  subscription?: {
+    id: string;
+    url: string;
+  };
+  statusCode: number | null;
+  statusText?: string;
   timestamp: string;
-  latencyMs: number;
+  createdAt?: string;
+  latencyMs?: number;
   payload: Record<string, unknown>;
+  responseBody?: string | null;
+  success?: boolean;
+  attempts?: number;
+  lastError?: string | null;
 }
 
 export interface ToastMessage {

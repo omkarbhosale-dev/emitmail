@@ -5,6 +5,8 @@ import {
   ProcessedEmailItem,
   UserRole,
   DashboardUser,
+  WebhookEndpoint,
+  WebhookDeliveryLog,
 } from "@/types";
 
 const API_BASE_URL = (
@@ -973,6 +975,100 @@ export const api = {
             worker: health?.services?.worker === "running" || health?.services?.redis === "connected",
           },
         };
+      },
+    },
+
+    webhooks: {
+      list: async (): Promise<WebhookEndpoint[]> => {
+        const res = await apiFetch<{ success: boolean; data: WebhookEndpoint[] }>("/webhooks");
+        return Array.isArray(res) ? res : res.data || [];
+      },
+
+      getById: async (id: string): Promise<WebhookEndpoint> => {
+        const res = await apiFetch<{ success: boolean; data: WebhookEndpoint }>(`/webhooks/${id}`);
+        return (res as any)?.data || res;
+      },
+
+      create: async (data: {
+        url: string;
+        events: string[];
+        secret?: string;
+        domainId?: string | null;
+      }): Promise<WebhookEndpoint> => {
+        const res = await apiFetch<{ success: boolean; data: WebhookEndpoint }>("/webhooks", {
+          method: "POST",
+          body: JSON.stringify(data),
+        });
+        return (res as any)?.data || res;
+      },
+
+      update: async (
+        id: string,
+        data: {
+          events?: string[];
+          isActive?: boolean;
+          url?: string;
+        }
+      ): Promise<WebhookEndpoint> => {
+        const res = await apiFetch<{ success: boolean; data: WebhookEndpoint }>(`/webhooks/${id}`, {
+          method: "PATCH",
+          body: JSON.stringify(data),
+        });
+        return (res as any)?.data || res;
+      },
+
+      delete: async (id: string): Promise<{ id: string; url: string }> => {
+        const res = await apiFetch<{ success: boolean; data: { id: string; url: string } }>(
+          `/webhooks/${id}`,
+          { method: "DELETE" }
+        );
+        return (res as any)?.data || res;
+      },
+
+      test: async (
+        id: string,
+        event?: string
+      ): Promise<{
+        deliveryId: string;
+        url: string;
+        event: string;
+        success: boolean;
+        statusCode: number;
+        statusText: string;
+        latencyMs: number;
+        payload: any;
+        responseBody: string;
+        lastError?: string | null;
+        timestamp: string;
+      }> => {
+        const res = await apiFetch<{
+          success: boolean;
+          data: {
+            deliveryId: string;
+            url: string;
+            event: string;
+            success: boolean;
+            statusCode: number;
+            statusText: string;
+            latencyMs: number;
+            payload: any;
+            responseBody: string;
+            lastError?: string | null;
+            timestamp: string;
+          };
+        }>(`/webhooks/${id}/test`, {
+          method: "POST",
+          body: JSON.stringify({ event }),
+        });
+        return (res as any)?.data || res;
+      },
+
+      listDeliveries: async (subscriptionId?: string): Promise<WebhookDeliveryLog[]> => {
+        const query = subscriptionId ? `?subscriptionId=${encodeURIComponent(subscriptionId)}` : "";
+        const res = await apiFetch<{ success: boolean; data: WebhookDeliveryLog[] }>(
+          `/webhooks/deliveries${query}`
+        );
+        return Array.isArray(res) ? res : res.data || [];
       },
     },
 
