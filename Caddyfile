@@ -1,0 +1,71 @@
+{
+    # Global options
+    # ACME email address for automated Let's Encrypt / ZeroSSL certificate registration
+    email {$ACME_EMAIL:admin@yourdomain.com}
+}
+
+# ==============================================================================
+# 1. EmitMail Dashboard & REST API Gateways (e.g. emitmail.yourdomain.com)
+# ==============================================================================
+{$DASHBOARD_DOMAIN:emitmail.yourdomain.com} {
+    encode gzip zstd
+
+    # Backend API v1 Endpoints
+    handle /api/* {
+        reverse_proxy emitmail-api:4000
+    }
+
+    # Resend Official SDK Drop-In Endpoints
+    handle /emails* {
+        reverse_proxy emitmail-api:4000
+    }
+
+    # Inbound / Outbound Webhook Endpoints
+    handle /webhooks* {
+        reverse_proxy emitmail-api:4000
+    }
+
+    # API v1 short route
+    handle /v1/* {
+        reverse_proxy emitmail-api:4000
+    }
+
+    # Suppression & Unsubscribe Endpoints
+    handle /suppressions* {
+        reverse_proxy emitmail-api:4000
+    }
+    handle /unsubscribe* {
+        reverse_proxy emitmail-api:4000
+    }
+
+    # Health Check Endpoint
+    handle /health* {
+        reverse_proxy emitmail-api:4000
+    }
+
+    # Next.js Management Dashboard UI
+    handle {
+        reverse_proxy emitmail-dashboard:3000
+    }
+}
+
+# ==============================================================================
+# 2. EmitDocs Developer Documentation (e.g. emitdocs.yourdomain.com)
+# ==============================================================================
+{$DOCS_DOMAIN:emitdocs.yourdomain.com} {
+    encode gzip zstd
+
+    # Next.js Documentation Platform
+    handle {
+        reverse_proxy emitmail-docs:3001
+    }
+}
+
+# ==============================================================================
+# 3. SMTP EHLO Hostname Browser Redirect (e.g. mail.yourdomain.com)
+# ==============================================================================
+# If an operator or visitor opens the mail server hostname in their web browser,
+# automatically redirect them to the primary web dashboard.
+{$SMTP_EHLO_HOSTNAME:mail.yourdomain.com} {
+    redir https://{$DASHBOARD_DOMAIN:emitmail.yourdomain.com}{uri} permanent
+}

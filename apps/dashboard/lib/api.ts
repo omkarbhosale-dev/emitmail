@@ -9,9 +9,15 @@ import {
   WebhookDeliveryLog,
 } from "@/types";
 
-const API_BASE_URL = (
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1"
-).replace(/\/+$/, "");
+export function getApiBaseUrl(): string {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, "");
+  }
+  if (typeof window !== "undefined" && window.location?.origin) {
+    return `${window.location.origin}/api/v1`;
+  }
+  return "http://localhost:4000/api/v1";
+}
 
 const TOKEN_STORAGE_KEY = "emitmail_admin_jwt";
 
@@ -47,7 +53,7 @@ export async function apiFetch<T>(
   options: RequestInit = {}
 ): Promise<T> {
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
-  const url = `${API_BASE_URL}${cleanPath}`;
+  const url = `${getApiBaseUrl()}${cleanPath}`;
 
   const token = getAuthToken();
 
@@ -121,7 +127,7 @@ export const api = {
         mustChangePassword?: boolean;
       };
     }> => {
-      const res = await fetch(`${API_BASE_URL}/auth/login`, {
+      const res = await fetch(`${getApiBaseUrl()}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(credentials),
