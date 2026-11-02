@@ -10,13 +10,13 @@ EmitMail includes a complete Inbound Mailbox Engine that allows you to receive, 
 
 ---
 
-## 1. Cloudflare DNS: Inbound Root MX Record
+## 1. Configure DNS: Inbound Root MX Record
 
-To direct incoming mail for your root domain (`@yourdomain.com`) to your EmitMail server, add this MX record in Cloudflare:
+To direct incoming mail for your root domain (`@yourdomain.com`) to your EmitMail server, add this MX record in your DNS provider:
 
 | Type | Host / Name | Mail Server Target | Priority | Proxy Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `MX` | `@` (root domain) | `mail.yourdomain.com` | `10` | **DNS Only (Grey Cloud)** |
+| `MX` | `@` (root domain) | `mail.yourdomain.com` | `10` | **DNS Only / Unproxied** |
 
 <Callout type="warn" title="Single MX Routing">
 If you currently receive mail through Google Workspace or Microsoft 365 on your root domain, adding EmitMail as an MX record will share incoming delivery. For dedicated application inboxes, use a subdomain like `support.yourdomain.com` or replace existing MX records if EmitMail is your primary mail provider.

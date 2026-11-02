@@ -1,0 +1,208 @@
+---
+title: Contributing Guide & Monorepo Architecture
+description: Learn how to set up the EmitMail monorepo locally, understand the single-app multi-service architecture, and contribute across the API, Worker, Dashboard, and Documentation.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+Welcome to the **EmitMail** open-source contributor guide! EmitMail is built as a cohesive, single-monorepo application powering high-deliverability transactional email dispatch, 2048-bit RSA DKIM generation, and an inbound SMTP mailbox engine.
+
+Whether you are fixing a bug, adding a new feature to the **Backend API**, optimizing the **Background Worker**, polishing the **Cloudflare Kumo Dashboard**, or improving our **Documentation**, this guide will help you get up and running in minutes.
+
+---
+
+## 1. Monorepo Architecture Overview
+
+EmitMail is organized as a `pnpm` workspace containing four core applications and shared packages:
+
+```text
+emitmail/
+├── apps/
+│   ├── api/            # Express REST API, Prisma ORM, Inbound SMTP receiver (Port 2525)
+│   ├── worker/         # Decoupled BullMQ delivery engine, direct MX transport (Port 25)
+│   ├── dashboard/      # Next.js 16 UI, @cloudflare/kumo design system, React 19
+│   └── docs/           # Next.js 16 + Fumadocs documentation engine (Port 3001)
+├── packages/
+│   ├── database/       # Shared database client contracts & types
+│   ├── queue/          # Shared BullMQ queue schemas and job definitions
+│   └── shared/         # Shared TypeScript utilities, constants, and validators
+├── docker/             # Production & development Dockerfiles
+├── scripts/            # Deliverability tests and queue simulation scripts
+└── docker-compose.dev.yml # Local development PostgreSQL & Redis infrastructure
+```
+
+### How the Single Monorepo Works Together
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                             EmitMail Monorepo                               │
+│                                                                             │
+│   ┌────────────────────┐                   ┌────────────────────────────┐   │
+│   │  apps/dashboard    │ ──(HTTP/REST)───► │  apps/api                  │   │
+│   │  (Next.js + Kumo)  │                   │  (Express + Prisma)        │   │
+│   │  Port 3000         │                   │  Port 4000                 │   │
+│   └────────────────────┘                   └──────┬──────────────┬──────┘   │
+│                                                   │              │          │
+│                                           (BullMQ │              │ (Prisma) │
+│                                             Jobs) │              │          │
+│                                                   ▼              ▼          │
+│   ┌────────────────────┐                   ┌──────────────┐ ┌───────────┐   │
+│   │  apps/docs         │                   │ Redis        │ │ PostgreSQL│   │
+│   │  (Fumadocs Engine) │                   │ Port 6379    │ │ Port 5432 │   │
+│   │  Port 3001         │                   └──────┬───────┘ └─────▲─────┘   │
+│   └────────────────────┘                          │               │         │
+│                                            (Pulls │               │         │
+│                                             Jobs) │               │ Updates │
+│                                                   ▼               │ Status  │
+│                                            ┌──────────────┐       │         │
+│                                            │ apps/worker  │───────┘         │
+│                                            │ (SMTP Engine)│                 │
+│                                            └──────────────┘                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 2. Quickstart: Local Environment Setup
+
+<Steps>
+  <Step>
+    ### Prerequisites
+    Ensure you have installed:
+    - **Node.js**: `v20.x` or `v22.x` (LTS recommended)
+    - **pnpm**: `v9.x` or higher (`corepack enable && corepack prepare pnpm@latest --activate`)
+    - **Docker & Docker Compose**: For local PostgreSQL 16 and Redis 7
+    - **Git**: For version control
+  </Step>
+
+  <Step>
+    ### Clone the Repository
+    ```bash
+    git clone https://github.com/omkarbhosale-dev/emitmail.git
+    cd emitmail
+    ```
+  </Step>
+
+  <Step>
+    ### Install Workspace Dependencies
+    Install dependencies across the entire monorepo using `pnpm`:
+    ```bash
+    pnpm install
+    ```
+  </Step>
+
+  <Step>
+    ### Configure Environment Variables
+    Copy the example `.env.example` file to `.env`:
+    ```bash
+    cp .env.example .env
+    ```
+    The default settings in `.env.example` are preconfigured to work out-of-the-box with our local development Docker services:
+    - `DATABASE_URL`: `postgresql://emitmail:emitmail_pass@localhost:5432/emitmail?schema=public`
+    - `REDIS_URL`: `redis://localhost:6379`
+    - `API_PORT`: `4000`
+    - `NEXT_PUBLIC_API_URL`: `http://localhost:4000/api/v1`
+  </Step>
+
+  <Step>
+    ### Start Local PostgreSQL & Redis
+    Launch the containerized development database and Redis instances:
+    ```bash
+    pnpm dev:docker
+    ```
+    Verify that both containers are running healthy:
+    ```bash
+    docker compose -f docker-compose.dev.yml ps
+    ```
+  </Step>
+
+  <Step>
+    ### Initialize and Seed Database
+    Generate the Prisma client, push the schema to PostgreSQL, and seed the default administrator:
+    ```bash
+    # Generate Prisma Client
+    pnpm db:generate
+
+    # Push schema to local Postgres
+    pnpm db:push
+
+    # Seed default admin user (admin / emitmail)
+    pnpm db:seed
+    ```
+  </Step>
+</Steps>
+
+---
+
+## 3. Running Services Locally
+
+You can run individual services depending on which part of EmitMail you are developing:
+
+| Command | Service | URL / Port | Purpose |
+| :--- | :--- | :--- | :--- |
+| `pnpm dev:api` | **Backend API** | `http://localhost:4000` | Express REST API, Inbound SMTP on port `2525` |
+| `pnpm dev:worker` | **Delivery Worker** | Console (Background) | BullMQ worker consuming queue & dispatching emails |
+| `pnpm dev:dashboard` | **Dashboard UI** | `http://localhost:3000` | Next.js 16 App Router + Cloudflare Kumo components |
+| `pnpm dev:docs` | **Documentation** | `http://localhost:3001` | Fumadocs MDX documentation site |
+
+<Callout type="info" title="Default Seed Credentials">
+When the database is seeded, log in to the dashboard at `http://localhost:3000/login` with:
+- **Username:** `admin`
+- **Password:** `emitmail`
+</Callout>
+
+---
+
+## 4. Explore Component Contribution Guides
+
+Explore our detailed guides for each component of the EmitMail application:
+
+<Cards>
+  <Card title="Backend API (apps/api)" href="/docs/contributing-api">
+    Express endpoints, Prisma models, 2048-bit DKIM crypto, Inbound SMTP server, and Resend-compatible API.
+  </Card>
+  <Card title="Background Worker (apps/worker)" href="/docs/contributing-worker">
+    BullMQ worker architecture, Nodemailer direct MX transport, DNS resolution, and retry loops.
+  </Card>
+  <Card title="Dashboard UI (apps/dashboard)" href="/docs/contributing-dashboard">
+    Next.js 16, React 19, Tailwind CSS v4, and Cloudflare Kumo design tokens (`DESIGN.md`).
+  </Card>
+  <Card title="Documentation (apps/docs)" href="/docs/contributing-docs">
+    Fumadocs MDX setup, component library, sidebar organization, and writing style guide.
+  </Card>
+</Cards>
+
+---
+
+## 5. Contribution & Pull Request Workflow
+
+We follow standard GitHub Flow for all contributions:
+
+### 1. Branching Strategy
+Create a descriptive branch from `main`:
+- `feat/feature-name` for new capabilities
+- `fix/bug-description` for bug fixes
+- `docs/page-name` for documentation updates
+- `perf/optimization` for performance enhancements
+
+```bash
+git checkout -b feat/custom-webhook-headers
+```
+
+### 2. Conventional Commit Guidelines
+We use Conventional Commits to generate automated changelogs:
+- `feat: add support for custom webhook headers`
+- `fix: handle 2048-bit multi-chunk DKIM TXT strings in resolver`
+- `docs: add contributing guide for backend api and worker`
+- `refactor: extract mx resolution logic into dedicated service`
+
+### 3. Verification Checklist Before Submitting a PR
+Before opening a pull request, ensure:
+1. `pnpm build:api` compiles with 0 TypeScript errors.
+2. `pnpm build:worker` compiles with 0 TypeScript errors.
+3. `pnpm build:dashboard` builds successfully.
+4. `pnpm build:docs` generates all static MDX pages without errors.
+5. All environment variables have clear documentation in `.env.example`.
+

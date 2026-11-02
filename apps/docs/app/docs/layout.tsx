@@ -11,21 +11,14 @@ export default function Layout({ children }: { children: ReactNode }) {
       }}
       nav={{
         title: (
-          <div className="flex items-center select-none py-1">
-            <span className="font-logo font-extrabold tracking-tight text-xl sm:text-2xl text-[#FF6600] leading-none">
+          <div className="flex items-center select-none py-1.5">
+            <span className="font-logo font-black tracking-tight text-2xl sm:text-3xl text-[#FF6600] leading-none">
               emitmail
             </span>
           </div>
         ),
       }}
       githubUrl="https://github.com/omkarbhosale-dev/emitmail"
-      links={[
-        {
-          text: 'Back to Dashboard',
-          url: process.env.NEXT_PUBLIC_DASHBOARD_URL || 'http://localhost:3000',
-          external: true,
-        },
-      ]}
     >
       {children}
     </DocsLayout>

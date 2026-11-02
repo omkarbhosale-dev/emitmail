@@ -6,7 +6,7 @@ description: Exact DNS records for 2048-bit RSA DKIM, custom Return-Path SPF, MX
 import { Callout } from 'fumadocs-ui/components/callout';
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 
-To guarantee inbox placement and reach 10/10 on mail deliverability testers (like Mail-Tester.com), configure the following 4 records in your DNS management console (Cloudflare).
+To guarantee inbox placement and reach 10/10 on mail deliverability testers (like Mail-Tester.com), configure the following 4 records in your DNS management console (e.g., Cloudflare, AWS Route 53, Namecheap, Porkbun, Google Cloud DNS).
 
 ---
 
@@ -35,11 +35,11 @@ If your domain does not yet have an apex SPF record, add one at `@` to authorize
   </Step>
 
   <Step>
-    ### Add the DKIM TXT Record in Cloudflare
+    ### Configure DKIM TXT Record in DNS
     - **Type:** `TXT`
     - **Name:** `esp._domainkey`
     - **Value:** Copy the full `v=DKIM1; k=rsa; p=...` string from the dashboard.
-    - **Proxy Status:** DNS Only
+    - **Proxy Status:** DNS Only / Unproxied
   </Step>
 
   <Step>
@@ -59,7 +59,7 @@ If your domain does not yet have an apex SPF record, add one at `@` to authorize
 
   <Step>
     ### Click "Verify Records" in Dashboard
-    Click **Verify DNS Records** in the EmitMail domain drawer. The public DNS resolver will check all 4 records across Cloudflare's edge nameservers and activate your domain.
+    Click **Verify DNS Records** in the EmitMail domain drawer. The public DNS resolver will check all 4 records across public edge nameservers (such as Cloudflare 1.1.1.1 and Google 8.8.8.8) and activate your domain.
   </Step>
 </Steps>
 

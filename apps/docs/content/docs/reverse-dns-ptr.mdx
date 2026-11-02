@@ -15,16 +15,16 @@ Reverse Resolution:  198.51.100.1        ──────(rDNS / PTR)───
 
 ---
 
-## 1. Cloudflare DNS: Forward 'A' Record
+## 1. Configure DNS: Forward 'A' Record
 
 Add an `A` record pointing your mail hostname to your VPS public IPv4:
 
 | Type | Name / Host | IPv4 Address | Proxy Status | TTL |
 | :--- | :--- | :--- | :--- | :--- |
-| `A` | `mail` | `<YOUR_VPS_IP>` | **DNS Only (Grey Cloud)** | Auto / 1 min |
+| `A` | `mail` | `<YOUR_VPS_IP>` | **DNS Only / Unproxied** | Auto / 1 min / 300s |
 
-<Callout type="warn" title="Grey Cloud Only">
-Do NOT enable the orange Cloudflare Proxy for `mail.yourdomain.com`. Cloudflare only proxies HTTP/HTTPS web traffic and will drop raw SMTP Port 25 connections.
+<Callout type="warn" title="DNS Only / No HTTP Proxy">
+If using Cloudflare or a CDN proxy service, do NOT enable the proxy (e.g. Cloudflare Orange Cloud) for `mail.yourdomain.com`. Proxies only handle web traffic (ports 80/443) and will drop raw SMTP Port 25 connections. Keep this record **DNS Only**.
 </Callout>
 
 ---

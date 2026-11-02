@@ -1,0 +1,199 @@
+---
+title: Backend API Guide (apps/api)
+description: Deep-dive architecture, database models, Express middleware, 2048-bit DKIM crypto, and Inbound SMTP receiver in apps/api.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+The **Backend API** (`apps/api`) serves as the central control plane of EmitMail. It powers the REST API, manages domain authentication and 2048-bit DKIM keys, verifies DNS records, runs the inbound SMTP server on port 2525, and provides drop-in compatibility with the Resend API.
+
+---
+
+## 1. Directory Structure
+
+```text
+apps/api/
+├── prisma/
+│   ├── schema.prisma        # Prisma relational schema (PostgreSQL)
+│   ├── migrations/          # SQL migration history
+│   └── seed.ts              # Database seeding script (admin user & demo data)
+├── src/
+│   ├── config/              # Environment parser, DB, and Redis connections
+│   │   ├── env.ts           # Zod-validated environment schema
+│   │   ├── db.ts            # PrismaClient singleton instance
+│   │   └── redis.ts         # ioredis client singleton
+│   ├── middlewares/         # Express middlewares
+│   │   ├── auth.middleware.ts    # JWT admin authentication
+│   │   └── apiKey.middleware.ts  # Bearer em_live_ API key validation
+│   ├── modules/             # Modular feature domains
+│   │   ├── auth/            # Admin login, sessions, password updates
+│   │   ├── domains/         # Domain creation, 2048-bit DKIM crypto, DNS checks
+│   │   ├── api-keys/        # Scoped API key generation and management
+│   │   ├── emails/          # Outbound dispatch, Resend endpoints, status
+│   │   ├── mailboxes/       # Inbound mailbox aliases & catch-all routing
+│   │   ├── webhooks/        # Webhook subscriptions & HMAC signing
+│   │   ├── analytics/       # Aggregated sending statistics & timeseries
+│   │   └── system/          # Version checking & GitHub release proxy
+│   ├── inbound/
+│   │   └── smtp-receiver.ts # SMTP receiver engine (smtp-server on port 2525)
+│   ├── queues/              # BullMQ queue producers
+│   ├── utils/               # DKIM generation, crypto, and DNS verifiers
+│   ├── app.ts               # Express application initialization & middleware stack
+│   └── index.ts             # Server entry point & startup bootstrap
+└── test-standalone-workflow.ts # End-to-end API integration test script
+```
+
+---
+
+## 2. Database Models & Prisma Workflow
+
+The database layer is managed by **Prisma** with PostgreSQL.
+
+### Key Models (`prisma/schema.prisma`)
+- **`User`**: Admin users authenticated via bcrypt and JWT.
+- **`Domain`**: Verified sending domains, tracking verification status (`PENDING`, `VERIFIED`, `FAILED`).
+- **`DkimKey`**: Stores 2048-bit RSA public key and AES-256-GCM encrypted private key.
+- **`ApiKey`**: Scoped credentials prefixed with `em_live_` hashed in the database.
+- **`Email`**: Outbound email logs, delivery status (`QUEUED`, `SENT`, `DELIVERED`, `BOUNCED`), recipient, subject, and error messages.
+- **`Mailbox`**: Inbound address bindings (`support@yourdomain.com`, `*` for catch-all).
+- **`InboundEmail`**: Raw and parsed incoming emails, headers, HTML body, attachments.
+- **`Webhook`**: Webhook URLs subscribed to events (`email.sent`, `email.delivered`, `email.bounced`, `inbound.email.received`).
+- **`ServerConfig`**: Master server hostname (`mail.yourdomain.com`) and outbound IP.
+
+### Database CLI Commands
+Always run database commands from the repository root:
+```bash
+# Generate Prisma Client after modifying schema.prisma
+pnpm db:generate
+
+# Push schema changes directly during local development
+pnpm db:push
+
+# Create a formal migration for production
+pnpm db:migrate
+
+# Seed default administrator account
+pnpm db:seed
+```
+
+---
+
+## 3. 2048-Bit RSA DKIM Key Generation & DNS Verification
+
+EmitMail enforces modern cryptographic requirements by generating **2048-bit RSA keys** for every registered domain:
+
+```typescript
+// apps/api/src/utils/dkim.ts
+import crypto from 'node:crypto';
+
+export function generateDkimKeyPair() {
+  const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
+    modulusLength: 2048,
+    publicKeyEncoding: { type: 'spki', format: 'pem' },
+    privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+  });
+
+  // Strip PEM headers/footers and newlines for DNS TXT value
+  const publicKeyBase64 = publicKey
+    .replace(/-----BEGIN PUBLIC KEY-----/g, '')
+    .replace(/-----END PUBLIC KEY-----/g, '')
+    .replace(/\s+/g, '');
+
+  return {
+    privateKey,
+    publicKey,
+    publicKeyBase64,
+    dnsTxtValue: `v=DKIM1; k=rsa; p=${publicKeyBase64}`,
+    keyBits: 2048,
+  };
+}
+```
+
+### Multi-Chunk DNS Resolution
+Because 2048-bit RSA public keys exceed the 255-character limit of single DNS string chunks, DNS providers automatically split TXT records into multiple chunks. The verifier in `apps/api/src/modules/domains/` properly handles this:
+
+```typescript
+const txtRecords = await dns.promises.resolveTxt(`${selector}._domainkey.${domainName}`);
+// Join string chunks before normalizing
+const normalizedRecords = txtRecords.map(chunks => chunks.join('').replace(/\s+/g, ''));
+const isVerified = normalizedRecords.some(
+  record => record.includes('v=DKIM1') && record.includes(`p=${expectedKey}`)
+);
+```
+
+---
+
+## 4. Inbound SMTP Receiving Server
+
+When `INBOUND_SMTP_ENABLED="true"`, EmitMail boots an embedded ESMTP receiver on `INBOUND_SMTP_PORT` (default `2525`, mapped to `25` in Docker):
+
+- **Host & Port:** `0.0.0.0:2525`
+- **Recipient Verification (`onRcptTo`):** Validates that incoming recipients belong to a registered, active domain and match an existing alias or catch-all mailbox.
+- **Parsing:** Streams raw email data through `mailparser` to extract sender, recipient, subject, HTML/plain-text bodies, and file attachments.
+- **Queue Dispatch:** Pushes incoming mail events to the `inbound-email-queue` in Redis for background webhook dispatch and dashboard notifications.
+
+---
+
+## 5. Resend Drop-in Compatibility Layer
+
+EmitMail provides 100% route and parameter compatibility with the official Resend SDK:
+- `POST /emails`
+- `POST /api/v1/emails`
+- `GET /emails/:id`
+
+```typescript
+// Incoming Bearer em_live_... authenticated request
+// Handled by ApiKeyMiddleware
+app.post('/emails', apiKeyMiddleware, async (req, res) => {
+  const { from, to, subject, html, text, reply_to, headers, attachments } = req.body;
+  
+  // 1. Validate sending domain belongs to the API key
+  // 2. Persist record to PostgreSQL with status QUEUED
+  // 3. Dispatch BullMQ job to 'email-delivery-queue'
+  
+  return res.status(200).json({
+    id: emailRecord.id,
+    from,
+    to: Array.isArray(to) ? to : [to],
+    created_at: emailRecord.createdAt.toISOString(),
+  });
+});
+```
+
+---
+
+## 6. How to Add a New API Feature
+
+<Steps>
+  <Step>
+    ### Define Database Schema (if needed)
+    Open `apps/api/prisma/schema.prisma`, add or update your model, and run `pnpm db:push`.
+  </Step>
+
+  <Step>
+    ### Create Module Directory
+    Inside `apps/api/src/modules/`, create your new module folder (e.g. `templates/`):
+    - `templates.routes.ts`: Express router definitions and middleware attachments.
+    - `templates.controller.ts`: Request parsing and HTTP responses.
+    - `templates.service.ts`: Business logic and database interactions.
+    - `templates.validation.ts`: Zod request schemas.
+  </Step>
+
+  <Step>
+    ### Register Router in `app.ts`
+    Mount your router inside `apps/api/src/app.ts`:
+    ```typescript
+    app.use('/api/v1/templates', authMiddleware, templatesRouter);
+    ```
+  </Step>
+
+  <Step>
+    ### Run Integration Tests
+    Test your new routes with:
+    ```bash
+    pnpm test:workflow
+    ```
+  </Step>
+</Steps>
+
