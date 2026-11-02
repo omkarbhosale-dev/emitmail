@@ -13,6 +13,7 @@ export interface AuthContextType {
   isViewer: boolean;
   canCreate: boolean;
   canEdit: boolean;
+  mustChangePassword: boolean;
   refreshUser: () => Promise<DashboardUser | null>;
 }
 
@@ -25,6 +26,7 @@ const AuthContext = createContext<AuthContextType>({
   isViewer: false,
   canCreate: true,
   canEdit: true,
+  mustChangePassword: false,
   refreshUser: async () => null,
 });
 
@@ -66,6 +68,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const canCreate = !isViewer;
   const canEdit = !isViewer;
 
+  const mustChangePassword = Boolean(currentUser?.mustChangePassword);
+
   return (
     <AuthContext.Provider
       value={{
@@ -77,6 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isViewer,
         canCreate,
         canEdit,
+        mustChangePassword,
         refreshUser: fetchUser,
       }}
     >

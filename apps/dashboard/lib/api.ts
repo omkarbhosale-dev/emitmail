@@ -169,10 +169,14 @@ export const api = {
       }
     },
 
-    changePassword: async (data: { currentPassword: string; newPassword: string }) => {
+    changePassword: async (data: { currentPassword: string; newPassword: string; confirmPassword?: string }) => {
       return apiFetch("/auth/change-password", {
         method: "POST",
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          currentPassword: data.currentPassword,
+          newPassword: data.newPassword,
+          confirmPassword: data.confirmPassword || data.newPassword,
+        }),
       });
     },
 
@@ -1069,6 +1073,26 @@ export const api = {
           `/webhooks/deliveries${query}`
         );
         return Array.isArray(res) ? res : res.data || [];
+      },
+    },
+
+    serverConfig: {
+      get: async () => {
+        return apiFetch<{
+          config: {
+            mailServerHostname: string;
+            vpsPublicIpv4: string;
+            spfIncludeDomain: string;
+            isConfigured: boolean;
+          };
+          checklist: Array<{
+            type: string;
+            host?: string;
+            value: string;
+            purpose: string;
+            instructions: string;
+          }>;
+        }>("/server-config");
       },
     },
 
