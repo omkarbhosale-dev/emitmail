@@ -69,3 +69,4 @@
 {$SMTP_EHLO_HOSTNAME:mail.yourdomain.com} {
     redir https://{$DASHBOARD_DOMAIN:emitmail.yourdomain.com}{uri} permanent
 }
+

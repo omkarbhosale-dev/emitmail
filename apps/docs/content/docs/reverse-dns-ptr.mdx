@@ -15,16 +15,18 @@ Reverse Resolution:  198.51.100.1        ──────(rDNS / PTR)───
 
 ---
 
-## 1. Configure DNS: Forward 'A' Record
+## 1. Configure DNS: Host 'A' Records
 
-Add an `A` record pointing your mail hostname to your VPS public IPv4:
+Add the `A` records pointing your mail server, web dashboard, and docs platform to your VPS public IPv4:
 
-| Type | Name / Host | IPv4 Address | Proxy Status | TTL |
+| Type | Name / Host | IPv4 Address | Proxy Status | Purpose |
 | :--- | :--- | :--- | :--- | :--- |
-| `A` | `mail` | `<YOUR_VPS_IP>` | **DNS Only / Unproxied** | Auto / 1 min / 300s |
+| `A` | `mail` | `<YOUR_VPS_IP>` | **DNS Only / Unproxied** | SMTP EHLO & Reverse DNS (PTR) for 10/10 deliverability |
+| `A` | `emitmail` | `<YOUR_VPS_IP>` | **DNS Only** or **Proxied** | EmitMail Web Dashboard & REST API (`https://emitmail...`) |
+| `A` | `emitdocs` | `<YOUR_VPS_IP>` | **DNS Only** or **Proxied** | EmitDocs Documentation Platform (`https://emitdocs...`) |
 
-<Callout type="warn" title="DNS Only / No HTTP Proxy">
-If using Cloudflare or a CDN proxy service, do NOT enable the proxy (e.g. Cloudflare Orange Cloud) for `mail.yourdomain.com`. Proxies only handle web traffic (ports 80/443) and will drop raw SMTP Port 25 connections. Keep this record **DNS Only**.
+<Callout type="warn" title="DNS Only for Mail Server Hostname">
+If using Cloudflare or a CDN proxy service, do NOT enable the proxy (e.g. Cloudflare Orange Cloud) for `mail.yourdomain.com`. Proxies only handle HTTP/HTTPS web traffic (ports 80/443) and will drop raw SMTP Port 25 connections. Keep `mail` **DNS Only / Grey Cloud**. `emitmail` and `emitdocs` can safely be proxied or unproxied.
 </Callout>
 
 ---
