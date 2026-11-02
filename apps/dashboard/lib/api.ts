@@ -13,7 +13,15 @@ export function getApiBaseUrl(): string {
   if (process.env.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, "");
   }
-  if (typeof window !== "undefined" && window.location?.origin) {
+  if (typeof window !== "undefined" && window.location) {
+    // In local development on localhost/127.0.0.1 (port 3000), target backend API directly on port 4000
+    if (
+      (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") &&
+      window.location.port !== "4000"
+    ) {
+      return "http://localhost:4000/api/v1";
+    }
+    // In production behind reverse proxy (e.g. emitmail.yourdomain.com), use same-origin /api/v1
     return `${window.location.origin}/api/v1`;
   }
   return "http://localhost:4000/api/v1";
