@@ -32,9 +32,6 @@ export default function Layout({ children }: { children: ReactNode }) {
       nav={{
         title: logo,
       }}
-      sidebar={{
-        banner: logo,
-      }}
       githubUrl="https://github.com/omkarbhosale-dev/emitmail"
     >
       {children}
