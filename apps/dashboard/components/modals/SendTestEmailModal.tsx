@@ -11,6 +11,8 @@ import {
   WarningCircle,
 } from "@phosphor-icons/react";
 import { useToast } from "@/components/ui/Toast";
+import { useAuth } from "@/context/AuthContext";
+import { ViewOnlyBanner } from "@/components/ui/ViewOnlyBanner";
 import { api } from "@/lib/api";
 import { ApiDomain } from "@/types";
 
@@ -21,6 +23,7 @@ interface SendTestEmailModalProps {
 
 export function SendTestEmailModal({ isOpen, onClose }: SendTestEmailModalProps) {
   const { toast } = useToast();
+  const { isViewer } = useAuth();
   const [domains, setDomains] = useState<ApiDomain[]>([]);
   const [fromDomain, setFromDomain] = useState("");
   const [fromPrefix, setFromPrefix] = useState("test");
@@ -57,6 +60,15 @@ export function SendTestEmailModal({ isOpen, onClose }: SendTestEmailModalProps)
   if (!isOpen) return null;
 
   const handleSend = async () => {
+    if (isViewer) {
+      toast({
+        title: "Action Not Permitted",
+        description: "View-only members are not permitted to dispatch emails.",
+        type: "error",
+      });
+      return;
+    }
+
     if (!recipient.trim()) {
       toast({
         title: "Recipient Required",
@@ -98,7 +110,7 @@ export function SendTestEmailModal({ isOpen, onClose }: SendTestEmailModalProps)
 
       toast({
         title: "Email Successfully Dispatched",
-        description: `Delivered to queue for ${recipient.trim()}.`,
+        description: `Dispatched to ${recipient.trim()} via ${senderEmail}`,
         type: "success",
       });
 
@@ -159,114 +171,111 @@ export function SendTestEmailModal({ isOpen, onClose }: SendTestEmailModalProps)
 
         {/* Content Body */}
         {step === "compose" && (
-          <div className="p-5 space-y-4">
-            {/* Sender Domain */}
+          <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
+            {isViewer && (
+              <ViewOnlyBanner message="You have view-only access and cannot dispatch test emails." />
+            )}
+
+            {/* Sender Selection */}
             <div>
               <label className="block text-xs font-medium text-kumo-subtle mb-1.5">
-                From Identity
+                From Address
               </label>
-              <div className="flex rounded-lg border border-kumo-line bg-kumo-control overflow-hidden focus-within:border-cf-blue">
-                <span className="px-3 py-2 text-xs text-kumo-subtle bg-kumo-recessed border-r border-kumo-hairline flex items-center gap-1 shrink-0">
-                  <EnvelopeSimple size={14} />
+              <div className="flex gap-2">
+                <div className="relative w-1/3">
                   <input
                     type="text"
+                    disabled={isViewer}
                     value={fromPrefix}
                     onChange={(e) => setFromPrefix(e.target.value)}
-                    placeholder="test"
-                    className="w-16 bg-transparent text-xs text-kumo-strong focus:outline-none font-mono"
+                    placeholder="prefix"
+                    className="w-full bg-kumo-control border border-kumo-line rounded-lg px-3 py-1.5 text-xs text-kumo-strong focus:outline-none focus:border-cf-blue font-mono disabled:opacity-60"
                   />
-                  <span>@</span>
-                </span>
-                {domains.length > 0 ? (
+                </div>
+                <span className="self-center text-kumo-muted font-mono">@</span>
+                <div className="relative flex-1">
                   <select
+                    disabled={isViewer}
                     value={fromDomain}
                     onChange={(e) => setFromDomain(e.target.value)}
-                    className="w-full bg-transparent px-3 py-2 text-xs text-kumo-strong focus:outline-none cursor-pointer"
+                    className="w-full bg-kumo-control border border-kumo-line rounded-lg px-3 py-1.5 text-xs text-kumo-strong focus:outline-none focus:border-cf-blue font-mono cursor-pointer disabled:opacity-60"
                   >
-                    {domains.map((d) => (
-                      <option key={d.id} value={d.domainName}>
-                        {d.domainName} {d.status === "VERIFIED" ? "(Verified DKIM)" : `(${d.status})`}
+                    {domains.map((dom) => (
+                      <option key={dom.id} value={dom.domainName}>
+                        {dom.domainName} {dom.status === "VERIFIED" ? "✓" : "(Pending)"}
                       </option>
                     ))}
+                    {domains.length === 0 && (
+                      <option value="omkarbhosale.dev">omkarbhosale.dev (Default)</option>
+                    )}
                   </select>
-                ) : (
-                  <input
-                    type="text"
-                    value={fromDomain}
-                    onChange={(e) => setFromDomain(e.target.value)}
-                    placeholder="omkarbhosale.dev"
-                    className="w-full bg-transparent px-3 py-2 text-xs text-kumo-strong focus:outline-none font-mono"
-                  />
-                )}
+                </div>
               </div>
             </div>
 
             {/* Recipient */}
             <div>
               <label className="block text-xs font-medium text-kumo-subtle mb-1.5">
-                Recipient Email
+                To (Recipient Address)
               </label>
               <input
                 type="email"
+                disabled={isViewer}
                 value={recipient}
                 onChange={(e) => setRecipient(e.target.value)}
-                placeholder="developer@example.com"
-                className="w-full bg-kumo-control border border-kumo-line rounded-lg px-3 py-2 text-xs text-kumo-strong placeholder:text-kumo-muted focus:outline-none focus:border-cf-blue"
+                placeholder="recipient@example.com"
+                className="w-full bg-kumo-control border border-kumo-line rounded-lg px-3 py-1.5 text-xs text-kumo-strong focus:outline-none focus:border-cf-blue font-mono disabled:opacity-60"
               />
             </div>
 
             {/* Subject */}
             <div>
               <label className="block text-xs font-medium text-kumo-subtle mb-1.5">
-                Subject
+                Subject Line
               </label>
               <input
                 type="text"
+                disabled={isViewer}
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                className="w-full bg-kumo-control border border-kumo-line rounded-lg px-3 py-2 text-xs text-kumo-strong placeholder:text-kumo-muted focus:outline-none focus:border-cf-blue"
+                placeholder="Test Subject"
+                className="w-full bg-kumo-control border border-kumo-line rounded-lg px-3 py-1.5 text-xs text-kumo-strong focus:outline-none focus:border-cf-blue disabled:opacity-60"
               />
             </div>
 
             {/* Body */}
             <div>
               <label className="block text-xs font-medium text-kumo-subtle mb-1.5">
-                Message Body
+                Email Body (Plain Text & HTML)
               </label>
               <textarea
                 rows={4}
+                disabled={isViewer}
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
-                className="w-full bg-kumo-control border border-kumo-line rounded-lg p-3 text-xs text-kumo-strong placeholder:text-kumo-muted focus:outline-none focus:border-cf-blue font-mono resize-none leading-relaxed"
+                className="w-full bg-kumo-control border border-kumo-line rounded-lg p-3 text-xs text-kumo-strong focus:outline-none focus:border-cf-blue font-mono leading-relaxed disabled:opacity-60"
               />
-            </div>
-
-            {/* Deliverability Badge */}
-            <div className="p-2.5 rounded-lg bg-kumo-recessed border border-kumo-hairline flex items-center justify-between text-[11px] text-kumo-subtle">
-              <div className="flex items-center gap-1.5">
-                <ShieldCheck size={15} className="text-cf-success" weight="bold" />
-                <span>DKIM RSA-2048 + SPF will be signed by BullMQ</span>
-              </div>
-              <span className="font-mono text-cf-success font-semibold">250 OK</span>
             </div>
           </div>
         )}
 
+        {/* Processing State */}
         {step === "enqueued" && (
-          <div className="p-8 text-center space-y-3">
-            <CircleNotch size={36} className="animate-spin text-cf-blue mx-auto" />
+          <div className="py-14 px-6 text-center space-y-3">
+            <CircleNotch size={32} className="animate-spin text-cf-blue mx-auto" />
             <h4 className="text-sm font-semibold text-kumo-strong">
-              Enqueueing into BullMQ Cluster...
+              Enqueuing Message into BullMQ
             </h4>
-            <p className="text-xs text-kumo-subtle max-w-xs mx-auto">
-              Generating RSA signature, attaching SPF headers, and routing to outbound SMTP relay.
+            <p className="text-xs text-kumo-subtle">
+              Signing with 2048-bit DKIM private key and initializing SMTP handshake...
             </p>
           </div>
         )}
 
+        {/* Success State */}
         {step === "success" && (
-          <div className="p-6 text-center space-y-3">
-            <div className="w-12 h-12 rounded-full bg-cf-success/10 border border-cf-success/20 flex items-center justify-center text-cf-success mx-auto">
+          <div className="py-10 px-6 text-center space-y-3">
+            <div className="w-12 h-12 bg-cf-success/10 border border-cf-success/20 text-cf-success rounded-full flex items-center justify-center mx-auto">
               <CheckCircle size={26} weight="fill" />
             </div>
             <h4 className="text-sm font-semibold text-kumo-strong">
@@ -291,9 +300,10 @@ export function SendTestEmailModal({ isOpen, onClose }: SendTestEmailModalProps)
               </button>
               <button
                 type="button"
-                disabled={isSubmitting}
+                disabled={isSubmitting || isViewer}
                 onClick={handleSend}
-                className="btn-cf-primary"
+                title={isViewer ? "View-only members cannot dispatch emails" : undefined}
+                className="btn-cf-primary disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <PaperPlaneTilt size={14} weight="bold" />
                 <span>Dispatch Email</span>

@@ -5,6 +5,18 @@ import { SendEmailInput, EmailIdParam } from './emails.schema.js';
 
 export const sendEmail = async (req: Request, res: Response): Promise<void> => {
   try {
+    // Block view-only members if request is authenticated via dashboard JWT session
+    if (req.user && req.user.username !== 'admin' && (req.user.role as string) === 'VIEWER') {
+      res.status(403).json({
+        name: 'access_denied',
+        message: 'Access denied: View-only members are not permitted to send emails',
+        statusCode: 403,
+        success: false,
+        error: 'Access denied: View-only members are not permitted to send emails',
+      });
+      return;
+    }
+
     const input = req.body as SendEmailInput;
     const email = await EmailsService.submitEmail(input, req.domain || null);
 

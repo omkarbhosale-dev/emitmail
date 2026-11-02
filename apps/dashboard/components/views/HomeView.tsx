@@ -19,6 +19,7 @@ import { useSystemVersion } from "@/context/VersionContext";
 import { NavTab, ApiDomain } from "@/types";
 import { useModals } from "@/components/layout/AppShell";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
 
 function formatRelativeTime(dateStr?: string | null): string {
@@ -341,6 +342,7 @@ export function HomeView({
   const router = useRouter();
   const { versionData, isUpdateAvailable, setIsUpgradeModalOpen } = useSystemVersion();
   const modals = useModals();
+  const { isViewer } = useAuth();
 
   const [domains, setDomains] = useState<ApiDomain[]>([]);
   const [isLoadingDomains, setIsLoadingDomains] = useState(true);
@@ -742,12 +744,14 @@ export function HomeView({
                 </ul>
               )}
             </div>
-            <Link
-              href="/domains/add"
-              className="mt-3 w-full py-1.5 rounded-lg bg-kumo-elevated hover:bg-kumo-interact border border-kumo-hairline text-center text-xs font-medium text-kumo-default transition-colors block"
-            >
-              + Add Domain
-            </Link>
+            {!isViewer && (
+              <Link
+                href="/domains/add"
+                className="mt-3 w-full py-1.5 rounded-lg bg-kumo-elevated hover:bg-kumo-interact border border-kumo-hairline text-center text-xs font-medium text-kumo-default transition-colors block"
+              >
+                + Add Domain
+              </Link>
+            )}
           </div>
 
           {/* Column 2: Quick Actions (Inbox, Emails, API Keys) */}

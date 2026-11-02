@@ -18,11 +18,14 @@ import {
 import { MailboxItem, InboundDomainItem } from "@/types";
 import { useToast } from "@/components/ui/Toast";
 import { TableSkeleton } from "@/components/ui/Skeleton";
+import { useAuth } from "@/context/AuthContext";
+import { ViewOnlyBanner } from "@/components/ui/ViewOnlyBanner";
 import { api } from "@/lib/api";
 
 export function InboxView() {
   const router = useRouter();
   const { toast } = useToast();
+  const { isViewer } = useAuth();
 
   const [mailboxes, setMailboxes] = useState<MailboxItem[]>([]);
   const [domains, setDomains] = useState<InboundDomainItem[]>([]);
@@ -70,6 +73,14 @@ export function InboxView() {
 
   const handleDeleteMailbox = async (id: string, emailAddress: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isViewer) {
+      toast({
+        title: "View-Only Access",
+        description: "You do not have permission to delete mailboxes.",
+        type: "warning",
+      });
+      return;
+    }
     if (!window.confirm(`Are you sure you want to delete mailbox "${emailAddress}"? Incoming emails to this alias will no longer be accepted.`)) {
       return;
     }
@@ -135,15 +146,21 @@ export function InboxView() {
             <span>Refresh</span>
           </button>
 
-          <Link
-            href="/inbox/add"
-            className="btn-cf-primary flex items-center gap-1.5"
-          >
-            <Plus size={14} weight="bold" />
-            <span>Add mailbox</span>
-          </Link>
+          {!isViewer && (
+            <Link
+              href="/inbox/add"
+              className="btn-cf-primary flex items-center gap-1.5"
+            >
+              <Plus size={14} weight="bold" />
+              <span>Add mailbox</span>
+            </Link>
+          )}
         </div>
       </div>
+
+      {isViewer && (
+        <ViewOnlyBanner message="You have view-only access. You cannot create or delete mailboxes." />
+      )}
 
       {/* 2. Search Toolbar */}
       <div className="flex items-center justify-between gap-3">
@@ -193,13 +210,15 @@ export function InboxView() {
                 ? `No mailboxes matched "${searchQuery}".`
                 : "Create custom mailbox aliases (e.g. support@yourdomain.com) to receive emails directly into EmitMail."}
             </p>
-            <Link
-              href="/inbox/add"
-              className="btn-cf-primary flex items-center gap-1.5 text-xs"
-            >
-              <Plus size={14} weight="bold" />
-              <span>Create your first mailbox</span>
-            </Link>
+            {!isViewer && (
+              <Link
+                href="/inbox/add"
+                className="btn-cf-primary flex items-center gap-1.5 text-xs"
+              >
+                <Plus size={14} weight="bold" />
+                <span>Create your first mailbox</span>
+              </Link>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -211,7 +230,7 @@ export function InboxView() {
                   <th className="py-3 px-4">Unread Emails</th>
                   <th className="py-3 px-4 hidden md:table-cell">Total Messages</th>
                   <th className="py-3 px-4 hidden sm:table-cell">Status</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                  {!isViewer && <th className="py-3 px-4 text-right">Actions</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-kumo-hairline">
@@ -285,17 +304,19 @@ export function InboxView() {
                       </td>
 
                       {/* Actions */}
-                      <td className="py-3.5 px-4 text-right">
-                        <button
-                          type="button"
-                          onClick={(e) => handleDeleteMailbox(mb.id, mb.emailAddress, e)}
-                          disabled={deletingId === mb.id}
-                          className="p-1.5 rounded-md text-kumo-danger hover:bg-kumo-danger-tint border border-transparent hover:border-kumo-danger/30 transition-colors cursor-pointer disabled:opacity-50"
-                          title="Delete mailbox"
-                        >
-                          <Trash size={14} />
-                        </button>
-                      </td>
+                      {!isViewer && (
+                        <td className="py-3.5 px-4 text-right">
+                          <button
+                            type="button"
+                            onClick={(e) => handleDeleteMailbox(mb.id, mb.emailAddress, e)}
+                            disabled={deletingId === mb.id}
+                            className="p-1.5 rounded-md text-kumo-danger hover:bg-kumo-danger-tint border border-transparent hover:border-kumo-danger/30 transition-colors cursor-pointer disabled:opacity-50"
+                            title="Delete mailbox"
+                          >
+                            <Trash size={14} />
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   );
                 })}

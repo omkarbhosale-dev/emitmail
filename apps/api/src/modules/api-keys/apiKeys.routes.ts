@@ -11,7 +11,7 @@ import {
   apiKeyIdParamSchema,
 } from './apiKeys.schema.js';
 import { validateRequest } from '../../middlewares/validate.middleware.js';
-import { authenticateJwt } from '../../middlewares/auth.middleware.js';
+import { authenticateJwt, requireWriteAccess } from '../../middlewares/auth.middleware.js';
 import { authenticateApiKey } from '../../middlewares/apiKey.middleware.js';
 
 const router = Router();
@@ -23,15 +23,18 @@ router.post('/verify-credentials', authenticateApiKey, verifyCredentials);
 router.post(
   '/',
   authenticateJwt,
+  requireWriteAccess,
   validateRequest({ body: createApiKeySchema }),
   createApiKey
 );
 
+// List keys (All roles including VIEWER)
 router.get('/', authenticateJwt, listApiKeys);
 
 router.patch(
   '/:id/toggle',
   authenticateJwt,
+  requireWriteAccess,
   validateRequest({ params: apiKeyIdParamSchema }),
   toggleApiKeyStatus
 );
@@ -39,6 +42,7 @@ router.patch(
 router.delete(
   '/:id',
   authenticateJwt,
+  requireWriteAccess,
   validateRequest({ params: apiKeyIdParamSchema }),
   deleteApiKey
 );

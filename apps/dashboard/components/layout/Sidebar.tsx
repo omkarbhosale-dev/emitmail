@@ -30,7 +30,7 @@ interface SidebarProps {
   onToggleCollapse: () => void;
   isMobileOpen: boolean;
   onCloseMobile: () => void;
-  onOpenCommandPalette: () => void;
+  onOpenCommandPalette?: () => void;
 }
 
 interface NavItemConfig {
@@ -244,7 +244,7 @@ export function Sidebar({
           <button
             onClick={() => {
               onCloseMobile();
-              onOpenCommandPalette();
+              onOpenCommandPalette?.();
             }}
             className="w-full bg-kumo-control border border-kumo-line rounded-lg px-3 py-2 text-xs text-kumo-subtle flex items-center justify-between mb-4 hover:border-cf-orange transition-colors"
           >

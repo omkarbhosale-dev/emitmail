@@ -132,3 +132,39 @@ export const requireAdmin = (
     403
   );
 };
+
+/**
+ * Enforce write access: ADMIN and MEMBER can create/modify/delete resources.
+ * VIEWER (view-only) is rejected with 403 Forbidden.
+ * External API Key requests are permitted (service accounts).
+ */
+export const requireWriteAccess = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void => {
+  if ((req as any).apiKey) {
+    next();
+    return;
+  }
+
+  if (!req.user) {
+    sendError(res, 'Authentication required', 401);
+    return;
+  }
+
+  if (
+    req.user.username === 'admin' ||
+    req.user.role === UserRole.ADMIN ||
+    req.user.role === UserRole.MEMBER
+  ) {
+    next();
+    return;
+  }
+
+  sendError(
+    res,
+    'Access denied: View-only members are not permitted to create, modify, or delete resources',
+    403
+  );
+};

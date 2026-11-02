@@ -16,6 +16,8 @@ import {
 import { ApiDomain, DnsRecordItem } from "@/types";
 import { useToast } from "@/components/ui/Toast";
 import { TableSkeleton } from "@/components/ui/Skeleton";
+import { useAuth } from "@/context/AuthContext";
+import { ViewOnlyBanner } from "@/components/ui/ViewOnlyBanner";
 import { api } from "@/lib/api";
 
 interface DomainDetailsViewProps {
@@ -25,6 +27,7 @@ interface DomainDetailsViewProps {
 export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
   const router = useRouter();
   const { toast } = useToast();
+  const { isViewer } = useAuth();
 
   const [domain, setDomain] = useState<ApiDomain | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -78,6 +81,14 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
   };
 
   const handleVerifyDns = async () => {
+    if (isViewer) {
+      toast({
+        title: "View-Only Access",
+        description: "You do not have permission to verify DNS records.",
+        type: "warning",
+      });
+      return;
+    }
     if (!domain) return;
     setIsVerifying(true);
     try {
@@ -114,6 +125,14 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
   };
 
   const handleRotateDkim = async () => {
+    if (isViewer) {
+      toast({
+        title: "View-Only Access",
+        description: "You do not have permission to rotate DKIM keys.",
+        type: "warning",
+      });
+      return;
+    }
     if (!domain) return;
     const confirm = window.confirm(
       `Regenerate a brand-new 2048-bit RSA DKIM key for "${domain.domainName}"?\n\nThis will invalidate the previous key. You must update the DKIM TXT record in your DNS provider (Cloudflare) and click "Verify DNS Now".`
@@ -145,6 +164,14 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
   };
 
   const handleDeleteDomain = async () => {
+    if (isViewer) {
+      toast({
+        title: "View-Only Access",
+        description: "You do not have permission to delete domains.",
+        type: "warning",
+      });
+      return;
+    }
     if (!domain) return;
     const confirmDelete = window.confirm(
       `Are you sure you want to delete "${domain.domainName}"? This will revoke DKIM keys and disable outbound email sending for this domain.`
@@ -268,7 +295,7 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
               </span>
             )}
           </div>
-          {title === "DKIM" && (
+          {title === "DKIM" && !isViewer && (
             <button
               type="button"
               onClick={handleRotateDkim}
@@ -397,6 +424,10 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
         <span className="text-kumo-strong font-medium">{domain.domainName}</span>
       </div>
 
+      {isViewer && (
+        <ViewOnlyBanner message="You have view-only access. You cannot verify DNS, rotate DKIM, or delete this domain." />
+      )}
+
       {/* Domain Top Header Card */}
       <div className="bg-[#0C0C0E] border border-[#222226] rounded-2xl p-6 sm:p-7 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -461,45 +492,47 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-2.5 shrink-0">
-            <button
-              type="button"
-              onClick={handleRotateDkim}
-              disabled={isRotatingDkim || isVerifying}
-              className="h-9 px-3.5 rounded-md bg-[#1C1C1E] hover:bg-[#2C2C2E] text-white text-xs font-medium inline-flex items-center justify-center gap-1.5 border border-[#333336] shadow-sm transition-all duration-120 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed select-none"
-              title="Regenerate a brand-new 2048-bit RSA DKIM key"
-            >
-              <ArrowsClockwise
-                size={14}
-                className={isRotatingDkim ? "animate-spin text-[#FF6600]" : "text-[#8E8E93]"}
-              />
-              <span>{isRotatingDkim ? "Rotating DKIM..." : "Rotate DKIM (2048-bit)"}</span>
-            </button>
+          {!isViewer && (
+            <div className="flex items-center gap-2.5 shrink-0">
+              <button
+                type="button"
+                onClick={handleRotateDkim}
+                disabled={isRotatingDkim || isVerifying}
+                className="h-9 px-3.5 rounded-md bg-[#1C1C1E] hover:bg-[#2C2C2E] text-white text-xs font-medium inline-flex items-center justify-center gap-1.5 border border-[#333336] shadow-sm transition-all duration-120 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed select-none"
+                title="Regenerate a brand-new 2048-bit RSA DKIM key"
+              >
+                <ArrowsClockwise
+                  size={14}
+                  className={isRotatingDkim ? "animate-spin text-[#FF6600]" : "text-[#8E8E93]"}
+                />
+                <span>{isRotatingDkim ? "Rotating DKIM..." : "Rotate DKIM (2048-bit)"}</span>
+              </button>
 
-            <button
-              type="button"
-              onClick={handleVerifyDns}
-              disabled={isVerifying}
-              className="h-9 px-3.5 rounded-md bg-[#0066FF] hover:bg-[#0052CC] text-white text-xs font-medium inline-flex items-center justify-center gap-1.5 shadow-sm transition-all duration-120 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed select-none"
-            >
-              <ArrowsClockwise
-                size={14}
-                className={isVerifying ? "animate-spin" : ""}
-              />
-              <span>{isVerifying ? "Verifying DNS..." : "Verify DNS Now"}</span>
-            </button>
+              <button
+                type="button"
+                onClick={handleVerifyDns}
+                disabled={isVerifying}
+                className="h-9 px-3.5 rounded-md bg-[#0066FF] hover:bg-[#0052CC] text-white text-xs font-medium inline-flex items-center justify-center gap-1.5 shadow-sm transition-all duration-120 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed select-none"
+              >
+                <ArrowsClockwise
+                  size={14}
+                  className={isVerifying ? "animate-spin" : ""}
+                />
+                <span>{isVerifying ? "Verifying DNS..." : "Verify DNS Now"}</span>
+              </button>
 
-            <button
-              type="button"
-              onClick={handleDeleteDomain}
-              disabled={isDeleting}
-              className="h-9 px-3.5 rounded-md bg-red-600 hover:bg-red-700 active:bg-red-800 text-white text-xs font-medium inline-flex items-center justify-center gap-1.5 border border-red-500/40 shadow-sm transition-all duration-120 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed select-none"
-              title="Delete Domain"
-            >
-              <Trash size={14} />
-              <span>{isDeleting ? "Deleting..." : "Delete"}</span>
-            </button>
-          </div>
+              <button
+                type="button"
+                onClick={handleDeleteDomain}
+                disabled={isDeleting}
+                className="h-9 px-3.5 rounded-md bg-red-600 hover:bg-red-700 active:bg-red-800 text-white text-xs font-medium inline-flex items-center justify-center gap-1.5 border border-red-500/40 shadow-sm transition-all duration-120 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed select-none"
+                title="Delete Domain"
+              >
+                <Trash size={14} />
+                <span>{isDeleting ? "Deleting..." : "Delete"}</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -558,14 +591,18 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
               <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-200 text-xs flex items-start gap-2.5">
                 <WarningCircle size={17} weight="bold" className="text-amber-400 shrink-0 mt-0.5" />
                 <div className="leading-relaxed">
-                  <strong className="text-white font-semibold">Sending is not affected:</strong> Your emails are still being sent. Add or fix the DNS records below to finish verifying this domain. Once fixed,{" "}
-                  <button
-                    type="button"
-                    onClick={handleVerifyDns}
-                    className="underline hover:text-white font-medium cursor-pointer"
-                  >
-                    restart verification
-                  </button>.
+                  <strong className="text-white font-semibold">Sending is not affected:</strong> Your emails are still being sent. Add or fix the DNS records below to finish verifying this domain. {!isViewer && (
+                    <>
+                      Once fixed,{" "}
+                      <button
+                        type="button"
+                        onClick={handleVerifyDns}
+                        className="underline hover:text-white font-medium cursor-pointer"
+                      >
+                        restart verification
+                      </button>.
+                    </>
+                  )}
                 </div>
               </div>
             )}

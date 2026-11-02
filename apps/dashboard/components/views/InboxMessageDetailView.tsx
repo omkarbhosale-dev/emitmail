@@ -20,6 +20,8 @@ import {
 import { InboundEmailItem } from "@/types";
 import { useToast } from "@/components/ui/Toast";
 import { TableSkeleton } from "@/components/ui/Skeleton";
+import { useAuth } from "@/context/AuthContext";
+import { ViewOnlyBanner } from "@/components/ui/ViewOnlyBanner";
 import { api } from "@/lib/api";
 import { EmailHtmlRenderer } from "@/components/inbox/EmailHtmlRenderer";
 import { RawHeadersModal } from "@/components/inbox/RawHeadersModal";
@@ -32,6 +34,7 @@ interface InboxMessageDetailViewProps {
 export function InboxMessageDetailView({ messageId, mailboxId }: InboxMessageDetailViewProps) {
   const router = useRouter();
   const { toast } = useToast();
+  const { isViewer } = useAuth();
 
   const [message, setMessage] = useState<InboundEmailItem | null>(null);
   const [threadMessages, setThreadMessages] = useState<InboundEmailItem[]>([]);
@@ -73,6 +76,14 @@ export function InboxMessageDetailView({ messageId, mailboxId }: InboxMessageDet
 
   const handleSendReply = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isViewer) {
+      toast({
+        title: "View-Only Access",
+        description: "You do not have permission to send replies.",
+        type: "warning",
+      });
+      return;
+    }
     if (!message || !replyText.trim()) return;
 
     setIsSendingReply(true);
@@ -204,14 +215,16 @@ export function InboxMessageDetailView({ messageId, mailboxId }: InboxMessageDet
 
         {/* Action Buttons Cluster */}
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleFocusReply}
-            className="btn-cf-secondary text-xs flex items-center gap-1.5 cursor-pointer"
-          >
-            <ArrowBendUpLeft size={14} weight="bold" />
-            <span>Reply</span>
-          </button>
+          {!isViewer && (
+            <button
+              type="button"
+              onClick={handleFocusReply}
+              className="btn-cf-secondary text-xs flex items-center gap-1.5 cursor-pointer"
+            >
+              <ArrowBendUpLeft size={14} weight="bold" />
+              <span>Reply</span>
+            </button>
+          )}
 
           <button
             type="button"
@@ -403,99 +416,103 @@ export function InboxMessageDetailView({ messageId, mailboxId }: InboxMessageDet
       </div>
 
       {/* 4.5 Inline Conversation Thread Reply Composer */}
-      <div className="bg-kumo-base border border-kumo-line rounded-2xl p-5 shadow-2xs focus-within:border-[#0066FF] transition-colors">
-        <form onSubmit={handleSendReply} className="space-y-3">
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-kumo-hairline pb-3">
-            <div className="text-xs">
-              <span className="text-kumo-subtle">Replying as </span>
-              <strong className="text-kumo-strong font-mono">
-                {recipientMailboxAddress}
-              </strong>
-              <span className="text-kumo-subtle"> to </span>
-              <strong className="text-kumo-strong font-mono">
-                {message.fromAddress}
-              </strong>
+      {isViewer ? (
+        <ViewOnlyBanner message="You have view-only access and cannot send replies from this mailbox." />
+      ) : (
+        <div className="bg-kumo-base border border-kumo-line rounded-2xl p-5 shadow-2xs focus-within:border-[#0066FF] transition-colors">
+          <form onSubmit={handleSendReply} className="space-y-3">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-kumo-hairline pb-3">
+              <div className="text-xs">
+                <span className="text-kumo-subtle">Replying as </span>
+                <strong className="text-kumo-strong font-mono">
+                  {recipientMailboxAddress}
+                </strong>
+                <span className="text-kumo-subtle"> to </span>
+                <strong className="text-kumo-strong font-mono">
+                  {message.fromAddress}
+                </strong>
+              </div>
+
+              <span className="text-xs font-semibold text-[#0066FF] font-mono">
+                Re: {message.subject.replace(/^Re:\s*/i, "")}
+              </span>
             </div>
 
-            <span className="text-xs font-semibold text-[#0066FF] font-mono">
-              Re: {message.subject.replace(/^Re:\s*/i, "")}
-            </span>
-          </div>
+            {/* Formatting Toolbar */}
+            <div className="flex items-center gap-1 text-kumo-subtle pb-1">
+              <button
+                type="button"
+                onClick={() => insertFormatting("bold")}
+                className="p-1.5 rounded hover:bg-kumo-tint hover:text-kumo-strong cursor-pointer"
+                title="Bold"
+              >
+                <TextB size={15} />
+              </button>
+              <button
+                type="button"
+                onClick={() => insertFormatting("italic")}
+                className="p-1.5 rounded hover:bg-kumo-tint hover:text-kumo-strong cursor-pointer"
+                title="Italic"
+              >
+                <TextItalic size={15} />
+              </button>
+              <button
+                type="button"
+                onClick={() => insertFormatting("code")}
+                className="p-1.5 rounded hover:bg-kumo-tint hover:text-kumo-strong cursor-pointer"
+                title="Code"
+              >
+                <CodeSimple size={15} />
+              </button>
+              <button
+                type="button"
+                onClick={() => insertFormatting("link")}
+                className="p-1.5 rounded hover:bg-kumo-tint hover:text-kumo-strong cursor-pointer"
+                title="Link"
+              >
+                <LinkIcon size={15} />
+              </button>
+            </div>
 
-          {/* Formatting Toolbar */}
-          <div className="flex items-center gap-1 text-kumo-subtle pb-1">
-            <button
-              type="button"
-              onClick={() => insertFormatting("bold")}
-              className="p-1.5 rounded hover:bg-kumo-tint hover:text-kumo-strong cursor-pointer"
-              title="Bold"
-            >
-              <TextB size={15} />
-            </button>
-            <button
-              type="button"
-              onClick={() => insertFormatting("italic")}
-              className="p-1.5 rounded hover:bg-kumo-tint hover:text-kumo-strong cursor-pointer"
-              title="Italic"
-            >
-              <TextItalic size={15} />
-            </button>
-            <button
-              type="button"
-              onClick={() => insertFormatting("code")}
-              className="p-1.5 rounded hover:bg-kumo-tint hover:text-kumo-strong cursor-pointer"
-              title="Code"
-            >
-              <CodeSimple size={15} />
-            </button>
-            <button
-              type="button"
-              onClick={() => insertFormatting("link")}
-              className="p-1.5 rounded hover:bg-kumo-tint hover:text-kumo-strong cursor-pointer"
-              title="Link"
-            >
-              <LinkIcon size={15} />
-            </button>
-          </div>
+            {/* Reply Textarea */}
+            <textarea
+              ref={replyBoxRef}
+              required
+              rows={5}
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              placeholder="Write your reply here..."
+              className="w-full bg-kumo-control border border-kumo-line rounded-xl p-3.5 text-xs text-kumo-strong placeholder:text-kumo-muted focus:outline-none focus:border-[#0066FF] leading-relaxed min-h-[140px]"
+            />
 
-          {/* Reply Textarea */}
-          <textarea
-            ref={replyBoxRef}
-            required
-            rows={5}
-            value={replyText}
-            onChange={(e) => setReplyText(e.target.value)}
-            placeholder="Write your reply here..."
-            className="w-full bg-kumo-control border border-kumo-line rounded-xl p-3.5 text-xs text-kumo-strong placeholder:text-kumo-muted focus:outline-none focus:border-[#0066FF] leading-relaxed min-h-[140px]"
-          />
+            {/* Send Bottom Bar */}
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-[11px] text-kumo-subtle">
+                Your reply will be cryptographically signed with 2048-bit DKIM.
+              </span>
 
-          {/* Send Bottom Bar */}
-          <div className="flex items-center justify-between pt-1">
-            <span className="text-[11px] text-kumo-subtle">
-              Your reply will be cryptographically signed with 2048-bit DKIM.
-            </span>
-
-            <button
-              type="submit"
-              disabled={isSendingReply || !replyText.trim()}
-              className="btn-cf-primary text-xs flex items-center gap-2 disabled:opacity-50 cursor-pointer"
-            >
-              {isSendingReply ? (
-                <>
-                  <ArrowsClockwise size={14} className="animate-spin" />
-                  <span>Sending Reply...</span>
-                </>
-              ) : (
-                <>
-                  <PaperPlaneTilt size={14} weight="bold" />
-                  <span>Send Reply</span>
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-      </div>
+              <button
+                type="submit"
+                disabled={isSendingReply || !replyText.trim()}
+                className="btn-cf-primary text-xs flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+              >
+                {isSendingReply ? (
+                  <>
+                    <ArrowsClockwise size={14} className="animate-spin" />
+                    <span>Sending Reply...</span>
+                  </>
+                ) : (
+                  <>
+                    <PaperPlaneTilt size={14} weight="bold" />
+                    <span>Send Reply</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* Raw Headers Modal */}
       <RawHeadersModal

@@ -16,6 +16,8 @@ import { WebhookEndpoint, WebhookDeliveryLog } from "@/types";
 import { useToast } from "@/components/ui/Toast";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { TableSkeleton } from "@/components/ui/Skeleton";
+import { useAuth } from "@/context/AuthContext";
+import { ViewOnlyBanner } from "@/components/ui/ViewOnlyBanner";
 
 const INITIAL_ENDPOINTS: WebhookEndpoint[] = [
   {
@@ -77,6 +79,7 @@ const AVAILABLE_EVENTS = [
 
 export function WebhooksView() {
   const { toast } = useToast();
+  const { isViewer } = useAuth();
   const [endpoints, setEndpoints] = useState<WebhookEndpoint[]>(INITIAL_ENDPOINTS);
   const [deliveries, setDeliveries] = useState<WebhookDeliveryLog[]>(INITIAL_DELIVERIES);
   const [showSecret, setShowSecret] = useState<Record<string, boolean>>({});
@@ -103,6 +106,14 @@ export function WebhooksView() {
   };
 
   const toggleEventSubscription = (endpointId: string, eventId: string) => {
+    if (isViewer) {
+      toast({
+        title: "View-Only Access",
+        description: "You do not have permission to modify event subscriptions.",
+        type: "warning",
+      });
+      return;
+    }
     setEndpoints((prev) =>
       prev.map((ep) => {
         if (ep.id !== endpointId) return ep;
@@ -121,6 +132,14 @@ export function WebhooksView() {
   };
 
   const handleSendTestWebhook = (endpoint: WebhookEndpoint) => {
+    if (isViewer) {
+      toast({
+        title: "View-Only Access",
+        description: "You do not have permission to trigger test webhooks.",
+        type: "warning",
+      });
+      return;
+    }
     toast({
       title: "Dispatching Test Webhook Payload",
       description: `Sending POST request to ${endpoint.url}...`,
@@ -160,6 +179,14 @@ export function WebhooksView() {
 
   const handleAddEndpoint = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isViewer) {
+      toast({
+        title: "View-Only Access",
+        description: "You do not have permission to add webhook endpoints.",
+        type: "warning",
+      });
+      return;
+    }
     if (!newUrl.trim()) return;
 
     const newEp: WebhookEndpoint = {
@@ -196,15 +223,21 @@ export function WebhooksView() {
           </p>
         </div>
         {/* Cloudflare Action Blue Button */}
-        <button
-          type="button"
-          onClick={() => setIsAddModalOpen(true)}
-          className="btn-cf-primary"
-        >
-          <Plus size={15} weight="bold" />
-          <span>Add Endpoint</span>
-        </button>
+        {!isViewer && (
+          <button
+            type="button"
+            onClick={() => setIsAddModalOpen(true)}
+            className="btn-cf-primary"
+          >
+            <Plus size={15} weight="bold" />
+            <span>Add Endpoint</span>
+          </button>
+        )}
       </div>
+
+      {isViewer && (
+        <ViewOnlyBanner message="You have view-only access. You cannot register endpoints, toggle events, or send test webhooks." />
+      )}
 
       {/* 2. Endpoints List */}
       <div className="space-y-4">
@@ -233,15 +266,17 @@ export function WebhooksView() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handleSendTestWebhook(ep)}
-                  className="px-3 py-1.5 rounded-lg bg-kumo-elevated hover:bg-kumo-interact border border-kumo-line text-xs font-semibold text-kumo-strong flex items-center gap-1.5 transition-colors cursor-pointer"
-                >
-                  <PaperPlaneTilt size={14} className="text-cf-blue" weight="bold" />
-                  <span>Send Test Webhook</span>
-                </button>
-              </div>
+              {!isViewer && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleSendTestWebhook(ep)}
+                    className="px-3 py-1.5 rounded-lg bg-kumo-elevated hover:bg-kumo-interact border border-kumo-line text-xs font-semibold text-kumo-strong flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <PaperPlaneTilt size={14} className="text-cf-blue" weight="bold" />
+                    <span>Send Test Webhook</span>
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Middle row: HMAC Signing Secret */}
@@ -282,8 +317,11 @@ export function WebhooksView() {
                   return (
                     <button
                       key={ev.id}
-                      onClick={() => toggleEventSubscription(ep.id, ev.id)}
-                      className={`p-2.5 rounded-lg border text-left transition-all text-xs flex items-start gap-2 cursor-pointer ${
+                      onClick={isViewer ? undefined : () => toggleEventSubscription(ep.id, ev.id)}
+                      disabled={isViewer}
+                      className={`p-2.5 rounded-lg border text-left transition-all text-xs flex items-start gap-2 ${
+                        isViewer ? "cursor-default opacity-85" : "cursor-pointer"
+                      } ${
                         isChecked
                           ? "bg-cf-blue/10 border-cf-blue/30 text-kumo-strong"
                           : "bg-kumo-control border-kumo-hairline text-kumo-subtle hover:text-kumo-strong"

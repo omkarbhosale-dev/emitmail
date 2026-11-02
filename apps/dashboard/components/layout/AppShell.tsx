@@ -9,6 +9,7 @@ import { SendTestEmailModal } from "@/components/modals/SendTestEmailModal";
 import { UpgradeModal } from "@/components/modals/UpgradeModal";
 import { ToastProvider } from "@/components/ui/Toast";
 import { VersionProvider, useSystemVersion } from "@/context/VersionContext";
+import { AuthProvider } from "@/context/AuthContext";
 import { getAuthToken, clearAuthToken, api } from "@/lib/api";
 
 interface ModalContextType {
@@ -137,7 +138,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <ToastProvider>
       <VersionProvider>
-        <AppShellInner>{children}</AppShellInner>
+        <AuthProvider>
+          <AppShellInner>{children}</AppShellInner>
+        </AuthProvider>
       </VersionProvider>
     </ToastProvider>
   );

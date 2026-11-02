@@ -16,10 +16,13 @@ import { ApiKeyItem } from "@/types";
 import { useToast } from "@/components/ui/Toast";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { TableSkeleton } from "@/components/ui/Skeleton";
+import { useAuth } from "@/context/AuthContext";
+import { ViewOnlyBanner } from "@/components/ui/ViewOnlyBanner";
 import { api } from "@/lib/api";
 
 export function ApiKeysView() {
   const { toast } = useToast();
+  const { isViewer } = useAuth();
   const [keys, setKeys] = useState<ApiKeyItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -58,6 +61,14 @@ export function ApiKeysView() {
   };
 
   const handleDeleteKey = async (id: string, name: string) => {
+    if (isViewer) {
+      toast({
+        title: "View-Only Access",
+        description: "You do not have permission to delete API keys.",
+        type: "warning",
+      });
+      return;
+    }
     if (
       !window.confirm(
         `Are you sure you want to permanently delete API key "${name}"? Any applications or services authenticating with this key will immediately fail.`
@@ -88,6 +99,14 @@ export function ApiKeysView() {
   };
 
   const handleToggleKey = async (id: string) => {
+    if (isViewer) {
+      toast({
+        title: "View-Only Access",
+        description: "You do not have permission to toggle API keys.",
+        type: "warning",
+      });
+      return;
+    }
     try {
       const updated = await api.apiKeys.toggle(id);
       setKeys((prev) =>
@@ -165,15 +184,21 @@ export function ApiKeysView() {
           </button>
 
           {/* Create API Key Link Button */}
-          <Link
-            href="/api-keys/add"
-            className="btn-cf-primary flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
-          >
-            <Plus size={14} weight="bold" />
-            <span>Create API key</span>
-          </Link>
+          {!isViewer && (
+            <Link
+              href="/api-keys/add"
+              className="btn-cf-primary flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
+            >
+              <Plus size={14} weight="bold" />
+              <span>Create API key</span>
+            </Link>
+          )}
         </div>
       </div>
+
+      {isViewer && (
+        <ViewOnlyBanner message="You have view-only access. You cannot create, activate, pause, or delete API keys." />
+      )}
 
       {/* 2. Security Banner */}
       <div className="p-4 rounded-xl bg-kumo-base border border-kumo-hairline flex items-start gap-3 shadow-2xs">
@@ -210,13 +235,15 @@ export function ApiKeysView() {
             <p className="text-xs text-kumo-subtle mb-5 leading-relaxed">
               Create an API key to dispatch transactional emails using our REST endpoints or official Resend SDKs.
             </p>
-            <Link
-              href="/api-keys/add"
-              className="btn-cf-primary flex items-center gap-1.5 text-xs font-semibold"
-            >
-              <Plus size={14} weight="bold" />
-              <span>Create your first API key</span>
-            </Link>
+            {!isViewer && (
+              <Link
+                href="/api-keys/add"
+                className="btn-cf-primary flex items-center gap-1.5 text-xs font-semibold"
+              >
+                <Plus size={14} weight="bold" />
+                <span>Create your first API key</span>
+              </Link>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -229,7 +256,7 @@ export function ApiKeysView() {
                   <th className="py-3 px-4 hidden md:table-cell">Last Used</th>
                   <th className="py-3 px-4 hidden lg:table-cell">Created</th>
                   <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                  {!isViewer && <th className="py-3 px-4 text-right">Actions</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-kumo-hairline">
@@ -285,34 +312,36 @@ export function ApiKeysView() {
                       </td>
 
                       {/* Actions */}
-                      <td className="py-3.5 px-4 text-right">
-                        <div className="inline-flex items-center gap-1.5 justify-end">
-                          {/* Toggle Active / Pause */}
-                          <button
-                            type="button"
-                            onClick={() => handleToggleKey(k.id)}
-                            className="p-1.5 rounded-md text-kumo-subtle hover:text-kumo-strong hover:bg-kumo-tint border border-transparent hover:border-kumo-line transition-colors cursor-pointer"
-                            title={k.isActive ? "Pause key" : "Activate key"}
-                          >
-                            {k.isActive ? <Pause size={13} /> : <Play size={13} />}
-                          </button>
+                      {!isViewer && (
+                        <td className="py-3.5 px-4 text-right">
+                          <div className="inline-flex items-center gap-1.5 justify-end">
+                            {/* Toggle Active / Pause */}
+                            <button
+                              type="button"
+                              onClick={() => handleToggleKey(k.id)}
+                              className="p-1.5 rounded-md text-kumo-subtle hover:text-kumo-strong hover:bg-kumo-tint border border-transparent hover:border-kumo-line transition-colors cursor-pointer"
+                              title={k.isActive ? "Pause key" : "Activate key"}
+                            >
+                              {k.isActive ? <Pause size={13} /> : <Play size={13} />}
+                            </button>
 
-                          {/* Delete Key Button */}
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteKey(k.id, k.name)}
-                            disabled={deletingId === k.id}
-                            className="p-1.5 rounded-md text-kumo-danger hover:bg-kumo-danger-tint border border-transparent hover:border-kumo-danger/30 transition-colors cursor-pointer disabled:opacity-50"
-                            title="Delete API key"
-                          >
-                            {deletingId === k.id ? (
-                              <ArrowsClockwise size={13} className="animate-spin" />
-                            ) : (
-                              <Trash size={13} />
-                            )}
-                          </button>
-                        </div>
-                      </td>
+                            {/* Delete Key Button */}
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteKey(k.id, k.name)}
+                              disabled={deletingId === k.id}
+                              className="p-1.5 rounded-md text-kumo-danger hover:bg-kumo-danger-tint border border-transparent hover:border-kumo-danger/30 transition-colors cursor-pointer disabled:opacity-50"
+                              title="Delete API key"
+                            >
+                              {deletingId === k.id ? (
+                                <ArrowsClockwise size={13} className="animate-spin" />
+                              ) : (
+                                <Trash size={13} />
+                              )}
+                            </button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   );
                 })}

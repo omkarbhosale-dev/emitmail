@@ -11,7 +11,7 @@ import {
   webhookIdParamSchema,
 } from './webhooks.schema.js';
 import { validateRequest } from '../../middlewares/validate.middleware.js';
-import { authenticateJwt } from '../../middlewares/auth.middleware.js';
+import { authenticateJwt, requireWriteAccess } from '../../middlewares/auth.middleware.js';
 import { authenticateApiKey } from '../../middlewares/apiKey.middleware.js';
 
 const router = Router();
@@ -44,15 +44,18 @@ router.post(
 router.post(
   '/',
   authenticateAdminOrApiKey,
+  requireWriteAccess,
   validateRequest({ body: createWebhookSubscriptionSchema }),
   createWebhook
 );
 
+// List webhooks (All roles including VIEWER)
 router.get('/', authenticateAdminOrApiKey, listWebhooks);
 
 router.delete(
   '/:id',
   authenticateAdminOrApiKey,
+  requireWriteAccess,
   validateRequest({ params: webhookIdParamSchema }),
   deleteWebhook
 );

@@ -29,9 +29,12 @@ import { useToast } from "@/components/ui/Toast";
 import { api } from "@/lib/api";
 import { DashboardUser, UserRole } from "@/types";
 import { Facehash } from "facehash";
+import { useAuth } from "@/context/AuthContext";
+import { ViewOnlyBanner } from "@/components/ui/ViewOnlyBanner";
 
 export function SettingsView() {
   const { toast } = useToast();
+  const { isViewer, isAdmin: authIsAdmin } = useAuth();
   const { versionData, isChecking, refresh, setIsUpgradeModalOpen } = useSystemVersion();
 
   // Active top tab: "workspace" or "team"
@@ -73,7 +76,7 @@ export function SettingsView() {
   const [isUpdatingRole, setIsUpdatingRole] = useState(false);
 
   // The first user signing in with username 'admin' is always the main administrator
-  const isAdmin = currentUser?.username === "admin" || currentUser?.role === "ADMIN";
+  const isAdmin = authIsAdmin || currentUser?.username === "admin" || currentUser?.role === "ADMIN";
 
   // Fetch Current User
   useEffect(() => {
@@ -150,6 +153,14 @@ export function SettingsView() {
 
   const handleSaveGeneral = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAdmin) {
+      toast({
+        title: "Permission Denied",
+        description: "Only administrators can modify workspace settings.",
+        type: "warning",
+      });
+      return;
+    }
     toast({
       title: "Workspace Settings Saved",
       description: "Default sender identity and timezone updated.",
@@ -159,6 +170,14 @@ export function SettingsView() {
 
   const handleSaveQueue = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAdmin) {
+      toast({
+        title: "Permission Denied",
+        description: "Only administrators can configure the queue engine.",
+        type: "warning",
+      });
+      return;
+    }
     toast({
       title: "BullMQ Engine Configured",
       description: `Worker concurrency updated to ${workerConcurrency} threads per node.`,
@@ -167,6 +186,14 @@ export function SettingsView() {
   };
 
   const handlePurgeQueue = () => {
+    if (!isAdmin) {
+      toast({
+        title: "Permission Denied",
+        description: "Only administrators can purge queue jobs.",
+        type: "warning",
+      });
+      return;
+    }
     toast({
       title: "Failed Jobs Purged",
       description: "Cleared 0 dead-letter queue records from Redis.",
@@ -344,6 +371,10 @@ export function SettingsView() {
         </div>
       </div>
 
+      {isViewer && (
+        <ViewOnlyBanner message="You have view-only access. You cannot modify workspace configurations, Redis engine parameters, or team members." />
+      )}
+
       {/* ========================================================================= */}
       {/* TAB 1: WORKSPACE & ENGINE SETTINGS                                        */}
       {/* ========================================================================= */}
@@ -373,9 +404,10 @@ export function SettingsView() {
                   </label>
                   <input
                     type="text"
+                    disabled={!isAdmin}
                     value={workspaceName}
                     onChange={(e) => setWorkspaceName(e.target.value)}
-                    className="w-full bg-kumo-control border border-kumo-line rounded-lg px-3 py-2 text-xs text-kumo-strong focus:outline-none focus:border-cf-orange"
+                    className="w-full bg-kumo-control border border-kumo-line rounded-lg px-3 py-2 text-xs text-kumo-strong focus:outline-none focus:border-cf-orange disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                 </div>
 
@@ -385,9 +417,10 @@ export function SettingsView() {
                   </label>
                   <input
                     type="email"
+                    disabled={!isAdmin}
                     value={defaultSender}
                     onChange={(e) => setDefaultSender(e.target.value)}
-                    className="w-full bg-kumo-control border border-kumo-line rounded-lg px-3 py-2 text-xs text-kumo-strong focus:outline-none focus:border-cf-orange font-mono"
+                    className="w-full bg-kumo-control border border-kumo-line rounded-lg px-3 py-2 text-xs text-kumo-strong focus:outline-none focus:border-cf-orange font-mono disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                 </div>
               </div>
@@ -397,9 +430,10 @@ export function SettingsView() {
                   Workspace Timezone
                 </label>
                 <select
+                  disabled={!isAdmin}
                   value={timezone}
                   onChange={(e) => setTimezone(e.target.value)}
-                  className="w-full sm:w-80 bg-kumo-control border border-kumo-line rounded-lg px-3 py-2 text-xs text-kumo-strong focus:outline-none focus:border-cf-orange cursor-pointer"
+                  className="w-full sm:w-80 bg-kumo-control border border-kumo-line rounded-lg px-3 py-2 text-xs text-kumo-strong focus:outline-none focus:border-cf-orange cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   <option value="UTC (Coordinated Universal Time)">UTC (Coordinated Universal Time)</option>
                   <option value="America/New_York (EST)">America/New_York (EST)</option>
@@ -409,7 +443,11 @@ export function SettingsView() {
               </div>
 
               <div className="flex justify-end pt-2">
-                <button type="submit" className="btn-cf-primary">
+                <button
+                  type="submit"
+                  disabled={!isAdmin}
+                  className="btn-cf-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                   Save General Changes
                 </button>
               </div>
@@ -446,9 +484,10 @@ export function SettingsView() {
                   type="range"
                   min="1"
                   max="50"
+                  disabled={!isAdmin}
                   value={workerConcurrency}
                   onChange={(e) => setWorkerConcurrency(Number(e.target.value))}
-                  className="w-full accent-cf-orange cursor-pointer"
+                  className="w-full accent-cf-orange cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                 />
                 <div className="flex justify-between text-[10px] text-kumo-muted mt-1 font-mono">
                   <span>1 Worker (Low memory)</span>
@@ -466,9 +505,10 @@ export function SettingsView() {
                     type="number"
                     min="0"
                     max="10"
+                    disabled={!isAdmin}
                     value={maxRetries}
                     onChange={(e) => setMaxRetries(Number(e.target.value))}
-                    className="w-full bg-kumo-control border border-kumo-line rounded-lg px-3 py-2 text-xs text-kumo-strong focus:outline-none focus:border-cf-orange"
+                    className="w-full bg-kumo-control border border-kumo-line rounded-lg px-3 py-2 text-xs text-kumo-strong focus:outline-none focus:border-cf-orange disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                 </div>
 
@@ -476,9 +516,10 @@ export function SettingsView() {
                   <label className="flex items-center gap-2 p-2.5 rounded-lg bg-kumo-recessed border border-kumo-hairline cursor-pointer text-xs">
                     <input
                       type="checkbox"
+                      disabled={!isAdmin}
                       checked={exponentialBackoff}
                       onChange={(e) => setExponentialBackoff(e.target.checked)}
-                      className="accent-cf-orange"
+                      className="accent-cf-orange disabled:cursor-not-allowed"
                     />
                     <span className="font-medium text-kumo-strong">
                       Enable Exponential Backoff (10s, 30s, 90s)
@@ -488,7 +529,11 @@ export function SettingsView() {
               </div>
 
               <div className="flex justify-end pt-2">
-                <button type="submit" className="btn-cf-primary">
+                <button
+                  type="submit"
+                  disabled={!isAdmin}
+                  className="btn-cf-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                   Update Queue Configuration
                 </button>
               </div>
@@ -702,7 +747,8 @@ export function SettingsView() {
                 <button
                   type="button"
                   onClick={handlePurgeQueue}
-                  className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-kumo-danger hover:bg-kumo-danger-tint border border-kumo-danger/30 transition-colors shrink-0 cursor-pointer"
+                  disabled={!isAdmin}
+                  className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-kumo-danger hover:bg-kumo-danger-tint border border-kumo-danger/30 transition-colors shrink-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Purge Failed Jobs
                 </button>
