@@ -73,9 +73,23 @@ html.light body {
   color: #111111;
 }
 
-/* Logo typography matching dashboard */
-.font-logo {
+/* Logo typography matching dashboard - ALWAYS EMITMAIL ORANGE */
+.font-logo,
+span.font-logo,
+a .font-logo,
+[data-fd-nav] a .font-logo,
+nav a .font-logo,
+#nd-sidebar .font-logo,
+aside .font-logo {
   font-family: "Bricolage Grotesque", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  color: #FF6600 !important;
+  fill: #FF6600 !important;
+  -webkit-text-fill-color: #FF6600 !important;
+}
+
+a:has(.font-logo) {
+  color: #FF6600 !important;
+  text-decoration: none !important;
 }
 
 /* Remove Search triggers & inputs */
