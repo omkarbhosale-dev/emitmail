@@ -14,6 +14,8 @@ import {
 } from "@phosphor-icons/react";
 import { InboundDomainItem } from "@/types";
 import { useToast } from "@/components/ui/Toast";
+import { useAuth } from "@/context/AuthContext";
+import { ViewOnlyBanner } from "@/components/ui/ViewOnlyBanner";
 import { api } from "@/lib/api";
 
 const INITIAL_FALLBACK_DOMAINS: InboundDomainItem[] = [
@@ -37,6 +39,7 @@ const INITIAL_FALLBACK_DOMAINS: InboundDomainItem[] = [
 export function AddMailboxView() {
   const router = useRouter();
   const { toast } = useToast();
+  const { isViewer } = useAuth();
 
   const [domains, setDomains] = useState<InboundDomainItem[]>([]);
   const [selectedDomainId, setSelectedDomainId] = useState("");
@@ -75,6 +78,15 @@ export function AddMailboxView() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isViewer) {
+      toast({
+        title: "Action Not Permitted",
+        description: "View-only members are not permitted to create mailboxes.",
+        type: "error",
+      });
+      return;
+    }
+
     const cleanAlias = localPart.trim().toLowerCase();
 
     if (!cleanAlias) {
@@ -122,27 +134,30 @@ export function AddMailboxView() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in duration-200">
-      {/* Top Breadcrumb & Navigation */}
-      <div className="flex items-center gap-2 text-xs text-kumo-subtle">
+      {/* Back Button */}
+      <div>
         <Link
           href="/inbox"
-          className="hover:text-kumo-strong transition-colors flex items-center gap-1.5"
+          className="inline-flex items-center gap-1.5 text-xs text-kumo-subtle hover:text-kumo-strong transition-colors"
         >
           <CaretLeft size={14} />
-          <span>Inbox</span>
+          <span>Back to Inboxes</span>
         </Link>
-        <span>/</span>
-        <span className="text-kumo-strong font-medium">Add Mailbox</span>
       </div>
 
-      {/* Page Header */}
-      <div className="border-b border-kumo-hairline pb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-cf-blue/10 border border-cf-blue/20 flex items-center justify-center text-cf-blue">
+      {isViewer && (
+        <ViewOnlyBanner message="You have view-only access and cannot create new mailbox aliases." />
+      )}
+
+      {/* Main Form Container */}
+      <div className="bg-kumo-base border border-kumo-hairline rounded-2xl shadow-xs overflow-hidden">
+        {/* Header */}
+        <div className="p-6 border-b border-kumo-hairline bg-kumo-recessed/30 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-cf-blue/10 border border-cf-blue/20 flex items-center justify-center text-cf-blue shrink-0">
             <Tray size={20} weight="bold" />
           </div>
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-kumo-strong">
+            <h1 className="text-base font-bold text-kumo-strong">
               Create Inbound Mailbox
             </h1>
             <p className="text-xs text-kumo-subtle mt-0.5">
@@ -150,93 +165,101 @@ export function AddMailboxView() {
             </p>
           </div>
         </div>
-      </div>
 
-      {/* Form Card */}
-      <div className="bg-kumo-base border border-kumo-hairline rounded-2xl p-6 sm:p-7 shadow-2xs">
-        <form onSubmit={handleSubmit} className="space-y-5">
+        {/* Form Body */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
           {errorMessage && (
-            <div className="p-3.5 rounded-lg bg-kumo-danger-tint border border-kumo-danger/30 text-kumo-danger text-xs flex items-center gap-2">
-              <WarningCircle size={16} weight="bold" className="shrink-0" />
+            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-xs flex items-center gap-2">
+              <WarningCircle size={15} weight="fill" className="shrink-0" />
               <span>{errorMessage}</span>
             </div>
           )}
 
-          {/* 1. Verified Domain Selector */}
-          <div>
-            <label className="block text-xs font-semibold text-kumo-strong mb-1.5">
-              Domain
+          {/* 1. Select Domain */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-semibold text-kumo-strong flex items-center gap-1.5">
+              <Globe size={14} className="text-cf-blue" />
+              <span>Select Receiving Domain</span> <span className="text-cf-orange">*</span>
             </label>
+
             {isLoadingDomains ? (
-              <div className="h-9 bg-kumo-control border border-kumo-line rounded-lg animate-pulse" />
+              <div className="h-9 w-full bg-kumo-control border border-kumo-line rounded-lg animate-pulse" />
             ) : domains.length === 0 ? (
-              <div className="p-3 rounded-lg bg-kumo-control border border-kumo-line text-xs text-kumo-subtle">
-                No sending domains found. Please register and verify a domain first under{" "}
-                <Link href="/domains/add" className="text-cf-blue underline font-semibold">
-                  Domains
-                </Link>.
+              <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs text-amber-500 flex items-center justify-between">
+                <span>No verified domains found. Please configure a domain first.</span>
+                <Link href="/domains/add" className="font-semibold underline">
+                  Add Domain &rarr;
+                </Link>
               </div>
             ) : (
               <select
+                disabled={isViewer}
                 value={selectedDomainId}
                 onChange={(e) => setSelectedDomainId(e.target.value)}
-                className="w-full bg-kumo-control border border-kumo-line rounded-lg px-3 py-2 text-xs text-kumo-strong focus:outline-none focus:border-cf-blue cursor-pointer font-mono"
+                className="w-full bg-kumo-control border border-kumo-line rounded-lg px-3 py-2 text-xs text-kumo-strong focus:outline-none focus:border-cf-blue cursor-pointer disabled:opacity-60"
               >
-                {domains.map((dom) => (
-                  <option key={dom.id} value={dom.id}>
-                    {dom.domainName} {dom.inboundMxVerified ? "(MX Verified)" : "(MX Pending)"}
+                {domains.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.domainName} {d.inboundMxVerified ? "✓ (MX Active)" : "(MX Unverified)"}
                   </option>
                 ))}
               </select>
             )}
-            <p className="text-[11px] text-kumo-subtle mt-1">
-              Select the authenticated domain on which this mailbox will reside.
+            <p className="text-[11px] text-kumo-subtle">
+              Receives incoming emails directed to this domain via MX records.
             </p>
           </div>
 
-          {/* 2. Mailbox Alias / Local Part */}
-          <div>
-            <label className="block text-xs font-semibold text-kumo-strong mb-1.5">
-              Mailbox Alias (Local Part)
+          {/* 2. Mailbox Local Part / Alias */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-semibold text-kumo-strong">
+              Mailbox Alias (Local Part) <span className="text-cf-orange">*</span>
             </label>
-            <div className="flex items-center bg-kumo-control border border-kumo-line rounded-lg px-3 py-2 focus-within:border-cf-blue">
-              <input
-                type="text"
-                required
-                value={localPart}
-                onChange={(e) =>
-                  setLocalPart(e.target.value.toLowerCase().replace(/[^a-z0-9._+-]/g, ""))
-                }
-                placeholder="support, billing, contact, hello"
-                className="w-full bg-transparent border-0 outline-none text-xs text-kumo-strong placeholder:text-kumo-muted font-mono"
-              />
-              <span className="text-xs text-kumo-subtle font-mono select-none shrink-0 pl-1">
-                @{activeDomain?.domainName || "domain.com"}
-              </span>
+
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  disabled={isViewer}
+                  value={localPart}
+                  onChange={(e) => setLocalPart(e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ""))}
+                  placeholder="support"
+                  className="w-full bg-kumo-control border border-kumo-line rounded-lg px-3 py-2 text-xs text-kumo-strong font-mono focus:outline-none focus:border-cf-blue disabled:opacity-60"
+                  required
+                />
+              </div>
+
+              <span className="text-kumo-muted font-mono text-xs">@</span>
+
+              <div className="w-48 px-3 py-2 bg-kumo-control border border-kumo-line rounded-lg text-xs text-kumo-subtle font-mono truncate select-none">
+                {activeDomain?.domainName || "yourdomain.com"}
+              </div>
             </div>
-            <p className="text-[11px] text-kumo-subtle mt-1">
-              Enter letters, numbers, periods, or hyphens.
+
+            <p className="text-[11px] text-kumo-subtle">
+              Examples: <code className="text-kumo-strong">support</code>, <code className="text-kumo-strong">billing</code>, <code className="text-kumo-strong">contact</code>, <code className="text-kumo-strong">hello</code>.
             </p>
           </div>
 
           {/* 3. Display Name */}
-          <div>
-            <label className="block text-xs font-semibold text-kumo-strong mb-1.5">
-              Display Name <span className="text-kumo-muted font-normal">(Optional)</span>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-semibold text-kumo-strong">
+              Display Name (Optional)
             </label>
             <input
               type="text"
+              disabled={isViewer}
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               placeholder="e.g. EmitMail Support or Billing Desk"
-              className="w-full bg-kumo-control border border-kumo-line rounded-lg px-3 py-2 text-xs text-kumo-strong placeholder:text-kumo-muted focus:outline-none focus:border-cf-blue"
+              className="w-full bg-kumo-control border border-kumo-line rounded-lg px-3 py-2 text-xs text-kumo-strong focus:outline-none focus:border-cf-blue disabled:opacity-60"
             />
-            <p className="text-[11px] text-kumo-subtle mt-1">
-              Shown to recipients when replying to incoming messages from this mailbox.
+            <p className="text-[11px] text-kumo-subtle">
+              Friendly sender name displayed on outbound reply threads.
             </p>
           </div>
 
-          {/* 4. Live Address Preview Callout */}
+          {/* Preview Box */}
           <div className="p-4 rounded-xl bg-kumo-control border border-kumo-line flex items-center justify-between">
             <div>
               <span className="text-[11px] text-kumo-subtle block font-sans">Full Inbound Address:</span>
@@ -257,8 +280,9 @@ export function AddMailboxView() {
 
             <button
               type="submit"
-              disabled={isSubmitting || !localPart.trim() || domains.length === 0}
-              className="btn-cf-primary flex items-center gap-1.5 text-xs"
+              disabled={isSubmitting || !localPart.trim() || domains.length === 0 || isViewer}
+              title={isViewer ? "View-only members cannot create mailboxes" : undefined}
+              className="btn-cf-primary flex items-center gap-1.5 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
                 <>

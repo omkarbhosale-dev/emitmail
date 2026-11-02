@@ -26,11 +26,11 @@ Before deploying EmitMail, ensure your server environment satisfies these three 
   </Step>
 
   <Step>
-    ### Cloudflare DNS Management
-    Ensure your root domain (e.g. `yourdomain.com`) is managed under Cloudflare DNS so you can configure custom TXT, MX, and A records.
+    ### Configure DNS (Any DNS Provider)
+    Ensure your root domain (e.g. `yourdomain.com`) is managed under an active DNS provider (such as Cloudflare, AWS Route 53, Namecheap, Porkbun, or Google Cloud DNS) so you can configure custom TXT, MX, and A records.
     
-    <Callout type="info" title="Important Cloudflare Proxy Setting">
-      All mail-related records (`mail.yourdomain.com`, `send.yourdomain.com`) MUST have the Cloudflare Proxy set to **DNS Only (Grey Cloud)**. Cloudflare CDN proxies only HTTP/HTTPS traffic (Ports 80/443) and blocks raw SMTP Port 25 traffic.
+    <Callout type="info" title="Important Proxy / CDN Notice">
+      If your DNS provider offers an HTTP reverse-proxy feature (such as Cloudflare's Orange Cloud proxy), all mail-related records (`mail.yourdomain.com`, `send.yourdomain.com`) MUST be set to **DNS Only (Unproxied / Grey Cloud)**. HTTP proxies only handle web traffic (ports 80/443) and will drop raw SMTP Port 25 mail traffic.
     </Callout>
   </Step>
 </Steps>

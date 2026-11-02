@@ -1,538 +1,116 @@
-# EmitMail Core API (`apps/api`)
+# EmitMail — Backend API
+### An open-source alternative of Resend that works on the Resend platform
 
-EmitMail is a modern, self-hosted, open-source Email Service Provider (ESP) platform—a lightweight, 100% tenant-owned alternative to Resend, SendGrid, and Mailgun.
+[![Node.js](https://img.shields.io/badge/Node.js-v20%20%7C%20v22-green.svg)](https://nodejs.org/)
+[![Express](https://img.shields.io/badge/Express-4.21-lightgrey.svg)](https://expressjs.com/)
+[![Prisma](https://img.shields.io/badge/Prisma-5.22-blue.svg)](https://www.prisma.io/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
 
-This package (`apps/api`) provides the core backend services:
-- **Single Global Root `.env` Architecture**: Zero per-app environment files. All services (API, Dashboard, Worker, Database, Redis) read exclusively from the root `emitmail/.env`.
-- **Dynamic Master MTA Infrastructure (`ServerConfig`)**: Full tenant autonomy. Self-hosters bring their own VPS and hostname with dynamic database-backed server configuration and pre-flight DNS verification checklists.
-- **Authentication & Authorization**: JWT-based session security for dashboard administration with mandatory initial password reset (`mustChangePassword: true`).
-- **User Settings**: Profile, email, and timezone management.
-- **Multi-Domain Cryptography**: Automatic 2048-bit RSA DKIM keypair generation, AES-256-GCM private key envelope encryption, and single-line DNS TXT record formatting.
-- **Live Public DNS Verification Engine**: Uncached DNS verification directly querying Cloudflare (`1.1.1.1`) and Google (`8.8.8.8`) for DKIM, Return-Path SPF, Return-Path MX bounce routing, and DMARC.
-- **API Key & Secret Infrastructure**: High-entropy prefix-based API keys (`emit_live_...`) and secrets (`emit_sec_...`) with SHA-256 one-way hashing, domain scoping, and toggleable activation.
+The **EmitMail Backend API** (`apps/api`) serves as the central control plane and REST gateway for the EmitMail platform. It provides tenant authentication, database persistence via Prisma, automatic 2048-bit RSA DKIM key generation, live DNS verification, an embedded Inbound SMTP mail receiver (Port 2525), and 100% drop-in compatibility with the official Resend SDK.
 
 ---
 
-## 1. Single Root `.env` Architecture
+## Key Capabilities
 
-Self-hosted users and developers only ever configure **ONE** `.env` file at the root of the monorepo:
-```
-emitmail/
-├── .env                <-- The ONLY .env file across the entire stack
-├── .env.example        <-- Monorepo master template
-├── docker-compose.dev.yml
-├── apps/
-│   ├── api/            <-- Reads ../../.env automatically
-│   ├── dashboard/
-│   └── worker/
+- **Resend Drop-in Compatibility:** Provides exact route and parameter compatibility with the official `resend` NPM package (`POST /emails`, `POST /api/v1/emails`, `GET /emails/:id`).
+- **2048-Bit RSA DKIM Key Generation:** Generates cryptographically secure 2048-bit RSA key pairs (`modulusLength: 2048`) on domain registration and encrypts private keys at rest using AES-256-GCM.
+- **Multi-Chunk DNS Verifier:** Implements RFC 4408 / 6376 compliant DNS string-chunk joining to verify 400+ character 2048-bit DKIM records across edge nameservers (`1.1.1.1` and `8.8.8.8`).
+- **Inbound SMTP Receiver:** Embedded ESMTP server running on port 2525 (mapped to 25 in Docker) with dynamic `onRcptTo` alias and catch-all validation, raw MIME stream parsing via `mailparser`, and BullMQ queue dispatch.
+- **Single Global Root `.env` Architecture:** Reads all configuration from the root `emitmail/.env` file with Zod runtime validation.
+- **Decoupled Asynchronous Dispatch:** Enqueues outbound email jobs into BullMQ (`email-delivery-queue`) in `< 15ms`, isolating the HTTP API from mail transmission latencies.
+
+---
+
+## Directory Layout
+
+```text
+apps/api/
+├── prisma/
+│   ├── schema.prisma        # PostgreSQL database schema
+│   ├── migrations/          # Version-controlled SQL migrations
+│   └── seed.ts              # Default admin seed script (admin / emitmail)
+├── src/
+│   ├── config/              # Zod environment schema, Prisma DB, Redis client
+│   ├── middlewares/         # JWT admin auth and Bearer em_live_ API key auth
+│   ├── modules/             # Modular feature controllers and services
+│   │   ├── auth/            # Admin authentication and session management
+│   │   ├── domains/         # Domain registration, 2048-bit DKIM, DNS verifier
+│   │   ├── api-keys/        # High-entropy API key generation and hashing
+│   │   ├── emails/          # Outbound dispatch and Resend compatibility
+│   │   ├── mailboxes/       # Inbound mailbox aliases and catch-all routes
+│   │   ├── webhooks/        # HMAC-SHA256 signed event subscriptions
+│   │   ├── analytics/       # Aggregated delivery statistics
+│   │   └── system/          # Version checker and GitHub release proxy
+│   ├── inbound/
+│   │   └── smtp-receiver.ts # Embedded ESMTP receiver on port 2525
+│   ├── queues/              # BullMQ queue producers
+│   ├── utils/               # Cryptography and DKIM generator
+│   ├── app.ts               # Express application initialization
+│   └── index.ts             # Service entry point and graceful shutdown
+└── test-standalone-workflow.ts # Integration test suite
 ```
 
-### 1.1 Master Configuration (`.env.example`)
-Copy `.env.example` to `.env` in the repository root:
+---
+
+## Local Development & Setup
+
+### 1. Prerequisites & Environment
+Ensure the root `.env` is configured and local Docker infrastructure is running:
 ```bash
-cp .env.example .env
-```
-
-```ini
-# Environment
-NODE_ENV=development
-
-# Service Ports & URLs
-PORT=4000
-API_PORT=4000
-DASHBOARD_PORT=3000
-DOCS_PORT=3001
-NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
-
-# PostgreSQL Database
-POSTGRES_USER=emitmail
-POSTGRES_PASSWORD=emitmail_pass
-POSTGRES_DB=emitmail
-DATABASE_URL=postgresql://emitmail:emitmail_pass@localhost:5432/emitmail?schema=public
-
-# Redis Broker / Cache
-REDIS_PASSWORD=emitmail_redis_pass
-REDIS_URL=redis://localhost:6379
-
-# Security & Secrets
-JWT_SECRET=emitmail_super_secret_jwt_key_change_in_prod_2026
-ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
-
-# Master Self-Hosted Mail Server Configuration
-MAIL_SERVER_HOSTNAME=mail.yourdomain.com
-SPF_INCLUDE_DOMAIN=_spf.yourdomain.com
-VPS_PUBLIC_IPV4=0.0.0.0
-```
-
----
-
-## 2. Self-Hoster Infrastructure Prerequisites
-
-Before adding sending domains, configure your Master Mail Server Hostname and VPS Reverse DNS. This establishes your server as a legitimate MTA and prevents Gmail/Outlook from rejecting outgoing email:
-
-| Record Type | Host / IP | Target Value | Description |
-| :--- | :--- | :--- | :--- |
-| **A Record** | `mail.yourdomain.com` | `YOUR_VPS_PUBLIC_IP` | Directs inbound and outbound SMTP mail routing to your VPS. |
-| **TXT (SPF)** | `_spf.yourdomain.com` | `v=spf1 ip4:YOUR_VPS_PUBLIC_IP -all` | Authorizes your VPS IP to send mail. Sender domains will include this record (`include:_spf.yourdomain.com`). |
-| **PTR (rDNS)** | `YOUR_VPS_PUBLIC_IP` | `mail.yourdomain.com` | Configured in your VPS provider's control panel (Hetzner, DigitalOcean, AWS, OVH, Linode). Reverse DNS is strictly enforced by major inbox providers. |
-
-> **Tip**: You can view this live checklist and update your server hostname at any time via `GET /api/v1/server-config` and `PATCH /api/v1/server-config`.
-
----
-
-## 3. Quickstart & Workflow Commands
-
-All commands can be run either from the **monorepo root** or within `apps/api`.
-
-### 3.1 Start Infrastructure Containers (PostgreSQL & Redis)
-From the repository root:
-```bash
-# Start PostgreSQL 16 & Redis 7 in the background
+# In repository root
 pnpm dev:docker
-# OR: docker compose -f docker-compose.dev.yml up -d
 ```
 
-Verify containers are running:
+### 2. Database Migrations & Seeding
+From the repository root or within `apps/api`:
 ```bash
-docker ps
-```
-
-### 3.2 Install Dependencies & Setup Database
-```bash
-# 1. Install monorepo dependencies
-pnpm install
-
-# 2. Generate Prisma Client (reads root .env automatically)
+# Generate Prisma Client
 pnpm db:generate
 
-# 3. Synchronize database schema (creates users, domains, api_keys, server_config)
+# Push schema changes to PostgreSQL
 pnpm db:push
 
-# 4. (Optional) Run explicit database seed
+# Seed default admin account
 pnpm db:seed
 ```
 
-### 3.3 Start the Development Server
+### 3. Start Development Server
 ```bash
 # From repository root:
 pnpm dev:api
 
-# OR from inside apps/api:
+# Or directly in apps/api:
 pnpm dev
 ```
-The server will boot on `http://localhost:4000`. On boot, the server automatically executes:
-- `ensureDefaultAdminExists()`: Creates admin account (`admin` / `emitmail` with `mustChangePassword: true`) if none exists.
-- `ensureServerConfigExists()`: Initializes master `ServerConfig` from root `.env` values.
-
-### 3.4 Stopping the Server & Managing Processes
-To stop the development server:
-- **Terminal**: Press `Ctrl + C` (triggers graceful shutdown, closing HTTP server, PostgreSQL, and Redis connections).
-- **Background / Windows PowerShell**:
-  ```powershell
-  # Locate process listening on port 4000
-  Get-NetTCPConnection -LocalPort 4000 -ErrorAction SilentlyContinue | Select-Object OwningProcess
-
-  # Stop process by ID
-  Stop-Process -Id <PID> -Force
-  ```
-- **Stop Docker Containers**:
-  ```bash
-  pnpm dev:docker:down
-  # OR: docker compose -f docker-compose.dev.yml down
-  ```
+The API server starts listening on `http://localhost:4000`, with the embedded Inbound SMTP server on `0.0.0.0:2525`.
 
 ---
 
-## 4. Cryptographic Security Standards
+## Core API Endpoints
 
-- **DKIM Key Generation**: Native 2048-bit RSA keypairs generated on domain creation via `node:crypto.generateKeyPairSync`.
-- **Private Key Encryption (At Rest)**: Private keys are encrypted using AES-256-GCM with a 96-bit random initialization vector (`iv`), 128-bit authentication tag (`authTag`), and 256-bit key derived from `ENCRYPTION_KEY`. Stored as `iv:authTag:ciphertext`.
-- **Public Key Formatting**: Strips PEM headers (`BEGIN/END`) and whitespace so keys can be copied directly into a single DNS TXT record.
-- **API Key & Secret Hashing**: API keys (`emit_live_...`) and secrets (`emit_sec_...`) are hashed using SHA-256 (`keyHash`, `secretHash`). Raw secrets are returned strictly once during generation and never stored in plain text.
+### Resend-Compatible Endpoints
+- `POST /emails` or `POST /api/v1/emails` — Send an outbound email (Bearer `em_live_...`)
+- `GET /emails/:id` — Retrieve delivery status for an email
 
----
-
-## 5. API Reference
-
-All responses follow a consistent JSON envelope:
-- **Success**: `{ "success": true, "message": "...", "data": { ... } }`
-- **Error**: `{ "success": false, "message": "...", "errors": [ { "path": "...", "message": "..." } ] }`
-
-### 5.1 System Health & Version (`/api/v1`)
-
-#### `GET /api/v1/health`
-Checks database and Redis connectivity.
-- **Auth**: None (Public)
-- **Response `200 OK`**:
-```json
-{
-  "success": true,
-  "message": "Health check status",
-  "data": {
-    "status": "healthy",
-    "uptime": 12.34,
-    "timestamp": "2026-10-23T18:30:00.000Z",
-    "services": {
-      "database": "connected",
-      "redis": "connected"
-    }
-  }
-}
-```
-
-#### `GET /api/v1/system/version`
-Returns the running EmitMail server version and checks for published GitHub releases with semantic versioning analysis. Results are cached in Redis with a 6-hour TTL (`emitmail:system:latest_release`) to prevent GitHub rate limits. Degrades gracefully in offline or restricted environments.
-- **Auth**: None (Public)
-- **Query Parameters**:
-  - `force` (optional, boolean): Set `?force=true` to bypass Redis cache and query GitHub API immediately.
-- **Response `200 OK`**:
-```json
-{
-  "success": true,
-  "message": "System version and update information retrieved successfully",
-  "data": {
-    "currentVersion": "0.1.0",
-    "latestVersion": "1.0.0",
-    "hasUpdate": true,
-    "isMajor": true,
-    "releaseName": "EmitMail v1.0.0 — Production Release",
-    "publishedAt": "2026-10-23T10:00:00Z",
-    "releaseUrl": "https://github.com/emitmail/emitmail/releases/tag/v1.0.0",
-    "releaseNotes": "## What's Changed\n* Added Resend SDK compatibility...\n* Master MTA dynamic DNS pre-flight engine",
-    "updateCommand": "docker compose pull && docker compose up -d"
-  }
-}
-```
+### Management API (JWT Authenticated)
+- `POST /api/v1/auth/login` — Administrator session authentication
+- `GET /api/v1/domains` — List registered sending domains
+- `POST /api/v1/domains` — Add domain & generate 2048-bit RSA DKIM key
+- `POST /api/v1/domains/:id/verify` — Live public DNS verification
+- `POST /api/v1/domains/:id/rotate-dkim` — Rotate / upgrade DKIM key to 2048-bit
+- `GET /api/v1/api-keys` — List scoped API credentials
+- `POST /api/v1/api-keys` — Generate `em_live_...` API key
+- `GET /api/v1/mailboxes` — List inbound mailbox aliases
+- `POST /api/v1/mailboxes` — Create inbound alias (`support`, `*` for catch-all)
+- `GET /api/v1/inbound-emails` — Read incoming email threads and attachments
+- `GET /api/v1/system/version` — Version check & GitHub release updater
+- `GET /api/v1/health` — System healthcheck
 
 ---
 
-### 5.2 Authentication (`/api/v1/auth`)
+## Testing
 
-#### `POST /api/v1/auth/login`
-- **Auth**: None (Public)
-- **Request Body**:
-```json
-{
-  "username": "admin",
-  "password": "emitmail"
-}
+Run the end-to-end API integration workflow:
+```bash
+pnpm test:workflow
 ```
-- **Response `200 OK`**: Returns `accessToken` (valid for 7 days) and `user` object.
-
-#### `GET /api/v1/auth/me`
-- **Auth**: `Bearer <accessToken>`
-- **Response `200 OK`**: Current authenticated profile.
-
-#### `POST /api/v1/auth/change-password`
-- **Auth**: `Bearer <accessToken>`
-- **Request Body**:
-```json
-{
-  "currentPassword": "emitmail",
-  "newPassword": "NewSecurePassword#2026",
-  "confirmPassword": "NewSecurePassword#2026"
-}
-```
-- **Response `200 OK`**: Sets `mustChangePassword: false`.
-
----
-
-### 5.3 Master Server Configuration (`/api/v1/server-config`)
-
-#### `GET /api/v1/server-config`
-Returns active MTA server hostnames and the Master DNS checklist.
-- **Auth**: `Bearer <accessToken>`
-- **Response `200 OK`**:
-```json
-{
-  "success": true,
-  "message": "Master server configuration retrieved successfully",
-  "data": {
-    "serverConfig": {
-      "id": "master",
-      "mailServerHostname": "mail.yourdomain.com",
-      "spfIncludeDomain": "_spf.yourdomain.com",
-      "vpsPublicIpv4": "198.51.100.1",
-      "isConfigured": true,
-      "updatedAt": "2026-10-23T18:45:00.000Z"
-    },
-    "masterDnsChecklist": [
-      {
-        "type": "A",
-        "host": "mail.yourdomain.com",
-        "value": "198.51.100.1",
-        "purpose": "Mail Server Inbound & Outbound Hostname",
-        "instructions": "Add an A record on your master DNS provider pointing 'mail.yourdomain.com' to '198.51.100.1'."
-      },
-      {
-        "type": "TXT",
-        "host": "_spf.yourdomain.com",
-        "value": "v=spf1 ip4:198.51.100.1 -all",
-        "purpose": "Master SPF Authority Record",
-        "instructions": "Add a TXT record for '_spf.yourdomain.com' so sender domains can include your mail cluster authorized IP."
-      },
-      {
-        "type": "PTR",
-        "ip": "198.51.100.1",
-        "value": "mail.yourdomain.com",
-        "purpose": "VPS Reverse DNS (rDNS)",
-        "instructions": "Set the reverse DNS (PTR) record for IP '198.51.100.1' to 'mail.yourdomain.com' in your VPS provider panel."
-      }
-    ]
-  }
-}
-```
-
-#### `PATCH /api/v1/server-config`
-Updates master MTA hostname and IP, and dynamically refreshes `MX` and `SPF` records for any `PENDING` domains.
-- **Auth**: `Bearer <accessToken>`
-- **Request Body**:
-```json
-{
-  "mailServerHostname": "mail.acme.com",
-  "spfIncludeDomain": "_spf.acme.com",
-  "vpsPublicIpv4": "203.0.113.10"
-}
-```
-- **Response `200 OK`**:
-```json
-{
-  "success": true,
-  "message": "Server configuration updated successfully. Pending domain records refreshed.",
-  "data": {
-    "serverConfig": {
-      "id": "master",
-      "mailServerHostname": "mail.acme.com",
-      "spfIncludeDomain": "_spf.acme.com",
-      "vpsPublicIpv4": "203.0.113.10",
-      "isConfigured": true,
-      "updatedAt": "2026-10-23T18:50:00.000Z"
-    },
-    "masterDnsChecklist": [ ... ],
-    "refreshedPendingDomainsCount": 2
-  }
-}
-```
-
----
-
-### 5.4 User Settings (`/api/v1/users`)
-
-#### `GET /api/v1/users/settings`
-- **Auth**: `Bearer <accessToken>`
-- **Response `200 OK`**: Profile settings.
-
-#### `PATCH /api/v1/users/settings`
-- **Auth**: `Bearer <accessToken>`
-- **Request Body** (optional fields):
-```json
-{
-  "fullName": "Admin User",
-  "email": "admin@example.com",
-  "timezone": "UTC"
-}
-```
-
----
-
-### 5.5 Domain Management (`/api/v1/domains`)
-
-#### `POST /api/v1/domains`
-Registers a new sender domain and generates 2048-bit RSA keys using active `ServerConfig`.
-- **Auth**: `Bearer <accessToken>`
-- **Request Body**:
-```json
-{
-  "domainName": "example.com",
-  "dkimSelector": "esp",
-  "returnPathSubdomain": "send"
-}
-```
-- **Response `201 Created`**: Returns domain with 4 DNS records (DKIM, Return-Path SPF, Return-Path MX, DMARC) based on tenant ServerConfig.
-
-#### `GET /api/v1/domains`
-Lists registered domains.
-- **Auth**: `Bearer <accessToken>`
-- **Query Parameters**: `status` (`PENDING` | `VERIFIED` | `FAILED`), `search`.
-
-#### `GET /api/v1/domains/:id`
-Retrieves domain details including `dnsRecords` array.
-- **Auth**: `Bearer <accessToken>`
-
-#### `POST /api/v1/domains/:id/verify`
-Live uncached DNS resolution via Cloudflare (`1.1.1.1`) and Google (`8.8.8.8`).
-- **Auth**: `Bearer <accessToken>`
-
-#### `DELETE /api/v1/domains/:id`
-Deletes domain and cascades associated API keys.
-- **Auth**: `Bearer <accessToken>`
-
----
-
-### 5.6 API Keys & SDK Handshake (`/api/v1/api-keys`)
-
-#### `POST /api/v1/api-keys`
-Generates a new API Key & Secret pair.
-- **Auth**: `Bearer <accessToken>`
-- **Request Body**:
-```json
-{
-  "name": "Production Mailer",
-  "domainId": null,
-  "expiresAt": null
-}
-```
-- **Response `201 Created`**: Returns raw `apiKey` and `apiSecret` (shown once).
-
-#### `GET /api/v1/api-keys`
-Lists all API keys (never returns hashes or secrets).
-- **Auth**: `Bearer <accessToken>`
-
-#### `PATCH /api/v1/api-keys/:id/toggle`
-Toggles key active/paused status.
-- **Auth**: `Bearer <accessToken>`
-
-#### `DELETE /api/v1/api-keys/:id`
-Permanently revokes and deletes the API key.
-- **Auth**: `Bearer <accessToken>`
-
-#### `POST /api/v1/api-keys/verify-credentials` (Public SDK Handshake)
-Verifies SDK credentials and returns key authorization scope.
-- **Headers Option 1**:
-  - `x-api-key: emit_live_...`
-  - `x-api-secret: emit_sec_...`
-- **Headers Option 2**:
-  - `Authorization: Bearer <apiKey>:<apiSecret>`
-- **Response `200 OK`**:
-```json
-{
-  "success": true,
-  "message": "API credentials verified successfully",
-  "data": {
-    "authenticated": true,
-    "keyId": "e9a8b7c6-d5e4-3210-fedc-ba9876543210",
-    "keyName": "Production Mailer",
-    "keyPrefix": "emit_live_a1b2c3d4",
-    "scope": "ALL_VERIFIED_DOMAINS",
-    "scopedDomainId": null
-  }
-}
-```
-
----
-
-### 5.7 Email Submission & Relay Dispatcher (`/v1/emails` or `/api/v1/emails`)
-
-#### `POST /v1/emails`
-Submits an email for asynchronous DKIM signing and SMTP delivery via BullMQ.
-- **Auth**: `Bearer <em_live_...>` (Domain-Scoped API Key)
-- **Tenancy Enforcement**: The sender `From` address domain must match the assigned `domainId` of the API key, and the domain must be in `VERIFIED` status.
-- **Request Body**:
-```json
-{
-  "from": "EmitMail Support <support@yourdomain.com>",
-  "to": ["user@example.com"],
-  "subject": "Hello from EmitMail",
-  "html": "<h1>Hello!</h1><p>Sent with DKIM signature.</p>",
-  "text": "Hello! Sent with DKIM signature.",
-  "replyTo": "help@yourdomain.com",
-  "cc": [],
-  "bcc": [],
-  "headers": {},
-  "attachments": []
-}
-```
-- **Response `202 Accepted`**:
-```json
-{
-  "success": true,
-  "message": "Email successfully accepted and queued for delivery",
-  "data": {
-    "id": "18a3a9bf-e22a-497a-881a-415589589715",
-    "from": "EmitMail Support <support@yourdomain.com>",
-    "to": ["user@example.com"],
-    "subject": "Hello from EmitMail",
-    "status": "QUEUED",
-    "messageId": "dd882bfdee180d4edb5d912211a07217@yourdomain.com",
-    "createdAt": "2026-10-24T07:29:22.691Z"
-  }
-}
-```
-
-#### Official Resend SDK Drop-in Compatibility
-Clients can use the official `resend` npm package pointing directly to EmitMail:
-```typescript
-import { Resend } from 'resend';
-
-const resend = new Resend(process.env.EMITMAIL_API_KEY, {
-  baseUrl: 'http://localhost:4000', // or 'http://localhost:4000/api/v1'
-});
-
-const { data, error } = await resend.emails.send({
-  from: 'Sender <hello@yourdomain.com>',
-  to: ['recipient@example.com'],
-  subject: 'Hello from EmitMail',
-  html: '<p>DKIM signed transactional email</p>',
-});
-
-console.log('Dispatched Email ID:', data?.id); // e.g. "em_8b3a8a7a3f0341b9a85690932fe01295"
-```
-
-#### `GET /emails/:id` (or `/v1/emails/:id`)
-Retrieves message delivery status (`QUEUED`, `SENDING`, `DELIVERED`, `BOUNCED`, `FAILED`).
-- **Auth**: `Bearer <em_live_...>`
-
----
-
-### 5.8 Webhooks & Bounce Notification Pipeline (`/webhooks` or `/api/v1/webhooks`)
-
-#### `POST /webhooks`
-Registers an HTTP webhook subscription endpoint.
-- **Auth**: `Bearer <accessToken>` (Dashboard JWT) or `Bearer <em_live_...>` (API Key)
-- **Request Body**:
-```json
-{
-  "url": "https://api.yourdomain.com/emitmail-webhook",
-  "events": ["email.delivered", "email.bounced", "email.complaint"],
-  "secret": "your_custom_signing_secret"
-}
-```
-- **Webhook Signature**: Every outbound webhook request contains an `X-EmitMail-Signature: sha256=<hmac>` header signed using HMAC-SHA256 with the subscription secret.
-
-#### `POST /webhooks/inbound-bounce`
-Public/pipe bounce ingestion endpoint for Postfix, Haraka, or inbound mail processing scripts to parse RFC 3464 DSN delivery status notifications.
-- **Request Body**:
-```json
-{
-  "messageId": "dd882bfdee180d4edb5d912211a07217@yourdomain.com",
-  "recipient": "user@example.com",
-  "bounceType": "hard",
-  "diagnosticCode": "550 5.1.1 User unknown",
-  "source": "postfix-inbound-pipe"
-}
-```
-
----
-
-## 6. Postman Collection
-
-Import `apps/api/EmitMail.postman_collection.json` into Postman.
-
-The collection is pre-configured with 9 folders:
-1. `0. System Health` (Health checks + Version & Update engine)
-2. `1. Authentication`
-3. `2. Server Configuration & Pre-Flight Checks`
-4. `3. User Settings`
-5. `4. Domains`
-6. `5. API Keys`
-7. `6. Emails`
-8. `7. Webhooks & Inbound Bounce`
-
-### Automatic Variable Chaining
-Test scripts inside the collection automatically store runtime variables:
-- `accessToken` on `POST /api/v1/auth/login`
-- `domainId` on `POST /api/v1/domains`
-- `apiKey` (`em_live_...`) on `POST /api/v1/api-keys`
-- `emailId` on `POST /v1/emails`
-
-This allows you to execute end-to-end flows in Postman without manually copying tokens or IDs.

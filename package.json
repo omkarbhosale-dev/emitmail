@@ -24,7 +24,9 @@
     "test:resend-worker": "dotenv -e .env -- tsx scripts/test-resend-queue-worker.ts",
     "test:deliverability": "dotenv -e .env -- tsx scripts/test-deliverability-security.ts",
     "dev:docs": "pnpm --filter emitmail-docs dev",
-    "build:docs": "pnpm --filter emitmail-docs build"
+    "build:docs": "pnpm --filter emitmail-docs build",
+    "dev:dashboard": "pnpm --filter emitmail-dashboard dev",
+    "build:dashboard": "pnpm --filter emitmail-dashboard build"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",

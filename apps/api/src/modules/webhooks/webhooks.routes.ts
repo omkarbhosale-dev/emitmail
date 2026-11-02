@@ -2,16 +2,22 @@ import { Router, Request, Response, NextFunction } from 'express';
 import {
   createWebhook,
   listWebhooks,
+  getWebhook,
+  updateWebhook,
   deleteWebhook,
+  testWebhook,
+  listDeliveries,
   inboundBounce,
 } from './webhooks.controller.js';
 import {
   createWebhookSubscriptionSchema,
+  updateWebhookSubscriptionSchema,
   inboundBounceSchema,
   webhookIdParamSchema,
+  testWebhookSchema,
 } from './webhooks.schema.js';
 import { validateRequest } from '../../middlewares/validate.middleware.js';
-import { authenticateJwt } from '../../middlewares/auth.middleware.js';
+import { authenticateJwt, requireWriteAccess } from '../../middlewares/auth.middleware.js';
 import { authenticateApiKey } from '../../middlewares/apiKey.middleware.js';
 
 const router = Router();
@@ -40,19 +46,62 @@ router.post(
   inboundBounce
 );
 
+// Delivery logs endpoint
+router.get(
+  '/deliveries',
+  authenticateAdminOrApiKey,
+  listDeliveries
+);
+
 // Subscription endpoints (Protected)
 router.post(
   '/',
   authenticateAdminOrApiKey,
+  requireWriteAccess,
   validateRequest({ body: createWebhookSubscriptionSchema }),
   createWebhook
 );
 
+// List webhooks (All roles including VIEWER)
 router.get('/', authenticateAdminOrApiKey, listWebhooks);
 
+// Get single webhook
+router.get(
+  '/:id',
+  authenticateAdminOrApiKey,
+  validateRequest({ params: webhookIdParamSchema }),
+  getWebhook
+);
+
+// Update webhook (e.g. toggle events or active state)
+router.patch(
+  '/:id',
+  authenticateAdminOrApiKey,
+  requireWriteAccess,
+  validateRequest({
+    params: webhookIdParamSchema,
+    body: updateWebhookSubscriptionSchema,
+  }),
+  updateWebhook
+);
+
+// Test webhook dispatch
+router.post(
+  '/:id/test',
+  authenticateAdminOrApiKey,
+  requireWriteAccess,
+  validateRequest({
+    params: webhookIdParamSchema,
+    body: testWebhookSchema,
+  }),
+  testWebhook
+);
+
+// Delete webhook
 router.delete(
   '/:id',
   authenticateAdminOrApiKey,
+  requireWriteAccess,
   validateRequest({ params: webhookIdParamSchema }),
   deleteWebhook
 );

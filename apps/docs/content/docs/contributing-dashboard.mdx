@@ -1,0 +1,144 @@
+---
+title: Dashboard UI Guide (apps/dashboard)
+description: Frontend architecture, Next.js 16 App Router, Cloudflare Kumo design system tokens, and UI standards in apps/dashboard.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+The **EmitMail Dashboard** (`apps/dashboard`) is a developer-focused, single-page application built on Next.js 16 and React 19. It faithfully reproduces the **Cloudflare Dashboard ("Account Home" v2)** aesthetic using Cloudflare's **Kumo Design System** (`@cloudflare/kumo`) and Phosphor Icons (`@phosphor-icons/react`).
+
+---
+
+## 1. Directory Structure
+
+```text
+apps/dashboard/
+├── app/
+│   ├── globals.css          # Kumo semantic CSS variables & Tailwind v4 theme
+│   ├── layout.tsx           # Root HTML layout, font setup, and isolate boundary
+│   └── page.tsx             # Main dashboard shell & view state router
+├── components/
+│   ├── navigation/          # Left Sidebar, Header bar, Breadcrumbs, User Profile
+│   ├── modals/              # Send Test Email, Inbound Aliases, API Key dialogs
+│   ├── ui/                  # Reusable badges, buttons, copy buttons, search bars
+│   └── views/               # Full-screen view pages
+│       ├── HomeView.tsx     # Overview KPI cards, timeseries charts, quick links
+│       ├── DomainsView.tsx  # Domain list, DNS verification status, DKIM drawer
+│       ├── ApiKeysView.tsx  # API key generation, token revoke, scoped tokens
+│       ├── EmailsView.tsx   # Outbound dispatch logs, search, inspect headers
+│       ├── InboxView.tsx    # Inbound email mailbox reader, thread replies
+│       ├── WebhooksView.tsx # Webhook endpoints and event subscriptions
+│       ├── SettingsView.tsx # Server configuration, hostname, PTR validator
+│       └── LoginView.tsx    # Administrator authentication screen
+├── lib/
+│   └── api.ts               # Authenticated API client wrapper (`apiFetch`)
+├── types/
+│   └── index.ts             # TypeScript domain interfaces matching backend models
+└── DESIGN.md                # Cloudflare Kumo golden design rules & token bible
+```
+
+---
+
+## 2. Core Golden Design Rules (`DESIGN.md`)
+
+When contributing to the dashboard, you must strictly follow the rules defined in `DESIGN.md`:
+
+<Callout type="warn" title="Strict Design Rule Enforcement">
+  1. **NEVER use raw Tailwind grays/blues:** Do not use `bg-zinc-900`, `bg-gray-100`, or `text-gray-500`.
+  2. **NEVER use the `dark:` variant:** Theme switching (Dark/Light mode) is driven completely by CSS custom properties (`[data-mode="dark"]` and `light-dark()`). Using `dark:` breaks light mode rendering.
+</Callout>
+
+### 1. Surface & Background Token Hierarchy
+
+| Semantic Token | UI Usage |
+| :--- | :--- |
+| `bg-kumo-canvas` | Main page background and Left Sidebar background |
+| `bg-kumo-base` | Analytics cards, Top Header bar, Dialog panels, Command search |
+| `bg-kumo-elevated` | Quick-action cards, active sidebar pill highlight |
+| `bg-kumo-recessed` | Code blocks, DKIM/SPF TXT viewers, `<kbd>` shortcut tags |
+| `bg-kumo-tint` | Hover state on list rows and table rows |
+| `border-kumo-hairline` | Ultra-thin 1px border for all cards and dividers |
+
+### 2. Typography Hierarchy
+
+| Semantic Token | UI Usage |
+| :--- | :--- |
+| `text-kumo-strong` | Primary titles, KPI numbers, bold breadcrumb labels |
+| `text-kumo-default` | Standard body text, sidebar links, domain names |
+| `text-kumo-subtle` | Subtext, card captions, table column headers |
+| `text-kumo-muted` | Chevrons, placeholders, inactive icons |
+
+### 3. Cloudflare Orange Brand Accents
+
+| Token | Usage |
+| :--- | :--- |
+| `bg-cf-orange` / `text-cf-orange` | Primary orange action buttons, brand logo fill |
+| `border-cf-orange-border` | Subtle orange borders for active callout banners |
+| `bg-cf-orange-tint` | Orange tinted pill badges and highlights |
+
+---
+
+## 3. Component & Layout Rules
+
+1. **Always Use `cn()` for Class Composition:** Import `cn` from `@cloudflare/kumo` to merge conditional styles.
+2. **Root Portal Isolation:** Kumo floating components (Dialogs, Popovers, Dropdowns) portal to `document.body`. The root container inside `app/layout.tsx` must maintain `className="isolate"`.
+3. **The `<Text>` Component Constraint:** Kumo's `<Text>` component enforces strict typographic scales and **does not accept a `className` prop**. Wrap `<Text>` inside a `<span>` or `<div>` when adding margin or flex classes.
+4. **Icons:** Always use `@phosphor-icons/react` with `weight="bold"` or `weight="regular"` for consistent stroke width.
+
+---
+
+## 4. API Client & Authentication (`lib/api.ts`)
+
+All communication between the dashboard and `apps/api` flows through `apiFetch<T>`:
+
+```typescript
+import { apiFetch } from '@/lib/api';
+import { ApiDomain } from '@/types';
+
+// Automatically injects Authorization: Bearer <JWT> from localStorage/cookie
+const response = await apiFetch<{ domains: ApiDomain[] }>('/domains');
+```
+
+- **Token Storage:** Dual-stored in `localStorage` (`emitmail_admin_jwt`) and standard cookie (`emitmail_token`) with 30-day persistence.
+- **Base URL:** Driven by `process.env.NEXT_PUBLIC_API_URL` (defaults to `http://localhost:4000/api/v1`).
+
+---
+
+## 5. Adding a New Dashboard View
+
+<Steps>
+  <Step>
+    ### Create View Component
+    Create a new file in `apps/dashboard/components/views/MyFeatureView.tsx`:
+    ```tsx
+    'use client';
+    import React from 'react';
+
+    export function MyFeatureView() {
+      return (
+        <div className="space-y-6">
+          <div className="border border-kumo-hairline bg-kumo-base rounded-xl p-6">
+            <h1 className="text-kumo-strong text-xl font-medium">My Feature</h1>
+            <p className="text-kumo-subtle text-sm mt-1">Manage custom configurations.</p>
+          </div>
+        </div>
+      );
+    }
+    ```
+  </Step>
+
+  <Step>
+    ### Register in Main Shell
+    Open `apps/dashboard/app/page.tsx`, import your new view, and register it in the sidebar active view dispatcher.
+  </Step>
+
+  <Step>
+    ### Test Locally
+    Run the development server and verify both Dark and Light themes:
+    ```bash
+    pnpm dev:dashboard
+    ```
+  </Step>
+</Steps>
+

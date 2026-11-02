@@ -1,0 +1,151 @@
+---
+title: Documentation Guide (apps/docs)
+description: How to write, organize, and build interactive MDX documentation in apps/docs using Fumadocs and Next.js.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+The **EmitMail Documentation** (`apps/docs`) is powered by **Next.js 16** and **Fumadocs** (`fumadocs-ui` and `fumadocs-mdx`). It delivers an interactive, developer-first documentation experience modeled on Cloudflare Docs.
+
+---
+
+## 1. Directory Structure
+
+```text
+apps/docs/
+├── app/
+│   ├── layout.tsx           # Root HTML layout and Fumadocs RootProvider
+│   ├── page.tsx             # Documentation homepage hero
+│   └── docs/
+│       ├── layout.tsx       # DocsLayout wrapper with sidebar navigation
+│       └── [[...slug]]/
+│           └── page.tsx     # Dynamic MDX page renderer
+├── content/
+│   └── docs/                # MDX content files
+│       ├── meta.json        # Sidebar categories and page order
+│       ├── index.mdx        # Introduction
+│       ├── prerequisites.mdx# Server requirements
+│       ├── docker-deployment.mdx
+│       ├── dns-records.mdx  # 10/10 deliverability DNS guide
+│       └── ...
+├── lib/
+│   └── source.ts            # Fumadocs loader configuration
+├── source.config.ts         # Fumadocs MDX collections definition
+└── package.json
+```
+
+---
+
+## 2. Managing Sidebar Navigation (`meta.json`)
+
+The left sidebar structure is declared in `apps/docs/content/docs/meta.json`. 
+
+### Categories & Separators
+Use triple dashes (`---Category Title---`) to create category headings:
+
+```json
+{
+  "title": "Documentation",
+  "pages": [
+    "---Introduction---",
+    "index",
+    "---Installation---",
+    "prerequisites",
+    "docker-deployment",
+    "vps-firewall",
+    "---Setup---",
+    "reverse-dns-ptr",
+    "dns-records",
+    "inbox-mailbox-setup",
+    "api-keys-webhooks",
+    "---Example (Resend)---",
+    "resend-npm-sdk",
+    "nextjs-react-email",
+    "curl-rest-api",
+    "inbound-reply-flow",
+    "---Contributions---",
+    "contributing",
+    "contributing-api",
+    "contributing-worker",
+    "contributing-dashboard",
+    "contributing-docs"
+  ]
+}
+```
+
+---
+
+## 3. MDX Component Library
+
+You can import and use any of Fumadocs' pre-styled UI components directly inside your MDX files:
+
+### 1. Callouts (`<Callout>`)
+```mdx
+import { Callout } from 'fumadocs-ui/components/callout';
+
+<Callout type="info" title="Helpful Tip">
+  This is an informative callout box.
+</Callout>
+
+<Callout type="warn" title="Important Notice">
+  Always keep mail-related records unproxied (DNS Only).
+</Callout>
+```
+
+### 2. Numbered Walkthrough Steps (`<Steps>`, `<Step>`)
+```mdx
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+<Steps>
+  <Step>
+    ### Step 1: Install Dependencies
+    Run `pnpm install` in your terminal.
+  </Step>
+  <Step>
+    ### Step 2: Run Migrations
+    Run `pnpm db:push` to sync database schema.
+  </Step>
+</Steps>
+```
+
+### 3. Feature Cards (`<Cards>`, `<Card>`)
+```mdx
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+<Cards>
+  <Card title="Backend API" href="/docs/contributing-api">
+    Learn how to build Express endpoints and Prisma models.
+  </Card>
+</Cards>
+```
+
+---
+
+## 4. Writing & Formatting Guidelines
+
+1. **Provider-Neutral DNS Terminology:** Always write generic DNS setup guides ("Configure DNS", "DNS Only / Unproxied") so instructions apply to any provider (Cloudflare, AWS Route 53, Namecheap, Porkbun, Google Cloud DNS).
+2. **Copy-Pasteable Code Blocks:** Ensure code snippets and curl commands are production-ready with realistic environment variables (`em_live_...`, `mail.yourdomain.com`).
+3. **Frontmatter Standards:** Every MDX file must contain:
+   ```yaml
+   ---
+   title: Page Title Here
+   description: One-sentence concise summary of what this document covers.
+   ---
+   ```
+
+---
+
+## 5. Local Development & Verification
+
+Run the documentation dev server locally on port 3001:
+```bash
+pnpm dev:docs
+```
+
+Before committing docs changes, always run the full build verification:
+```bash
+pnpm build:docs
+```
+This ensures all MDX syntax compiles, frontmatter is valid, and all static routes generate with zero errors.
+

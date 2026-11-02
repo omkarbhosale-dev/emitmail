@@ -5,11 +5,27 @@ import {
   ProcessedEmailItem,
   UserRole,
   DashboardUser,
+  WebhookEndpoint,
+  WebhookDeliveryLog,
 } from "@/types";
 
-const API_BASE_URL = (
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1"
-).replace(/\/+$/, "");
+export function getApiBaseUrl(): string {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, "");
+  }
+  if (typeof window !== "undefined" && window.location) {
+    // In local development on localhost/127.0.0.1 (port 3000), target backend API directly on port 4000
+    if (
+      (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") &&
+      window.location.port !== "4000"
+    ) {
+      return "http://localhost:4000/api/v1";
+    }
+    // In production behind reverse proxy (e.g. emitmail.yourdomain.com), use same-origin /api/v1
+    return `${window.location.origin}/api/v1`;
+  }
+  return "http://localhost:4000/api/v1";
+}
 
 const TOKEN_STORAGE_KEY = "emitmail_admin_jwt";
 
@@ -45,7 +61,7 @@ export async function apiFetch<T>(
   options: RequestInit = {}
 ): Promise<T> {
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
-  const url = `${API_BASE_URL}${cleanPath}`;
+  const url = `${getApiBaseUrl()}${cleanPath}`;
 
   const token = getAuthToken();
 
@@ -119,7 +135,7 @@ export const api = {
         mustChangePassword?: boolean;
       };
     }> => {
-      const res = await fetch(`${API_BASE_URL}/auth/login`, {
+      const res = await fetch(`${getApiBaseUrl()}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(credentials),
@@ -167,10 +183,14 @@ export const api = {
       }
     },
 
-    changePassword: async (data: { currentPassword: string; newPassword: string }) => {
+    changePassword: async (data: { currentPassword: string; newPassword: string; confirmPassword?: string }) => {
       return apiFetch("/auth/change-password", {
         method: "POST",
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          currentPassword: data.currentPassword,
+          newPassword: data.newPassword,
+          confirmPassword: data.confirmPassword || data.newPassword,
+        }),
       });
     },
 
@@ -973,6 +993,120 @@ export const api = {
             worker: health?.services?.worker === "running" || health?.services?.redis === "connected",
           },
         };
+      },
+    },
+
+    webhooks: {
+      list: async (): Promise<WebhookEndpoint[]> => {
+        const res = await apiFetch<{ success: boolean; data: WebhookEndpoint[] }>("/webhooks");
+        return Array.isArray(res) ? res : res.data || [];
+      },
+
+      getById: async (id: string): Promise<WebhookEndpoint> => {
+        const res = await apiFetch<{ success: boolean; data: WebhookEndpoint }>(`/webhooks/${id}`);
+        return (res as any)?.data || res;
+      },
+
+      create: async (data: {
+        url: string;
+        events: string[];
+        secret?: string;
+        domainId?: string | null;
+      }): Promise<WebhookEndpoint> => {
+        const res = await apiFetch<{ success: boolean; data: WebhookEndpoint }>("/webhooks", {
+          method: "POST",
+          body: JSON.stringify(data),
+        });
+        return (res as any)?.data || res;
+      },
+
+      update: async (
+        id: string,
+        data: {
+          events?: string[];
+          isActive?: boolean;
+          url?: string;
+        }
+      ): Promise<WebhookEndpoint> => {
+        const res = await apiFetch<{ success: boolean; data: WebhookEndpoint }>(`/webhooks/${id}`, {
+          method: "PATCH",
+          body: JSON.stringify(data),
+        });
+        return (res as any)?.data || res;
+      },
+
+      delete: async (id: string): Promise<{ id: string; url: string }> => {
+        const res = await apiFetch<{ success: boolean; data: { id: string; url: string } }>(
+          `/webhooks/${id}`,
+          { method: "DELETE" }
+        );
+        return (res as any)?.data || res;
+      },
+
+      test: async (
+        id: string,
+        event?: string
+      ): Promise<{
+        deliveryId: string;
+        url: string;
+        event: string;
+        success: boolean;
+        statusCode: number;
+        statusText: string;
+        latencyMs: number;
+        payload: any;
+        responseBody: string;
+        lastError?: string | null;
+        timestamp: string;
+      }> => {
+        const res = await apiFetch<{
+          success: boolean;
+          data: {
+            deliveryId: string;
+            url: string;
+            event: string;
+            success: boolean;
+            statusCode: number;
+            statusText: string;
+            latencyMs: number;
+            payload: any;
+            responseBody: string;
+            lastError?: string | null;
+            timestamp: string;
+          };
+        }>(`/webhooks/${id}/test`, {
+          method: "POST",
+          body: JSON.stringify({ event }),
+        });
+        return (res as any)?.data || res;
+      },
+
+      listDeliveries: async (subscriptionId?: string): Promise<WebhookDeliveryLog[]> => {
+        const query = subscriptionId ? `?subscriptionId=${encodeURIComponent(subscriptionId)}` : "";
+        const res = await apiFetch<{ success: boolean; data: WebhookDeliveryLog[] }>(
+          `/webhooks/deliveries${query}`
+        );
+        return Array.isArray(res) ? res : res.data || [];
+      },
+    },
+
+    serverConfig: {
+      get: async () => {
+        return apiFetch<{
+          config: {
+            mailServerHostname: string;
+            vpsPublicIpv4: string;
+            spfIncludeDomain: string;
+            isConfigured: boolean;
+          };
+          checklist: Array<{
+            type: string;
+            host?: string;
+            value: string;
+            purpose: string;
+            instructions: string;
+          }>;
+        }>("/server-config");
       },
     },
 

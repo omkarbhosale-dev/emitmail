@@ -16,6 +16,12 @@
     "resend-npm-sdk",
     "nextjs-react-email",
     "curl-rest-api",
-    "inbound-reply-flow"
+    "inbound-reply-flow",
+    "---Contributions---",
+    "contributing",
+    "contributing-api",
+    "contributing-worker",
+    "contributing-dashboard",
+    "contributing-docs"
   ]
 }

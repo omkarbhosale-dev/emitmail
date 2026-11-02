@@ -1,0 +1,37 @@
+FROM node:20-alpine AS base
+
+# Install libc6-compat for Next.js binaries
+RUN apk add --no-cache libc6-compat wget curl
+RUN npm install -g pnpm@10
+
+WORKDIR /app
+
+# Stage 1: Install workspace dependencies
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/api/package.json ./apps/api/
+COPY apps/worker/package.json ./apps/worker/
+COPY apps/dashboard/package.json ./apps/dashboard/
+COPY apps/docs/package.json ./apps/docs/
+RUN mkdir -p packages
+
+RUN pnpm install --frozen-lockfile
+
+# Stage 2: Build Dashboard
+COPY apps/dashboard ./apps/dashboard
+
+WORKDIR /app/apps/dashboard
+
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+
+RUN pnpm build
+
+EXPOSE 3000
+
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
+CMD ["pnpm", "start"]
+

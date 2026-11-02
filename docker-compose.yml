@@ -116,10 +116,73 @@ services:
     networks:
       - emitmail-network
 
+  emitmail-dashboard:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dashboard
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}
+    container_name: emitmail-dashboard
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-}
+    depends_on:
+      emitmail-api:
+        condition: service_started
+    networks:
+      - emitmail-network
+
+  emitmail-docs:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.docs
+    container_name: emitmail-docs
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - HOSTNAME=0.0.0.0
+    networks:
+      - emitmail-network
+
+  emitmail-caddy:
+    image: caddy:2.9-alpine
+    container_name: emitmail-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DASHBOARD_DOMAIN=${DASHBOARD_DOMAIN:-emitmail.yourdomain.com}
+      - DOCS_DOMAIN=${DOCS_DOMAIN:-emitdocs.yourdomain.com}
+      - SMTP_EHLO_HOSTNAME=${SMTP_EHLO_HOSTNAME:-mail.yourdomain.com}
+      - ACME_EMAIL=${ACME_EMAIL:-admin@yourdomain.com}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - emitmail-api
+      - emitmail-dashboard
+      - emitmail-docs
+    networks:
+      - emitmail-network
+
 volumes:
   postgres_data:
     driver: local
   redis_data:
+    driver: local
+  caddy_data:
+    driver: local
+  caddy_config:
     driver: local
 
 networks:

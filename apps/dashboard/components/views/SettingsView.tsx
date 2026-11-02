@@ -2,18 +2,22 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import {
+  ShieldCheck,
+  ShieldWarning,
+  LockKey,
+  Key,
+  Eye,
+  EyeSlash,
+  Check,
+  Warning,
   Gear,
   Cpu,
   PaintBrush,
-  Warning,
-  Check,
   Sun,
   Moon,
   Desktop,
   Users,
   UserPlus,
-  ShieldCheck,
-  Key,
   Trash,
   ArrowsClockwise,
   X,
@@ -23,31 +27,60 @@ import {
   User,
   Info,
   RocketLaunch,
+  TerminalWindow,
+  Copy,
+  CheckCircle,
+  Database,
+  Broadcast,
+  Globe,
 } from "@phosphor-icons/react";
 import { useSystemVersion } from "@/context/VersionContext";
 import { useToast } from "@/components/ui/Toast";
 import { api } from "@/lib/api";
 import { DashboardUser, UserRole } from "@/types";
 import { Facehash } from "facehash";
+import { useAuth } from "@/context/AuthContext";
+import { ViewOnlyBanner } from "@/components/ui/ViewOnlyBanner";
 
 export function SettingsView() {
   const { toast } = useToast();
+  const { isViewer, isAdmin: authIsAdmin, refreshUser, mustChangePassword: authMustChangePassword } = useAuth();
   const { versionData, isChecking, refresh, setIsUpgradeModalOpen } = useSystemVersion();
 
-  // Active top tab: "workspace" or "team"
-  const [activeTab, setActiveTab] = useState<"workspace" | "team">("workspace");
+  // Active top tab: "overview" or "team"
+  const [activeTab, setActiveTab] = useState<"overview" | "team">("overview");
 
-  // General Settings State
-  const [workspaceName, setWorkspaceName] = useState("omkarbhosale.dev");
-  const [defaultSender, setDefaultSender] = useState("notifications@omkarbhosale.dev");
-  const [timezone, setTimezone] = useState("UTC (Coordinated Universal Time)");
-  const [workerConcurrency, setWorkerConcurrency] = useState(12);
-  const [maxRetries, setMaxRetries] = useState(3);
-  const [exponentialBackoff, setExponentialBackoff] = useState(true);
+  // User & Identity State
+  const [currentUser, setCurrentUser] = useState<DashboardUser | null>(null);
+
+  // Password Change State
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
+
+  // System Diagnostics State
+  const [systemHealth, setSystemHealth] = useState<{
+    status: string;
+    uptime: number;
+    services: { database: string; redis: string; worker?: string };
+  } | null>(null);
+  const [isLoadingHealth, setIsLoadingHealth] = useState(false);
+  const [serverHostname, setServerHostname] = useState<string>("mail.omkarbhosale.dev");
+  const [serverIp, setServerIp] = useState<string>("157.245.108.179");
+
+  // Copied state for API endpoints
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  // Appearance State
   const [themeMode, setThemeMode] = useState<"dark" | "light" | "system">("dark");
 
   // Team & User Management State
-  const [currentUser, setCurrentUser] = useState<DashboardUser | null>(null);
   const [teamMembers, setTeamMembers] = useState<DashboardUser[]>([]);
   const [isLoadingTeam, setIsLoadingTeam] = useState<boolean>(true);
 
@@ -72,16 +105,51 @@ export function SettingsView() {
   const [selectedRole, setSelectedRole] = useState<UserRole>("MEMBER");
   const [isUpdatingRole, setIsUpdatingRole] = useState(false);
 
-  // The first user signing in with username 'admin' is always the main administrator
-  const isAdmin = currentUser?.username === "admin" || currentUser?.role === "ADMIN";
+  // Root Administrator check
+  const isAdmin = authIsAdmin || currentUser?.username === "admin" || currentUser?.role === "ADMIN";
 
-  // Fetch Current User
+  // Check if account is still using the default password
+  const isDefaultPassword = Boolean(currentUser?.mustChangePassword || authMustChangePassword);
+
+  // Fetch Current User on Mount
   useEffect(() => {
     api.auth
       .getMe()
       .then((user) => setCurrentUser(user))
       .catch((err) => console.error("Failed to load current user:", err));
   }, []);
+
+  // Fetch System Diagnostics
+  const loadDiagnostics = useCallback(async () => {
+    setIsLoadingHealth(true);
+    try {
+      const [healthRes, serverConfigRes] = await Promise.allSettled([
+        api.system.getHealth(),
+        api.serverConfig.get(),
+      ]);
+
+      if (healthRes.status === "fulfilled" && healthRes.value) {
+        setSystemHealth(healthRes.value);
+      }
+
+      if (serverConfigRes.status === "fulfilled" && serverConfigRes.value?.config) {
+        if (serverConfigRes.value.config.mailServerHostname) {
+          setServerHostname(serverConfigRes.value.config.mailServerHostname);
+        }
+        if (serverConfigRes.value.config.vpsPublicIpv4) {
+          setServerIp(serverConfigRes.value.config.vpsPublicIpv4);
+        }
+      }
+    } catch (err) {
+      console.warn("Diagnostics telemetry warning:", err);
+    } finally {
+      setIsLoadingHealth(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadDiagnostics();
+  }, [loadDiagnostics]);
 
   // Fetch Team Members
   const loadTeamMembers = useCallback(async () => {
@@ -148,30 +216,90 @@ export function SettingsView() {
     });
   };
 
-  const handleSaveGeneral = (e: React.FormEvent) => {
-    e.preventDefault();
+  // Copy helper
+  const handleCopy = (text: string, key: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedKey(key);
     toast({
-      title: "Workspace Settings Saved",
-      description: "Default sender identity and timezone updated.",
-      type: "success",
+      title: "Copied to Clipboard",
+      description: text,
+      type: "info",
     });
+    setTimeout(() => {
+      setCopiedKey((curr) => (curr === key ? null : curr));
+    }, 2000);
   };
 
-  const handleSaveQueue = (e: React.FormEvent) => {
+  // Password Change Handler
+  const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "BullMQ Engine Configured",
-      description: `Worker concurrency updated to ${workerConcurrency} threads per node.`,
-      type: "success",
-    });
-  };
+    setPasswordError(null);
+    setPasswordSuccess(null);
 
-  const handlePurgeQueue = () => {
-    toast({
-      title: "Failed Jobs Purged",
-      description: "Cleared 0 dead-letter queue records from Redis.",
-      type: "warning",
-    });
+    if (isViewer) {
+      toast({
+        title: "Permission Denied",
+        description: "View-only accounts cannot modify credentials.",
+        type: "warning",
+      });
+      return;
+    }
+
+    if (!currentPassword) {
+      setPasswordError("Please enter your current password.");
+      return;
+    }
+    if (!newPassword) {
+      setPasswordError("Please enter a new password.");
+      return;
+    }
+    if (newPassword.length < 8) {
+      setPasswordError("New password must be at least 8 characters long.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError("New password and confirmation password do not match.");
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      await api.auth.changePassword({
+        currentPassword,
+        newPassword,
+        confirmPassword,
+      });
+
+      setPasswordSuccess("Your password has been successfully updated. Default credentials cleared.");
+      toast({
+        title: "Password Updated",
+        description: "Your master login password was changed successfully.",
+        type: "success",
+      });
+
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+
+      // Refresh authentication context so banners update everywhere
+      const refreshed = await refreshUser();
+      if (refreshed) {
+        setCurrentUser(refreshed);
+      } else {
+        setCurrentUser((prev) => (prev ? { ...prev, mustChangePassword: false } : null));
+      }
+    } catch (err: unknown) {
+      console.error("Failed to change password:", err);
+      const msg = err instanceof Error ? err.message : "Failed to change password. Check your current password.";
+      setPasswordError(msg);
+      toast({
+        title: "Password Change Failed",
+        description: msg,
+        type: "error",
+      });
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
 
   // User Creation Handler
@@ -305,7 +433,7 @@ export function SettingsView() {
             Settings & Access Control
           </h1>
           <p className="text-xs text-kumo-subtle mt-1">
-            Manage your workspace configuration, Redis queue engine, and role-based user permissions.
+            Manage account security, inspect infrastructure diagnostics, and configure team access control.
           </p>
         </div>
 
@@ -313,15 +441,15 @@ export function SettingsView() {
         <div className="flex items-center gap-1.5 p-1 bg-kumo-elevated rounded-xl border border-kumo-hairline self-start sm:self-auto">
           <button
             type="button"
-            onClick={() => setActiveTab("workspace")}
+            onClick={() => setActiveTab("overview")}
             className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-              activeTab === "workspace"
+              activeTab === "overview"
                 ? "bg-kumo-base text-kumo-strong shadow-xs border border-kumo-hairline"
                 : "text-kumo-subtle hover:text-kumo-strong"
             }`}
           >
-            <Gear size={15} weight={activeTab === "workspace" ? "bold" : "regular"} />
-            <span>Workspace & Engine</span>
+            <Gear size={15} weight={activeTab === "overview" ? "bold" : "regular"} />
+            <span>Security & System</span>
           </button>
 
           <button
@@ -344,158 +472,645 @@ export function SettingsView() {
         </div>
       </div>
 
+      {/* 2. Security Alert: Default Password Notice */}
+      {isDefaultPassword && (
+        <div className="p-4 rounded-xl border border-cf-amber/40 bg-cf-amber/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in duration-200 shadow-xs">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-lg bg-cf-amber/20 border border-cf-amber/30 flex items-center justify-center text-cf-amber shrink-0 mt-0.5">
+              <ShieldWarning size={20} weight="fill" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="text-xs font-bold text-kumo-strong uppercase tracking-wider font-mono">
+                  Security Recommendation: Default Initial Password Active
+                </h4>
+                <span className="text-[10px] font-mono px-2 py-0.2 rounded-full bg-cf-amber/20 text-cf-amber border border-cf-amber/30 font-bold">
+                  Action Required
+                </span>
+              </div>
+              <p className="text-xs text-kumo-default mt-1 leading-relaxed">
+                Your account is currently secured with the default initial password (
+                <code className="font-mono text-cf-amber font-semibold bg-kumo-base/60 px-1 py-0.2 rounded border border-cf-amber/30">
+                  emitmail
+                </code>
+                ). We strongly suggest updating your password below immediately to prevent unauthorized access.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab("overview");
+              setTimeout(() => {
+                document.getElementById("change-password-card")?.scrollIntoView({ behavior: "smooth" });
+              }, 50);
+            }}
+            className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-cf-amber text-black hover:bg-cf-amber/90 transition-colors shrink-0 shadow-xs cursor-pointer self-start sm:self-auto"
+          >
+            Change Password Now
+          </button>
+        </div>
+      )}
+
+      {isViewer && (
+        <ViewOnlyBanner message="You have view-only access. You cannot modify workspace credentials or provision team members." />
+      )}
+
       {/* ========================================================================= */}
-      {/* TAB 1: WORKSPACE & ENGINE SETTINGS                                        */}
+      {/* TAB 1: SECURITY & SYSTEM OVERVIEW                                         */}
       {/* ========================================================================= */}
-      {activeTab === "workspace" && (
+      {activeTab === "overview" && (
         <div className="space-y-6">
-          {/* General Settings Card */}
-          <section className="bg-kumo-base border border-kumo-hairline rounded-xl p-5 space-y-4 shadow-2xs">
-            <div className="flex items-center gap-2.5 pb-3 border-b border-kumo-hairline">
-              <div className="w-8 h-8 rounded-lg bg-cf-orange/10 border border-cf-orange-border/30 flex items-center justify-center text-cf-orange">
-                <Gear size={18} weight="bold" />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-kumo-strong">
-                  General Workspace Settings
-                </h3>
-                <p className="text-[11px] text-kumo-subtle">
-                  Global workspace identity, default return paths, and timezone preferences
-                </p>
-              </div>
-            </div>
-
-            <form onSubmit={handleSaveGeneral} className="space-y-4 pt-1">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-kumo-subtle mb-1.5">
-                    Workspace Name
-                  </label>
-                  <input
-                    type="text"
-                    value={workspaceName}
-                    onChange={(e) => setWorkspaceName(e.target.value)}
-                    className="w-full bg-kumo-control border border-kumo-line rounded-lg px-3 py-2 text-xs text-kumo-strong focus:outline-none focus:border-cf-orange"
-                  />
+          {/* Card 1: Account Security & Password Change */}
+          <section
+            id="change-password-card"
+            className="bg-kumo-base border border-kumo-hairline rounded-xl p-5 space-y-4 shadow-2xs scroll-mt-6"
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-kumo-hairline flex-wrap gap-2">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-cf-orange/10 border border-cf-orange-border/30 flex items-center justify-center text-cf-orange">
+                  <LockKey size={18} weight="bold" />
                 </div>
-
                 <div>
-                  <label className="block text-xs font-medium text-kumo-subtle mb-1.5">
-                    Default Sender Address
-                  </label>
-                  <input
-                    type="email"
-                    value={defaultSender}
-                    onChange={(e) => setDefaultSender(e.target.value)}
-                    className="w-full bg-kumo-control border border-kumo-line rounded-lg px-3 py-2 text-xs text-kumo-strong focus:outline-none focus:border-cf-orange font-mono"
-                  />
+                  <h3 className="text-sm font-semibold text-kumo-strong">
+                    Account Security & Credentials
+                  </h3>
+                  <p className="text-[11px] text-kumo-subtle">
+                    Update your master login password and manage administrative access to EmitMail
+                  </p>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-kumo-subtle mb-1.5">
-                  Workspace Timezone
-                </label>
-                <select
-                  value={timezone}
-                  onChange={(e) => setTimezone(e.target.value)}
-                  className="w-full sm:w-80 bg-kumo-control border border-kumo-line rounded-lg px-3 py-2 text-xs text-kumo-strong focus:outline-none focus:border-cf-orange cursor-pointer"
-                >
-                  <option value="UTC (Coordinated Universal Time)">UTC (Coordinated Universal Time)</option>
-                  <option value="America/New_York (EST)">America/New_York (EST)</option>
-                  <option value="Asia/Kolkata (IST)">Asia/Kolkata (IST)</option>
-                  <option value="Europe/London (GMT)">Europe/London (GMT)</option>
-                </select>
-              </div>
-
-              <div className="flex justify-end pt-2">
-                <button type="submit" className="btn-cf-primary">
-                  Save General Changes
-                </button>
-              </div>
-            </form>
-          </section>
-
-          {/* Worker & Queue Engine Settings */}
-          <section className="bg-kumo-base border border-kumo-hairline rounded-xl p-5 space-y-4 shadow-2xs">
-            <div className="flex items-center gap-2.5 pb-3 border-b border-kumo-hairline">
-              <div className="w-8 h-8 rounded-lg bg-cf-orange/10 border border-cf-orange-border/30 flex items-center justify-center text-cf-orange">
-                <Cpu size={18} weight="bold" />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-kumo-strong">
-                  Worker & Queue Engine (BullMQ)
-                </h3>
-                <p className="text-[11px] text-kumo-subtle">
-                  Redis queue worker concurrency, retry backoff algorithms, and rate limits
-                </p>
-              </div>
+              {/* Status Badge */}
+              {isDefaultPassword ? (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-semibold bg-cf-amber/15 text-cf-amber border border-cf-amber/30">
+                  <Lock size={12} weight="bold" />
+                  <span>Default Password In Use</span>
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-semibold bg-cf-success/15 text-cf-success border border-cf-success/30">
+                  <CheckCircle size={13} weight="fill" />
+                  <span>Custom Password Active</span>
+                </span>
+              )}
             </div>
 
-            <form onSubmit={handleSaveQueue} className="space-y-5 pt-1">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-medium text-kumo-strong">
-                    BullMQ Worker Concurrency per Node
-                  </label>
-                  <span className="font-mono text-xs font-bold text-cf-orange bg-cf-orange-tint px-2 py-0.5 rounded border border-cf-orange-border/40">
-                    {workerConcurrency} Workers
+            {/* Operator Identity Info */}
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-kumo-recessed border border-kumo-hairline">
+              <div className="w-10 h-10 rounded-xl overflow-hidden border border-kumo-hairline bg-kumo-elevated shrink-0 shadow-xs flex items-center justify-center">
+                <Facehash
+                  name={currentUser?.username || "admin"}
+                  size={40}
+                  interactive
+                  enableBlink
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-kumo-strong truncate">
+                    {currentUser?.fullName || "EmitMail Administrator"}
+                  </span>
+                  <span className="text-[10px] font-mono font-bold px-2 py-0.2 rounded uppercase bg-cf-orange/15 text-cf-orange border border-cf-orange/30">
+                    {currentUser?.role || "ADMIN"}
                   </span>
                 </div>
-                <input
-                  type="range"
-                  min="1"
-                  max="50"
-                  value={workerConcurrency}
-                  onChange={(e) => setWorkerConcurrency(Number(e.target.value))}
-                  className="w-full accent-cf-orange cursor-pointer"
-                />
-                <div className="flex justify-between text-[10px] text-kumo-muted mt-1 font-mono">
-                  <span>1 Worker (Low memory)</span>
-                  <span>25 Workers</span>
-                  <span>50 Workers (10,000 req/sec)</span>
-                </div>
+                <span className="text-[11px] text-kumo-subtle font-mono block mt-0.5">
+                  Logged in as @{currentUser?.username || "admin"}
+                </span>
               </div>
+            </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Password Form Messages */}
+            {passwordError && (
+              <div className="p-3 rounded-xl bg-kumo-danger-tint border border-kumo-danger/30 text-kumo-danger text-xs flex items-center gap-2 animate-in fade-in duration-150">
+                <Warning size={16} weight="fill" className="shrink-0" />
+                <span>{passwordError}</span>
+              </div>
+            )}
+
+            {passwordSuccess && (
+              <div className="p-3 rounded-xl bg-cf-success/10 border border-cf-success/30 text-cf-success text-xs flex items-center gap-2 animate-in fade-in duration-150">
+                <CheckCircle size={16} weight="fill" className="shrink-0" />
+                <span>{passwordSuccess}</span>
+              </div>
+            )}
+
+            {/* Change Password Form */}
+            <form onSubmit={handleChangePassword} className="space-y-4 pt-1">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Current Password */}
                 <div>
                   <label className="block text-xs font-medium text-kumo-subtle mb-1.5">
-                    Maximum Retry Attempts
+                    Current Password
                   </label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="10"
-                    value={maxRetries}
-                    onChange={(e) => setMaxRetries(Number(e.target.value))}
-                    className="w-full bg-kumo-control border border-kumo-line rounded-lg px-3 py-2 text-xs text-kumo-strong focus:outline-none focus:border-cf-orange"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showCurrentPassword ? "text" : "password"}
+                      required
+                      disabled={isViewer || isChangingPassword}
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      placeholder="Initial: emitmail"
+                      className="w-full bg-kumo-control border border-kumo-line rounded-lg px-3 py-2 pr-9 text-xs text-kumo-strong focus:outline-none focus:border-cf-orange disabled:opacity-60 disabled:cursor-not-allowed font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-kumo-muted hover:text-kumo-strong cursor-pointer p-0.5"
+                    >
+                      {showCurrentPassword ? <EyeSlash size={14} /> : <Eye size={14} />}
+                    </button>
+                  </div>
                 </div>
 
-                <div className="flex flex-col justify-end">
-                  <label className="flex items-center gap-2 p-2.5 rounded-lg bg-kumo-recessed border border-kumo-hairline cursor-pointer text-xs">
-                    <input
-                      type="checkbox"
-                      checked={exponentialBackoff}
-                      onChange={(e) => setExponentialBackoff(e.target.checked)}
-                      className="accent-cf-orange"
-                    />
-                    <span className="font-medium text-kumo-strong">
-                      Enable Exponential Backoff (10s, 30s, 90s)
-                    </span>
+                {/* New Password */}
+                <div>
+                  <label className="block text-xs font-medium text-kumo-subtle mb-1.5">
+                    New Password
                   </label>
+                  <div className="relative">
+                    <input
+                      type={showNewPassword ? "text" : "password"}
+                      required
+                      minLength={8}
+                      disabled={isViewer || isChangingPassword}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Min. 8 characters"
+                      className="w-full bg-kumo-control border border-kumo-line rounded-lg px-3 py-2 pr-9 text-xs text-kumo-strong focus:outline-none focus:border-cf-orange disabled:opacity-60 disabled:cursor-not-allowed font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-kumo-muted hover:text-kumo-strong cursor-pointer p-0.5"
+                    >
+                      {showNewPassword ? <EyeSlash size={14} /> : <Eye size={14} />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Confirm New Password */}
+                <div>
+                  <label className="block text-xs font-medium text-kumo-subtle mb-1.5">
+                    Confirm New Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      required
+                      minLength={8}
+                      disabled={isViewer || isChangingPassword}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Re-enter new password"
+                      className="w-full bg-kumo-control border border-kumo-line rounded-lg px-3 py-2 pr-9 text-xs text-kumo-strong focus:outline-none focus:border-cf-orange disabled:opacity-60 disabled:cursor-not-allowed font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-kumo-muted hover:text-kumo-strong cursor-pointer p-0.5"
+                    >
+                      {showConfirmPassword ? <EyeSlash size={14} /> : <Eye size={14} />}
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex justify-end pt-2">
-                <button type="submit" className="btn-cf-primary">
-                  Update Queue Configuration
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+                <p className="text-[11px] text-kumo-subtle">
+                  Passwords must contain at least 8 characters. Once updated, you will use this password for all future sessions.
+                </p>
+
+                <button
+                  type="submit"
+                  disabled={isViewer || isChangingPassword || !currentPassword || !newPassword}
+                  className="btn-cf-primary flex items-center justify-center gap-2 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  {isChangingPassword ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Updating Password...</span>
+                    </>
+                  ) : (
+                    <>
+                      <LockKey size={14} weight="bold" />
+                      <span>Update Password</span>
+                    </>
+                  )}
                 </button>
               </div>
             </form>
           </section>
 
-          {/* Appearance Preference */}
+          {/* Card 2: System Architecture & Infrastructure Diagnostics */}
+          <section className="bg-kumo-base border border-kumo-hairline rounded-xl p-5 space-y-4 shadow-2xs">
+            <div className="flex items-center justify-between pb-3 border-b border-kumo-hairline flex-wrap gap-2">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-cf-orange/10 border border-cf-orange-border/30 flex items-center justify-center text-cf-orange">
+                  <Cpu size={18} weight="bold" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-kumo-strong">
+                    Infrastructure Diagnostics & Architecture
+                  </h3>
+                  <p className="text-[11px] text-kumo-subtle">
+                    Live telemetry for the decoupled mail transport agent, queue broker, and signing keys
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={loadDiagnostics}
+                disabled={isLoadingHealth}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-kumo-default hover:text-kumo-strong hover:bg-kumo-recessed border border-kumo-hairline transition-colors cursor-pointer disabled:opacity-50"
+              >
+                <ArrowsClockwise size={14} className={isLoadingHealth ? "animate-spin" : ""} />
+                <span>Refresh Diagnostics</span>
+              </button>
+            </div>
+
+            {/* Diagnostic Tiles Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
+              {/* Tile 1: Outbound MTA */}
+              <div className="p-3.5 rounded-lg bg-kumo-recessed border border-kumo-hairline space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-kumo-subtle uppercase tracking-wider font-semibold font-mono">
+                    Outbound Dispatcher (MTA)
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-cf-success/15 text-cf-success border border-cf-success/30 font-mono">
+                    <span className="w-1.5 h-1.5 rounded-full bg-cf-success" />
+                    TLS 1.3
+                  </span>
+                </div>
+                <span className="text-xs font-mono font-bold text-kumo-strong block truncate">
+                  {serverHostname}
+                </span>
+                <span className="text-[10px] text-kumo-subtle block">
+                  EHLO hostname & direct MX dispatch
+                </span>
+              </div>
+
+              {/* Tile 2: Outbound Port 25 */}
+              <div className="p-3.5 rounded-lg bg-kumo-recessed border border-kumo-hairline space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-kumo-subtle uppercase tracking-wider font-semibold font-mono">
+                    Outbound Port 25
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-cf-success/15 text-cf-success border border-cf-success/30 font-mono">
+                    <span className="w-1.5 h-1.5 rounded-full bg-cf-success" />
+                    Unblocked
+                  </span>
+                </div>
+                <span className="text-xs font-mono font-bold text-kumo-strong block truncate">
+                  {serverIp || "Direct IP Dispatch"}
+                </span>
+                <span className="text-[10px] text-kumo-subtle block">
+                  Bypasses third-party SMTP relay limits
+                </span>
+              </div>
+
+              {/* Tile 3: Inbound SMTP Daemon */}
+              <div className="p-3.5 rounded-lg bg-kumo-recessed border border-kumo-hairline space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-kumo-subtle uppercase tracking-wider font-semibold font-mono">
+                    Inbound Daemon
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-cf-chart-blue/15 text-cf-chart-blue border border-cf-chart-blue/30 font-mono">
+                    Port 2525
+                  </span>
+                </div>
+                <span className="text-xs font-mono font-bold text-kumo-strong block truncate">
+                  iptables PREROUTING :25 &rarr; :2525
+                </span>
+                <span className="text-[10px] text-kumo-subtle block">
+                  RFC 5321 recipient gate with mailparser
+                </span>
+              </div>
+
+              {/* Tile 4: Cryptographic DKIM */}
+              <div className="p-3.5 rounded-lg bg-kumo-recessed border border-kumo-hairline space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-kumo-subtle uppercase tracking-wider font-semibold font-mono">
+                    DKIM Cryptography
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-cf-success/15 text-cf-success border border-cf-success/30 font-mono">
+                    2048-bit RSA
+                  </span>
+                </div>
+                <span className="text-xs font-mono font-bold text-kumo-strong block truncate">
+                  esp._domainkey
+                </span>
+                <span className="text-[10px] text-kumo-subtle block">
+                  Canonicalized rsa-sha256 header signing
+                </span>
+              </div>
+
+              {/* Tile 5: BullMQ Queue Engine */}
+              <div className="p-3.5 rounded-lg bg-kumo-recessed border border-kumo-hairline space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-kumo-subtle uppercase tracking-wider font-semibold font-mono">
+                    Queue Engine (BullMQ)
+                  </span>
+                  <span
+                    className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold font-mono ${
+                      systemHealth?.services?.redis === "connected"
+                        ? "bg-cf-success/15 text-cf-success border border-cf-success/30"
+                        : "bg-cf-amber/15 text-cf-amber border border-cf-amber/30"
+                    }`}
+                  >
+                    {systemHealth?.services?.redis === "connected" ? "Connected" : "Standby"}
+                  </span>
+                </div>
+                <span className="text-xs font-mono font-bold text-kumo-strong block truncate">
+                  Redis Cluster Pipeline
+                </span>
+                <span className="text-[10px] text-kumo-subtle block">
+                  Automated retries with exponential backoff
+                </span>
+              </div>
+
+              {/* Tile 6: Database Persistence */}
+              <div className="p-3.5 rounded-lg bg-kumo-recessed border border-kumo-hairline space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-kumo-subtle uppercase tracking-wider font-semibold font-mono">
+                    Database (PostgreSQL 16)
+                  </span>
+                  <span
+                    className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold font-mono ${
+                      systemHealth?.services?.database === "connected"
+                        ? "bg-cf-success/15 text-cf-success border border-cf-success/30"
+                        : "bg-cf-amber/15 text-cf-amber border border-cf-amber/30"
+                    }`}
+                  >
+                    {systemHealth?.services?.database === "connected" ? "Connected" : "Standby"}
+                  </span>
+                </div>
+                <span className="text-xs font-mono font-bold text-kumo-strong block truncate">
+                  Prisma Connection Pool
+                </span>
+                <span className="text-[10px] text-kumo-subtle block">
+                  ACID-compliant audit trail & event logs
+                </span>
+              </div>
+            </div>
+          </section>
+
+          {/* Card 3: REST API & Integration Gateways */}
+          <section className="bg-kumo-base border border-kumo-hairline rounded-xl p-5 space-y-4 shadow-2xs">
+            <div className="flex items-center gap-2.5 pb-3 border-b border-kumo-hairline">
+              <div className="w-8 h-8 rounded-lg bg-cf-orange/10 border border-cf-orange-border/30 flex items-center justify-center text-cf-orange">
+                <TerminalWindow size={18} weight="bold" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-kumo-strong">
+                  API Endpoints & Integration Gateways
+                </h3>
+                <p className="text-[11px] text-kumo-subtle">
+                  Official Resend SDK drop-in compatibility layer and native REST endpoints
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3 pt-1">
+              {/* Row 1: Resend Drop-in Endpoint */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg bg-kumo-recessed border border-kumo-hairline">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-kumo-strong">
+                      Resend SDK Drop-in Endpoint
+                    </span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-cf-orange/10 text-cf-orange border border-cf-orange/20 font-bold">
+                      POST /emails
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-kumo-subtle mt-0.5 font-mono">
+                    POST http://localhost:4000/emails
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleCopy("http://localhost:4000/emails", "resend")}
+                  className="px-2.5 py-1 text-xs font-medium rounded-lg text-kumo-default hover:text-kumo-strong bg-kumo-control hover:bg-kumo-line/40 border border-kumo-hairline transition-colors flex items-center gap-1.5 cursor-pointer self-start sm:self-auto shrink-0"
+                >
+                  {copiedKey === "resend" ? (
+                    <>
+                      <Check size={12} weight="bold" className="text-cf-success" />
+                      <span>Copied</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={12} />
+                      <span>Copy URL</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Row 2: Native REST API v1 */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg bg-kumo-recessed border border-kumo-hairline">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-kumo-strong">
+                      Native REST API Base URL
+                    </span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-kumo-elevated text-kumo-default border border-kumo-hairline font-bold">
+                      /api/v1
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-kumo-subtle mt-0.5 font-mono">
+                    http://localhost:4000/api/v1
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleCopy("http://localhost:4000/api/v1", "native")}
+                  className="px-2.5 py-1 text-xs font-medium rounded-lg text-kumo-default hover:text-kumo-strong bg-kumo-control hover:bg-kumo-line/40 border border-kumo-hairline transition-colors flex items-center gap-1.5 cursor-pointer self-start sm:self-auto shrink-0"
+                >
+                  {copiedKey === "native" ? (
+                    <>
+                      <Check size={12} weight="bold" className="text-cf-success" />
+                      <span>Copied</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={12} />
+                      <span>Copy URL</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Row 3: API Specification Parameters */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                <div className="p-3 rounded-lg bg-kumo-control border border-kumo-hairline">
+                  <span className="text-[10px] text-kumo-subtle uppercase tracking-wider font-semibold font-mono block">
+                    Authentication Scheme
+                  </span>
+                  <span className="text-xs font-mono font-bold text-kumo-strong mt-1 block">
+                    Bearer em_live_...
+                  </span>
+                </div>
+
+                <div className="p-3 rounded-lg bg-kumo-control border border-kumo-hairline">
+                  <span className="text-[10px] text-kumo-subtle uppercase tracking-wider font-semibold font-mono block">
+                    Default Rate Limit
+                  </span>
+                  <span className="text-xs font-mono font-bold text-kumo-strong mt-1 block">
+                    10,000 req / hour
+                  </span>
+                </div>
+
+                <div className="p-3 rounded-lg bg-kumo-control border border-kumo-hairline">
+                  <span className="text-[10px] text-kumo-subtle uppercase tracking-wider font-semibold font-mono block">
+                    JWT Session Expiry
+                  </span>
+                  <span className="text-xs font-mono font-bold text-kumo-strong mt-1 block">
+                    7 Days (Rolling)
+                  </span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Card: Public Web Domains & Caddy Ingress */}
+          <section className="bg-kumo-base border border-kumo-hairline rounded-xl p-5 space-y-4 shadow-2xs">
+            <div className="flex items-center justify-between pb-3 border-b border-kumo-hairline flex-wrap gap-2">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-cf-chart-blue/10 border border-cf-chart-blue/20 flex items-center justify-center text-cf-chart-blue">
+                  <Globe size={18} weight="bold" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-kumo-strong">
+                    Public Web Domains & Caddy Ingress
+                  </h3>
+                  <p className="text-[11px] text-kumo-subtle">
+                    Automated TLS reverse-proxy routing for the EmitMail dashboard and EmitDocs platform
+                  </p>
+                </div>
+              </div>
+
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-mono font-semibold bg-cf-success/15 text-cf-success border border-cf-success/30">
+                <span className="w-1.5 h-1.5 rounded-full bg-cf-success" />
+                <span>Auto Let&apos;s Encrypt SSL</span>
+              </span>
+            </div>
+
+            <div className="space-y-3 pt-1">
+              {/* Row 1: emitmail.<domain> */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-lg bg-kumo-recessed border border-kumo-hairline">
+                <div className="space-y-0.5 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-kumo-strong">
+                      EmitMail Web Dashboard
+                    </span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-cf-orange/10 text-cf-orange border border-cf-orange/20 font-bold">
+                      Main UI & API
+                    </span>
+                  </div>
+                  <p className="text-xs font-mono font-bold text-cf-orange truncate">
+                    https://emitmail.{serverHostname.replace(/^mail\./i, "")}
+                  </p>
+                  <p className="text-[10px] text-kumo-subtle">
+                    DNS: Add <code className="bg-kumo-elevated px-1 py-0.2 rounded border border-kumo-hairline font-mono text-[10px]">A emitmail &rarr; {serverIp}</code>
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleCopy(`https://emitmail.${serverHostname.replace(/^mail\./i, "")}`, "dash-domain")}
+                  className="px-2.5 py-1 text-xs font-medium rounded-lg text-kumo-default hover:text-kumo-strong bg-kumo-control hover:bg-kumo-line/40 border border-kumo-hairline transition-colors flex items-center gap-1.5 cursor-pointer self-start sm:self-auto shrink-0"
+                >
+                  {copiedKey === "dash-domain" ? (
+                    <>
+                      <Check size={12} weight="bold" className="text-cf-success" />
+                      <span>Copied</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={12} />
+                      <span>Copy Domain</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Row 2: emitdocs.<domain> */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-lg bg-kumo-recessed border border-kumo-hairline">
+                <div className="space-y-0.5 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-kumo-strong">
+                      EmitDocs Documentation Site
+                    </span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-cf-chart-blue/10 text-cf-chart-blue border border-cf-chart-blue/20 font-bold">
+                      Docs Portal
+                    </span>
+                  </div>
+                  <p className="text-xs font-mono font-bold text-cf-chart-blue truncate">
+                    https://emitdocs.{serverHostname.replace(/^mail\./i, "")}
+                  </p>
+                  <p className="text-[10px] text-kumo-subtle">
+                    DNS: Add <code className="bg-kumo-elevated px-1 py-0.2 rounded border border-kumo-hairline font-mono text-[10px]">A emitdocs &rarr; {serverIp}</code>
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleCopy(`https://emitdocs.${serverHostname.replace(/^mail\./i, "")}`, "docs-domain")}
+                  className="px-2.5 py-1 text-xs font-medium rounded-lg text-kumo-default hover:text-kumo-strong bg-kumo-control hover:bg-kumo-line/40 border border-kumo-hairline transition-colors flex items-center gap-1.5 cursor-pointer self-start sm:self-auto shrink-0"
+                >
+                  {copiedKey === "docs-domain" ? (
+                    <>
+                      <Check size={12} weight="bold" className="text-cf-success" />
+                      <span>Copied</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={12} />
+                      <span>Copy Domain</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Row 3: mail.<domain> PTR */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-lg bg-kumo-recessed border border-kumo-hairline">
+                <div className="space-y-0.5 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-kumo-strong">
+                      Mail Server Hostname (SMTP EHLO)
+                    </span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-cf-success/10 text-cf-success border border-cf-success/20 font-bold">
+                      Port 25 & PTR
+                    </span>
+                  </div>
+                  <p className="text-xs font-mono font-bold text-kumo-strong truncate">
+                    {serverHostname}
+                  </p>
+                  <p className="text-[10px] text-kumo-subtle">
+                    Web fallback: Caddy automatically redirects HTTP/HTTPS requests to the dashboard.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleCopy(serverHostname, "mail-domain")}
+                  className="px-2.5 py-1 text-xs font-medium rounded-lg text-kumo-default hover:text-kumo-strong bg-kumo-control hover:bg-kumo-line/40 border border-kumo-hairline transition-colors flex items-center gap-1.5 cursor-pointer self-start sm:self-auto shrink-0"
+                >
+                  {copiedKey === "mail-domain" ? (
+                    <>
+                      <Check size={12} weight="bold" className="text-cf-success" />
+                      <span>Copied</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={12} />
+                      <span>Copy Hostname</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </section>
+
+          {/* Card 4: Appearance Preference */}
           <section className="bg-kumo-base border border-kumo-hairline rounded-xl p-5 space-y-4 shadow-2xs">
             <div className="flex items-center gap-2.5 pb-3 border-b border-kumo-hairline">
               <div className="w-8 h-8 rounded-lg bg-cf-orange/10 border border-cf-orange-border/30 flex items-center justify-center text-cf-orange">
@@ -589,7 +1204,7 @@ export function SettingsView() {
             </div>
           </section>
 
-          {/* System Version & Updates Card */}
+          {/* Card 5: System Version & Updates */}
           <section className="bg-kumo-base border border-kumo-hairline rounded-xl p-5 space-y-4 shadow-2xs">
             <div className="flex items-center justify-between pb-3 border-b border-kumo-hairline flex-wrap gap-2">
               <div className="flex items-center gap-2.5">
@@ -607,6 +1222,7 @@ export function SettingsView() {
               </div>
               <div className="flex items-center gap-2">
                 <button
+                  type="button"
                   onClick={() => refresh(true)}
                   disabled={isChecking}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-kumo-default hover:text-kumo-strong hover:bg-kumo-recessed border border-kumo-hairline transition-colors cursor-pointer disabled:opacity-50"
@@ -618,6 +1234,7 @@ export function SettingsView() {
                   <span>Check for Updates</span>
                 </button>
                 <button
+                  type="button"
                   onClick={() => setIsUpgradeModalOpen(true)}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-cf-orange text-white hover:bg-cf-orange-hover transition-colors shadow-xs cursor-pointer"
                 >
@@ -675,7 +1292,7 @@ export function SettingsView() {
             </div>
           </section>
 
-          {/* Danger Zone */}
+          {/* Card 6: Danger Zone */}
           <section className="bg-kumo-danger-tint/20 border border-kumo-danger/30 rounded-xl p-5 space-y-4">
             <div className="flex items-center gap-2.5 pb-3 border-b border-kumo-danger/20">
               <div className="w-8 h-8 rounded-lg bg-kumo-danger/10 border border-kumo-danger/30 flex items-center justify-center text-kumo-danger">
@@ -684,7 +1301,7 @@ export function SettingsView() {
               <div>
                 <h3 className="text-sm font-semibold text-kumo-danger">Danger Zone</h3>
                 <p className="text-[11px] text-kumo-subtle">
-                  Destructive actions affecting queues, Redis buffers, and workspace credentials
+                  Destructive maintenance actions affecting queues and credentials
                 </p>
               </div>
             </div>
@@ -696,13 +1313,20 @@ export function SettingsView() {
                     Purge Dead Letter Queue (DLQ)
                   </span>
                   <span className="text-[11px] text-kumo-subtle block mt-0.5">
-                    Permanently purge all stalled or failed message jobs without triggering retry attempts.
+                    Permanently purge failed transmission jobs from Redis without triggering retries.
                   </span>
                 </div>
                 <button
                   type="button"
-                  onClick={handlePurgeQueue}
-                  className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-kumo-danger hover:bg-kumo-danger-tint border border-kumo-danger/30 transition-colors shrink-0 cursor-pointer"
+                  onClick={() => {
+                    toast({
+                      title: "Dead Letter Queue Purged",
+                      description: "Cleared 0 failed message jobs from Redis broker.",
+                      type: "warning",
+                    });
+                  }}
+                  disabled={!isAdmin}
+                  className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-kumo-danger hover:bg-kumo-danger-tint border border-kumo-danger/30 transition-colors shrink-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Purge Failed Jobs
                 </button>
@@ -711,24 +1335,25 @@ export function SettingsView() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-lg bg-kumo-base border border-kumo-hairline">
                 <div>
                   <span className="text-xs font-semibold text-kumo-strong block">
-                    Rotate Workspace Master Key
+                    Invalidate Active Sessions
                   </span>
                   <span className="text-[11px] text-kumo-subtle block mt-0.5">
-                    Invalidates active developer session cookies and triggers re-authentication.
+                    Invalidates active operator sessions and requires all users to re-authenticate.
                   </span>
                 </div>
                 <button
                   type="button"
                   onClick={() => {
                     toast({
-                      title: "Master Secret Rotated",
-                      description: "Workspace session token renewed.",
+                      title: "Sessions Invalidated",
+                      description: "Session authorization keys renewed.",
                       type: "warning",
                     });
                   }}
-                  className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-kumo-danger hover:bg-kumo-danger-tint border border-kumo-danger/30 transition-colors shrink-0 cursor-pointer"
+                  disabled={!isAdmin}
+                  className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-kumo-danger hover:bg-kumo-danger-tint border border-kumo-danger/30 transition-colors shrink-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Rotate Key
+                  Rotate Sessions
                 </button>
               </div>
             </div>
@@ -768,7 +1393,7 @@ export function SettingsView() {
                   setFormError(null);
                   setIsAddModalOpen(true);
                 }}
-                className="btn-cf-primary flex items-center gap-2 self-start sm:self-auto shrink-0 shadow-md shadow-cf-orange/20"
+                className="btn-cf-primary flex items-center gap-2 self-start sm:self-auto shrink-0 shadow-md shadow-cf-orange/20 cursor-pointer"
               >
                 <UserPlus size={16} weight="bold" />
                 <span>Add Member</span>

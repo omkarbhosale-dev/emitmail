@@ -29,7 +29,7 @@ import {
   simulateInboundSchema,
 } from './inbox.schema.js';
 import { validateRequest } from '../../middlewares/validate.middleware.js';
-import { authenticateJwt } from '../../middlewares/auth.middleware.js';
+import { authenticateJwt, requireWriteAccess } from '../../middlewares/auth.middleware.js';
 import { authenticateApiKey } from '../../middlewares/apiKey.middleware.js';
 
 const router = Router();
@@ -57,6 +57,7 @@ router.use(authenticateInboxAccess);
 router.get('/domains', listInboundDomains);
 router.post(
   '/domains/:domainId/verify-mx',
+  requireWriteAccess,
   validateRequest({ params: inboxDomainIdParamSchema }),
   verifyDomainInboundMx
 );
@@ -64,6 +65,7 @@ router.post(
 // 5.2 Mailbox (Alias) Management
 router.post(
   '/mailboxes',
+  requireWriteAccess,
   validateRequest({ body: createMailboxSchema }),
   createMailbox
 );
@@ -79,11 +81,13 @@ router.get(
 );
 router.patch(
   '/mailboxes/:mailboxId',
+  requireWriteAccess,
   validateRequest({ params: mailboxIdParamSchema, body: updateMailboxSchema }),
   updateMailbox
 );
 router.delete(
   '/mailboxes/:mailboxId',
+  requireWriteAccess,
   validateRequest({ params: mailboxIdParamSchema }),
   deleteMailbox
 );
@@ -96,6 +100,7 @@ router.get(
 );
 router.post(
   '/mailboxes/:mailboxId/send',
+  requireWriteAccess,
   validateRequest({ params: mailboxIdParamSchema, body: sendMailboxEmailSchema }),
   sendFromMailbox
 );
@@ -107,11 +112,13 @@ router.get(
 );
 router.patch(
   '/messages/:messageId',
+  requireWriteAccess,
   validateRequest({ params: messageIdParamSchema, body: updateMessageSchema }),
   updateMessage
 );
 router.delete(
   '/messages/:messageId',
+  requireWriteAccess,
   validateRequest({ params: messageIdParamSchema }),
   deleteMessage
 );
@@ -119,6 +126,7 @@ router.delete(
 // 5.4 Direct Message Reply
 router.post(
   '/messages/:messageId/reply',
+  requireWriteAccess,
   validateRequest({ params: messageIdParamSchema, body: replyMessageSchema }),
   replyToMessage
 );
@@ -126,6 +134,7 @@ router.post(
 // 5.5 Inbound Simulator Endpoint
 router.post(
   '/simulate-inbound',
+  requireWriteAccess,
   validateRequest({ body: simulateInboundSchema }),
   simulateInbound
 );

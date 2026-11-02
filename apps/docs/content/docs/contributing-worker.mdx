@@ -1,0 +1,131 @@
+---
+title: Background Worker Guide (apps/worker)
+description: Deep dive into the BullMQ background delivery engine, direct MX SMTP transport, DKIM signing, and webhook worker in apps/worker.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+The **Background Worker** (`apps/worker`) is EmitMail's asynchronous delivery engine. By decoupling mail dispatch from the HTTP API, EmitMail can handle massive email dispatch volume without blocking API response times or exposing mail transmission timeouts to client applications.
+
+---
+
+## 1. Directory Structure
+
+```text
+apps/worker/
+├── src/
+│   ├── config/              # Redis and PostgreSQL connections
+│   │   ├── db.ts            # PrismaClient connection instance
+│   │   └── env.ts           # Zod-validated environment config
+│   ├── workers/             # BullMQ Worker instances
+│   │   ├── emailDelivery.worker.ts # Outbound SMTP direct dispatch worker
+│   │   └── inboundEmail.worker.ts  # Inbound email processing & webhook trigger
+│   ├── services/            # Delivery execution logic
+│   │   ├── mxResolver.service.ts   # Recipient domain DNS MX resolution
+│   │   ├── smtpTransport.service.ts# Direct MTA port 25 SMTP handshake
+│   │   └── webhookDispatcher.service.ts # HMAC-signed HTTP webhook poster
+│   ├── utils/               # DKIM signing & FCrDNS checks
+│   │   ├── dkimSigner.ts    # Nodemailer 2048-bit DKIM configuration
+│   │   └── deliverabilityCheck.ts  # Pre-flight PTR and EHLO verifier
+│   └── index.ts             # Worker service entry point & lifecycle
+└── tsconfig.json
+```
+
+---
+
+## 2. Decoupled Delivery Architecture
+
+```text
+Client API Request
+       │
+       ▼
+apps/api (Port 4000)
+       │ (Enqueues job in < 15ms)
+       ▼
+Redis BullMQ Queue ('email-delivery-queue')
+       │
+       ▼
+apps/worker (Concurrent Workers)
+       │
+       ├─► 1. Lookup Domain & Decrypt 2048-bit RSA DKIM Private Key
+       ├─► 2. Query Recipient Domain MX Records (e.g. gmail-smtp-in.l.google.com)
+       ├─► 3. Establish Direct TLS Handshake to MX on Port 25
+       ├─► 4. Transmit with EHLO mail.yourdomain.com & Return-Path bounces@send.<domain>
+       └─► 5. Update PostgreSQL status to DELIVERED or schedule BullMQ exponential retry
+```
+
+---
+
+## 3. Direct MX Resolution & SMTP Transport
+
+EmitMail transmits email directly from your server's IP address to recipient destination MTAs (Google Workspace, Microsoft 365, ProtonMail) without relying on third-party relay intermediaries.
+
+### MX Resolution Workflow
+When an outbound email job is picked up by `emailDelivery.worker.ts`:
+1. Extract recipient domain (e.g. `user@gmail.com` -> `gmail.com`).
+2. Query DNS for `MX` records ordered by priority:
+   ```typescript
+   const mxRecords = await dns.promises.resolveMx(domain);
+   const primaryMta = mxRecords.sort((a, b) => a.priority - b.priority)[0].exchange;
+   ```
+3. Initialize a direct Nodemailer SMTP transport pointing to `primaryMta:25`.
+
+### 2048-Bit DKIM Signing
+The worker decrypts the domain's 2048-bit RSA private key using `ENCRYPTION_KEY` and injects cryptographic signatures into every outbound MIME envelope:
+
+```typescript
+const transport = nodemailer.createTransport({
+  host: primaryMta,
+  port: 25,
+  secure: false,
+  dkim: {
+    domainName: domain.name,
+    keySelector: domain.dkimSelector || 'esp',
+    privateKey: decryptedPrivateKey,
+  },
+  name: env.SMTP_EHLO_HOSTNAME, // e.g. mail.yourdomain.com
+});
+```
+
+---
+
+## 4. Inbound Email Worker & Webhooks
+
+When incoming emails are captured by the Inbound SMTP receiver on port 2525, they are queued to `inbound-email-queue`:
+
+- `inboundEmail.worker.ts` parses headers, extracts spam indicators, and stores parsed HTML in `InboundEmail`.
+- If your account has active webhooks subscribed to `inbound.email.received` or delivery lifecycle events (`email.sent`, `email.delivered`, `email.bounced`), `webhookDispatcher.service.ts` sends an HTTP POST with an `X-EmitMail-Signature` header calculated using HMAC-SHA256:
+
+```typescript
+const signature = crypto
+  .createHmac('sha256', webhookSecret)
+  .update(JSON.stringify(payload))
+  .digest('hex');
+```
+
+---
+
+## 5. Concurrency & Performance Tuning
+
+Worker concurrency is controlled via environment variables:
+```bash
+# Number of parallel email delivery jobs processed per worker process
+WORKER_CONCURRENCY=10
+```
+
+When running in production under heavy volume, you can scale workers horizontally by deploying multiple instances of `emitmail-worker` connected to the same Redis cluster without changing the API server.
+
+---
+
+## 6. Testing Worker Delivery Locally
+
+EmitMail includes dedicated simulation scripts to test the worker pipeline end-to-end:
+
+```bash
+# Test Resend SDK Queue -> Worker -> Delivery flow
+pnpm test:resend-worker
+
+# Run full deliverability and security check
+pnpm test:deliverability
+```

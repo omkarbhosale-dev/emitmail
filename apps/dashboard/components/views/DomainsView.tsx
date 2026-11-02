@@ -21,6 +21,8 @@ import {
 import { ApiDomain } from "@/types";
 import { useToast } from "@/components/ui/Toast";
 import { TableSkeleton } from "@/components/ui/Skeleton";
+import { useAuth } from "@/context/AuthContext";
+import { ViewOnlyBanner } from "@/components/ui/ViewOnlyBanner";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -33,6 +35,7 @@ interface DisplayDomainItem extends ApiDomain {
 
 export function DomainsView() {
   const { toast } = useToast();
+  const { isViewer } = useAuth();
   const [domains, setDomains] = useState<DisplayDomainItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeMenuDomain, setActiveMenuDomain] = useState<DisplayDomainItem | null>(null);
@@ -108,6 +111,14 @@ export function DomainsView() {
 
   const handleAddDomain = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isViewer) {
+      toast({
+        title: "Action Not Permitted",
+        description: "View-only members are not permitted to register domains.",
+        type: "error",
+      });
+      return;
+    }
     if (!newDomainName.trim()) return;
 
     const cleanDomain = newDomainName.trim().toLowerCase();
@@ -150,6 +161,14 @@ export function DomainsView() {
   };
 
   const handleDeleteDomain = async (id: string, name: string) => {
+    if (isViewer) {
+      toast({
+        title: "Action Not Permitted",
+        description: "View-only members are not permitted to delete domains.",
+        type: "error",
+      });
+      return;
+    }
     if (!window.confirm(`Are you sure you want to delete "${name}"? This will detach all associated API keys and DKIM keys.`)) {
       return;
     }
@@ -175,6 +194,14 @@ export function DomainsView() {
   };
 
   const handleVerifyDns = async (domain: DisplayDomainItem) => {
+    if (isViewer) {
+      toast({
+        title: "Action Not Permitted",
+        description: "View-only members cannot trigger DNS verification.",
+        type: "error",
+      });
+      return;
+    }
     setIsVerifying(true);
     toast({
       title: "Verifying DNS Propagation",
@@ -223,6 +250,14 @@ export function DomainsView() {
   };
 
   const handleRotateDkim = async (domain: DisplayDomainItem) => {
+    if (isViewer) {
+      toast({
+        title: "Action Not Permitted",
+        description: "View-only members cannot rotate DKIM keys.",
+        type: "error",
+      });
+      return;
+    }
     const confirm = window.confirm(
       `Regenerate a brand-new 2048-bit RSA DKIM key for "${domain.domainName}"?\n\nThis will invalidate the previous key. You must update your DKIM TXT record in Cloudflare and click Verify.`
     );
@@ -280,6 +315,10 @@ export function DomainsView() {
 
   return (
     <div className="space-y-4 animate-in fade-in duration-200">
+      {isViewer && (
+        <ViewOnlyBanner message="You have view-only access. You can inspect domain records and DKIM status, but cannot add, verify, rotate, or delete domains." />
+      )}
+
       {/* 1. Header (Cloudflare Account Home Layout) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -305,13 +344,15 @@ export function DomainsView() {
             <ArrowsClockwise size={14} className={isLoading ? "animate-spin" : ""} />
             <span>Refresh</span>
           </button>
-          <Link
-            href="/domains/add"
-            className="btn-cf-primary flex items-center gap-1.5"
-          >
-            <Plus size={14} weight="bold" />
-            <span>Add domain</span>
-          </Link>
+          {!isViewer && (
+            <Link
+              href="/domains/add"
+              className="btn-cf-primary flex items-center gap-1.5"
+            >
+              <Plus size={14} weight="bold" />
+              <span>Add domain</span>
+            </Link>
+          )}
         </div>
       </div>
 
@@ -594,43 +635,47 @@ export function DomainsView() {
               <Gear size={14} />
               <span>Domain Configuration</span>
             </Link>
-            <button
-              type="button"
-              onClick={() => {
-                handleVerifyDns(activeMenuDomain);
-                setActiveMenuDomain(null);
-                setMenuCoords(null);
-              }}
-              className="w-full px-3 py-1.5 text-xs text-left text-kumo-danger hover:bg-kumo-danger-tint flex items-center gap-2 transition-colors cursor-pointer"
-            >
-              <ArrowsClockwise size={14} />
-              <span>Verify DNS Now</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                handleRotateDkim(activeMenuDomain);
-                setActiveMenuDomain(null);
-                setMenuCoords(null);
-              }}
-              className="w-full px-3 py-1.5 text-xs text-left text-kumo-default hover:bg-kumo-tint hover:text-kumo-strong flex items-center gap-2 transition-colors cursor-pointer"
-            >
-              <ArrowsClockwise size={14} className="text-cf-orange" />
-              <span>Rotate DKIM (2048-bit)</span>
-            </button>
-            <div className="border-t border-[#262626] my-1" />
-            <button
-              type="button"
-              onClick={() => {
-                handleDeleteDomain(activeMenuDomain.id, activeMenuDomain.domainName);
-                setActiveMenuDomain(null);
-                setMenuCoords(null);
-              }}
-              className="w-full px-3 py-1.5 text-xs text-left text-kumo-danger hover:bg-kumo-danger-tint flex items-center gap-2 transition-colors cursor-pointer"
-            >
-              <Trash size={14} />
-              <span>Delete Domain</span>
-            </button>
+            {!isViewer && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleVerifyDns(activeMenuDomain);
+                    setActiveMenuDomain(null);
+                    setMenuCoords(null);
+                  }}
+                  className="w-full px-3 py-1.5 text-xs text-left text-kumo-default hover:bg-kumo-tint hover:text-kumo-strong flex items-center gap-2 transition-colors cursor-pointer"
+                >
+                  <ArrowsClockwise size={14} />
+                  <span>Verify DNS Now</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleRotateDkim(activeMenuDomain);
+                    setActiveMenuDomain(null);
+                    setMenuCoords(null);
+                  }}
+                  className="w-full px-3 py-1.5 text-xs text-left text-kumo-default hover:bg-kumo-tint hover:text-kumo-strong flex items-center gap-2 transition-colors cursor-pointer"
+                >
+                  <ArrowsClockwise size={14} className="text-cf-orange" />
+                  <span>Rotate DKIM (2048-bit)</span>
+                </button>
+                <div className="border-t border-kumo-hairline my-1" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleDeleteDomain(activeMenuDomain.id, activeMenuDomain.domainName);
+                    setActiveMenuDomain(null);
+                    setMenuCoords(null);
+                  }}
+                  className="w-full px-3 py-1.5 text-xs text-left text-red-500 hover:bg-red-500/10 flex items-center gap-2 transition-colors cursor-pointer"
+                >
+                  <Trash size={14} />
+                  <span>Delete Domain</span>
+                </button>
+              </>
+            )}
           </div>
         </>
       )}
