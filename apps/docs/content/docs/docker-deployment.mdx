@@ -38,12 +38,6 @@ Deploying EmitMail takes less than 2 minutes using our official multi-container 
     DASHBOARD_PORT=3000
     DOCS_PORT=3001
 
-    # Public Web & Documentation Domains (Caddy Automated Reverse Proxy & SSL)
-    DASHBOARD_DOMAIN=emitmail.yourdomain.com
-    DOCS_DOMAIN=emitdocs.yourdomain.com
-    # ACME email for automated Let's Encrypt TLS renewal notices
-    ACME_EMAIL=admin@yourdomain.com
-
     # Security Keys
     # Must be at least 32 characters
     JWT_SECRET=emitmail_super_secret_jwt_key_change_in_prod_2026
@@ -80,7 +74,6 @@ Deploying EmitMail takes less than 2 minutes using our official multi-container 
 
 | Container Name | Image / Base | Internal Port | Host Port | Role |
 | :--- | :--- | :--- | :--- | :--- |
-| `emitmail-caddy` | Caddy 2.9 Alpine | `80`, `443` | `80:80`, `443:443` | Automated TLS/SSL reverse-proxy for `emitmail` and `emitdocs` |
 | `emitmail-dashboard` | Node 20 Alpine | `3000` | `3000:3000` | Management Web Dashboard & Analytics UI |
 | `emitmail-docs` | Node 20 Alpine | `3001` | `3001:3001` | EmitDocs developer documentation platform |
 | `emitmail-api` | Node 20 Alpine | `4000`, `2525` | `4000:4000`, `25:2525` | Express REST API & Inbound ESMTP server |
@@ -90,47 +83,62 @@ Deploying EmitMail takes less than 2 minutes using our official multi-container 
 
 ---
 
-## 3. Why `ACME_EMAIL` is Required
+## 3. Reverse Proxy & Domain Routing (Optional)
 
-<Callout type="info" title="Automated Certificate Management Environment (ACME)">
-**ACME** is the standardized protocol used by **Let's Encrypt** and ZeroSSL to issue and renew free TLS/SSL certificates automatically. 
+EmitMail exposes individual services directly on distinct ports (`3000` for Dashboard, `3001` for Docs, `4000` for REST API, and `25` for inbound SMTP). This gives you full flexibility to configure reverse proxying (Nginx, Traefik, Caddy, or Cloudflare Tunnel) on your host without conflicting with existing services on port `80` or `443`.
 
-Your `ACME_EMAIL` (`admin@yourdomain.com`) is used for:
-1. **Critical Expiration Notices:** If an automated renewal ever encounters a DNS or network problem, Let's Encrypt alerts your administrator before certificates expire to prevent HTTPS downtime.
-2. **Security & Key Revocation:** Alerts for any certificate authority maintenance or key emergency.
-3. **CA Account Registration:** Creates the cryptographic signing identity for your server on Let's Encrypt's ledger.
-</Callout>
+### Example Host Nginx Configuration
 
----
+If you run Nginx on your host VPS:
 
-## 4. Multi-Domain Ingress & Reverse Proxy Architecture
+```nginx
+# EmitMail Dashboard (e.g. emitmail.yourdomain.com)
+server {
+    server_name emitmail.yourdomain.com;
 
-EmitMail routes external web, documentation, and mail traffic across 3 dedicated subdomains:
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
 
-```text
-https://emitmail.yourdomain.com  ──(Caddy :443)──► emitmail-dashboard:3000 & emitmail-api:4000
-https://emitdocs.yourdomain.com  ──(Caddy :443)──► emitmail-docs:3001
-smtp://mail.yourdomain.com       ──(Port 25)────► emitmail-api:2525 (MTA Dispatch & Inbound)
+    location /api/ {
+        proxy_pass http://127.0.0.1:4000/api/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+# EmitDocs Documentation Portal (e.g. emitdocs.yourdomain.com)
+server {
+    server_name emitdocs.yourdomain.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
 ```
 
-1. **Dashboard (`DASHBOARD_DOMAIN`):** Serves the Next.js console and handles `/api/*` and `/emails` (Resend compatibility layer) seamlessly on the same HTTPS origin.
-2. **Docs (`DOCS_DOMAIN`):** Serves the Fumadocs developer documentation platform with isolated routing.
-3. **Mail Hostname Fallback (`SMTP_EHLO_HOSTNAME`):** If a user visits `mail.yourdomain.com` in their web browser, Caddy automatically redirects them to the main dashboard.
-
 ---
 
-## 5. Verifying Container Health & Diagnostic Logs
+## 4. Verifying Container Health & Diagnostic Logs
 
-To inspect the real-time operational logs and Pre-Flight Deliverability diagnostics:
+To inspect real-time operational logs and Pre-Flight Deliverability diagnostics:
 
 ```bash
-docker compose logs -f emitmail-api emitmail-worker emitmail-caddy
+docker compose logs -f emitmail-api emitmail-worker
 ```
 
 **Expected healthy output:**
 ```text
-emitmail-caddy   | {"level":"info","msg":"certificate obtained successfully","identifier":"emitmail.yourdomain.com"}
-emitmail-caddy   | {"level":"info","msg":"certificate obtained successfully","identifier":"emitdocs.yourdomain.com"}
 emitmail-api     | 🚀 EmitMail API server running on port 4000 (development)
 emitmail-api     | 📬 [Inbound SMTP] Server listening on 0.0.0.0:2525 (EHLO: mail.yourdomain.com)
 emitmail-worker  | ⚙️ [BullMQ Worker] Connected to Redis at emitmail-redis:6379
