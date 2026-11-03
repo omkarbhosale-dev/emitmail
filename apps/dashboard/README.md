@@ -4,6 +4,7 @@
 > 📚 **Official Documentation:** [https://emitmail.vercel.app](https://emitmail.vercel.app)
 
 [![Official Docs](https://img.shields.io/badge/Documentation-emitmail.vercel.app-FF6600.svg)](https://emitmail.vercel.app)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](../../LICENSE)
 [![Next.js](https://img.shields.io/badge/Next.js-16.4-black.svg)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19.3-blue.svg)](https://react.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-38B2AC.svg)](https://tailwindcss.com/)
@@ -86,3 +87,9 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 ### 3. Default Login Credentials
 - **Username:** `admin`
 - **Password:** `emitmail`
+
+---
+
+## License
+
+This application is part of the EmitMail core platform and is licensed under the **[Apache License 2.0](../../LICENSE)**.

@@ -4,6 +4,7 @@
 > 📚 **Official Documentation:** [https://emitmail.vercel.app](https://emitmail.vercel.app)
 
 [![Official Docs](https://img.shields.io/badge/Documentation-emitmail.vercel.app-FF6600.svg)](https://emitmail.vercel.app)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](../../LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-v20%20%7C%20v22-green.svg)](https://nodejs.org/)
 [![Express](https://img.shields.io/badge/Express-4.21-lightgrey.svg)](https://expressjs.com/)
 [![Prisma](https://img.shields.io/badge/Prisma-5.22-blue.svg)](https://www.prisma.io/)
@@ -117,3 +118,9 @@ Run the end-to-end API integration workflow:
 ```bash
 pnpm test:workflow
 ```
+
+---
+
+## License
+
+This service is part of the EmitMail core platform and is licensed under the **[Apache License 2.0](../../LICENSE)**.
