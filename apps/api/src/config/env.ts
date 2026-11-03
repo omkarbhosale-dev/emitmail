@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
 import { z } from 'zod';
+import semver from 'semver';
 
 // Resolve directory name safely for CommonJS runtime
 const currentDir = typeof __dirname !== 'undefined' ? __dirname : process.cwd();
@@ -107,12 +108,23 @@ const parseEnv = () => {
     // ignore
   }
 
+  // If APP_VERSION is 'latest' or omitted, use the image's baked package.json release version
+  const rawAppVersion = process.env.APP_VERSION?.trim();
+  const isExplicitVersion =
+    Boolean(rawAppVersion) &&
+    rawAppVersion?.toLowerCase() !== 'latest' &&
+    Boolean(semver.valid(semver.coerce(rawAppVersion)));
+
+  const resolvedCurrentVersion = isExplicitVersion && rawAppVersion
+    ? rawAppVersion
+    : (packageJsonVersion || '1.0.0');
+
   // Support both PORT and API_PORT, and fallback to package.json for CURRENT_VERSION
   const rawEnv = {
     ...process.env,
     PORT: process.env.API_PORT || process.env.PORT || '4000',
     APP_VERSION: process.env.APP_VERSION,
-    CURRENT_VERSION: process.env.APP_VERSION || packageJsonVersion || '1.0.0',
+    CURRENT_VERSION: resolvedCurrentVersion,
     GITHUB_REPO: process.env.GITHUB_REPO || OFFICIAL_GITHUB_REPO,
     UPDATER_SECRET: process.env.UPDATER_SECRET || 'changeme',
     UPDATER_URL: process.env.UPDATER_URL || 'http://updater:9999/trigger-update',
