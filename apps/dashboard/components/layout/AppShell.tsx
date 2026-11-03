@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, Suspense } from "react";
 import { usePathname } from "next/navigation";
 import { Header } from "@/components/layout/Header";
+import { SystemUpdateBanner } from "@/components/layout/SystemUpdateBanner";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { CommandPalette } from "@/components/layout/CommandPalette";
 import { SendTestEmailModal } from "@/components/modals/SendTestEmailModal";
@@ -91,6 +92,9 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
           onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
           onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
         />
+
+        {/* Global System Update Notification Banner */}
+        <SystemUpdateBanner />
 
         {/* Global App Layout: Fixed Full-Height Sidebar + Independent Scroll Content */}
         <div className="flex-1 flex min-h-0 overflow-hidden">

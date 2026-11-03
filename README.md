@@ -1,6 +1,9 @@
 # EmitMail
 ### An open-source alternative of Resend that works on the Resend platform
 
+> 📚 **Official Documentation:** [https://emitmail.vercel.app](https://emitmail.vercel.app)
+
+[![Official Docs](https://img.shields.io/badge/Documentation-emitmail.vercel.app-FF6600.svg)](https://emitmail.vercel.app)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-v20%20%7C%20v22-green.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)

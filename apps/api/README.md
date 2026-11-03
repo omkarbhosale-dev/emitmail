@@ -1,6 +1,9 @@
 # EmitMail — Backend API
 ### An open-source alternative of Resend that works on the Resend platform
 
+> 📚 **Official Documentation:** [https://emitmail.vercel.app](https://emitmail.vercel.app)
+
+[![Official Docs](https://img.shields.io/badge/Documentation-emitmail.vercel.app-FF6600.svg)](https://emitmail.vercel.app)
 [![Node.js](https://img.shields.io/badge/Node.js-v20%20%7C%20v22-green.svg)](https://nodejs.org/)
 [![Express](https://img.shields.io/badge/Express-4.21-lightgrey.svg)](https://expressjs.com/)
 [![Prisma](https://img.shields.io/badge/Prisma-5.22-blue.svg)](https://www.prisma.io/)

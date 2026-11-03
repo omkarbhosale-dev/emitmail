@@ -1,6 +1,9 @@
 # EmitMail — Web Dashboard
 ### An open-source alternative of Resend that works on the Resend platform
 
+> 📚 **Official Documentation:** [https://emitmail.vercel.app](https://emitmail.vercel.app)
+
+[![Official Docs](https://img.shields.io/badge/Documentation-emitmail.vercel.app-FF6600.svg)](https://emitmail.vercel.app)
 [![Next.js](https://img.shields.io/badge/Next.js-16.4-black.svg)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19.3-blue.svg)](https://react.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-38B2AC.svg)](https://tailwindcss.com/)
