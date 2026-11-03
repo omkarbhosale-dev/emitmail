@@ -6,7 +6,7 @@ RUN npm install -g pnpm@10
 
 WORKDIR /app
 
-# Stage 1: Install workspace dependencies
+# Stage 1: Install workspace dependencies without running lifecycle scripts before source is copied
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json ./apps/api/
 COPY apps/worker/package.json ./apps/worker/
@@ -14,7 +14,7 @@ COPY apps/dashboard/package.json ./apps/dashboard/
 COPY apps/docs/package.json ./apps/docs/
 RUN mkdir -p packages
 
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # Stage 2: Build Dashboard
 COPY apps/dashboard ./apps/dashboard
@@ -34,4 +34,3 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 CMD ["pnpm", "start"]
-

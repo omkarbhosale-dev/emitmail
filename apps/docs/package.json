@@ -5,8 +5,7 @@
   "scripts": {
     "dev": "next dev --webpack -p 3001",
     "build": "fumadocs-mdx && next build --webpack",
-    "start": "next start -p 3001",
-    "postinstall": "fumadocs-mdx"
+    "start": "next start -p 3001"
   },
   "dependencies": {
     "@types/mdx": "^2.0.14",
