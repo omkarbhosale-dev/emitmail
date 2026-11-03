@@ -23,3 +23,16 @@ export const getSystemVersion = async (req: Request, res: Response): Promise<voi
     sendError(res, message, 500);
   }
 };
+
+export const triggerSystemUpdate = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { targetVersion } = req.body || {};
+    const result = await SystemService.triggerUpdate(targetVersion);
+
+    sendSuccess(res, result, 'Update started in background');
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : 'Failed to trigger system update';
+    sendError(res, message, 502);
+  }
+};

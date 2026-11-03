@@ -1,6 +1,10 @@
 # EmitMail — Documentation Engine
 ### An open-source alternative of Resend that works on the Resend platform
 
+> 📚 **Official Documentation:** [https://emitmail.vercel.app](https://emitmail.vercel.app)
+
+[![Official Docs](https://img.shields.io/badge/Documentation-emitmail.vercel.app-FF6600.svg)](https://emitmail.vercel.app)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](../../LICENSE)
 [![Next.js](https://img.shields.io/badge/Next.js-16.4-black.svg)](https://nextjs.org/)
 [![Fumadocs](https://img.shields.io/badge/Fumadocs-16.1-blue.svg)](https://fumadocs.vercel.app/)
 [![MDX](https://img.shields.io/badge/MDX-3.0-yellow.svg)](https://mdxjs.com/)
@@ -69,4 +73,10 @@ Ensure all MDX pages compile and generate static routes with zero errors:
 ```bash
 pnpm build:docs
 ```
+
+---
+
+## License
+
+This documentation engine is part of the EmitMail platform and is licensed under the **[Apache License 2.0](../../LICENSE)**.
 

@@ -1,7 +1,11 @@
 # EmitMail
 ### An open-source alternative of Resend that works on the Resend platform
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+> 📚 **Official Documentation:** [https://emitmail.vercel.app](https://emitmail.vercel.app)
+
+[![Official Docs](https://img.shields.io/badge/Documentation-emitmail.vercel.app-FF6600.svg)](https://emitmail.vercel.app)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![Client Libraries: MIT](https://img.shields.io/badge/Client%20SDKs-MIT-green.svg)](LICENSE-MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-v20%20%7C%20v22-green.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
@@ -257,5 +261,10 @@ We welcome contributions from developers across all skill levels! Please see our
 
 ## License
 
-This project is open-source and licensed under the [MIT License](LICENSE).
+EmitMail is open-source software licensed as follows:
+
+- **Core Server, Engine & Web Applications (`apps/api`, `apps/worker`, `apps/dashboard`, `apps/docs`):** Licensed under the **[Apache License 2.0](LICENSE)** (see [LICENSE-APACHE](LICENSE-APACHE)).
+- **Client Libraries & SDKs (`packages/`):** Licensed under the **[MIT License](LICENSE-MIT)** to allow friction-free embedding into any commercial or proprietary application without licensing constraints.
+
+See [LICENSE](LICENSE), [LICENSE-APACHE](LICENSE-APACHE), [LICENSE-MIT](LICENSE-MIT), and [NOTICE](NOTICE) for complete licensing terms.
 

@@ -1128,6 +1128,7 @@ export const api = {
       ): Promise<{
         currentVersion: string;
         latestVersion: string;
+        updateAvailable?: boolean;
         isUpdateAvailable: boolean;
         hasUpdate: boolean;
         isMajor: boolean;
@@ -1145,6 +1146,7 @@ export const api = {
           data: {
             currentVersion: string;
             latestVersion: string;
+            updateAvailable?: boolean;
             isUpdateAvailable: boolean;
             hasUpdate: boolean;
             isMajor: boolean;
@@ -1157,6 +1159,19 @@ export const api = {
             updateCommand: string;
           };
         }>(`/system/version${query}`);
+        return (res as any)?.data || res;
+      },
+
+      triggerUpdate: async (
+        targetVersion?: string
+      ): Promise<{ status: string; message: string }> => {
+        const res = await apiFetch<{
+          success: boolean;
+          data: { status: string; message: string };
+        }>("/system/update", {
+          method: "POST",
+          body: JSON.stringify({ targetVersion }),
+        });
         return (res as any)?.data || res;
       },
     },

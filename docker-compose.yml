@@ -1,30 +1,26 @@
 services:
-  emitmail-postgres:
+  postgres:
     image: postgres:16-alpine
     container_name: emitmail-postgres
     restart: unless-stopped
-    ports:
-      - "5432:5432"
     environment:
-      POSTGRES_USER: emitmail
-      POSTGRES_PASSWORD: emitmail_pass
-      POSTGRES_DB: emitmail
+      POSTGRES_USER: ${POSTGRES_USER:-mailuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: ${POSTGRES_DB:-maildb}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U emitmail -d emitmail"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mailuser} -d ${POSTGRES_DB:-maildb}"]
       interval: 5s
       timeout: 5s
       retries: 5
     networks:
-      - emitmail-network
+      - mail_net
 
-  emitmail-redis:
+  redis:
     image: redis:7-alpine
     container_name: emitmail-redis
     restart: unless-stopped
-    ports:
-      - "6379:6379"
     command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
@@ -34,31 +30,36 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - emitmail-network
+      - mail_net
 
-  emitmail-api:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.api
+  api:
+    image: ghcr.io/${GITHUB_REPO:-omkarbhosale-dev/emitmail}/api:${APP_VERSION:-latest}
     container_name: emitmail-api
     restart: unless-stopped
     ports:
-      - "4000:4000"
-      - "25:2525"
-    env_file:
-      - .env
+      # Localhost binding protects API from direct exposure behind reverse proxies
+      - "127.0.0.1:${API_PORT:-4000}:4000"
+      # Inbound SMTP Receiver (port 25 MX relay & port 2525 submission)
+      - "0.0.0.0:${SMTP_RELAY_PORT:-25}:2525"
+      - "0.0.0.0:${SMTP_SUBMISSION_PORT:-2525}:2525"
     environment:
       NODE_ENV: production
       PORT: 4000
       API_PORT: 4000
+      APP_VERSION: ${APP_VERSION:-latest}
+      GITHUB_REPO: ${GITHUB_REPO:-omkarbhosale-dev/emitmail}
+      UPDATER_SECRET: ${UPDATER_SECRET:-changeme}
+      UPDATER_URL: http://updater:9999/trigger-update
+      DATABASE_URL: postgresql://${POSTGRES_USER:-mailuser}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-maildb}?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-changeme}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-changeme}
+      APP_URL: ${APP_URL:-http://localhost:3000}
+      API_URL: ${API_URL:-http://localhost:4000}
       INBOUND_SMTP_ENABLED: "true"
       INBOUND_SMTP_PORT: 2525
       INBOUND_SMTP_HOST: "0.0.0.0"
-      DATABASE_URL: postgresql://emitmail:emitmail_pass@emitmail-postgres:5432/emitmail?schema=public
-      REDIS_URL: redis://emitmail-redis:6379
-      REDIS_PASSWORD: emitmail_redis_pass
-      JWT_SECRET: ${JWT_SECRET:-emitmail_super_secret_jwt_key_change_in_prod_2026}
-      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
+      INBOUND_MAX_BYTES: ${INBOUND_MAX_BYTES:-26214400}
       MAIL_SERVER_HOSTNAME: ${MAIL_SERVER_HOSTNAME:-mail.yourdomain.com}
       SMTP_EHLO_HOSTNAME: ${SMTP_EHLO_HOSTNAME:-${MAIL_SERVER_HOSTNAME:-mail.yourdomain.com}}
       SENDING_SERVER_IP: ${SENDING_SERVER_IP:-${VPS_PUBLIC_IPV4:-0.0.0.0}}
@@ -70,33 +71,28 @@ services:
       ALLOW_PENDING_DOMAIN_API_KEYS: "true"
       DIRECT_MX_FALLBACK: "true"
     depends_on:
-      emitmail-postgres:
+      postgres:
         condition: service_healthy
-      emitmail-redis:
+      redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4000/api/v1/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:4000/api/v1/health"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 15s
     networks:
-      - emitmail-network
+      - mail_net
 
-  emitmail-worker:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.worker
+  worker:
+    image: ghcr.io/${GITHUB_REPO:-omkarbhosale-dev/emitmail}/worker:${APP_VERSION:-latest}
     container_name: emitmail-worker
     restart: unless-stopped
-    env_file:
-      - .env
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://emitmail:emitmail_pass@emitmail-postgres:5432/emitmail?schema=public
-      REDIS_URL: redis://emitmail-redis:6379
-      REDIS_PASSWORD: emitmail_redis_pass
-      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-mailuser}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-maildb}?schema=public
+      REDIS_URL: redis://redis:6379
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-changeme}
       MAIL_SERVER_HOSTNAME: ${MAIL_SERVER_HOSTNAME:-mail.yourdomain.com}
       SMTP_EHLO_HOSTNAME: ${SMTP_EHLO_HOSTNAME:-${MAIL_SERVER_HOSTNAME:-mail.yourdomain.com}}
       SENDING_SERVER_IP: ${SENDING_SERVER_IP:-${VPS_PUBLIC_IPV4:-0.0.0.0}}
@@ -107,50 +103,62 @@ services:
       WORKER_CONCURRENCY: 10
       DIRECT_MX_FALLBACK: "true"
     depends_on:
-      emitmail-postgres:
+      postgres:
         condition: service_healthy
-      emitmail-redis:
+      redis:
         condition: service_healthy
-      emitmail-api:
+      api:
         condition: service_started
     networks:
-      - emitmail-network
+      - mail_net
 
-  emitmail-dashboard:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.dashboard
-      args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}
+  dashboard:
+    image: ghcr.io/${GITHUB_REPO:-omkarbhosale-dev/emitmail}/dashboard:${APP_VERSION:-latest}
     container_name: emitmail-dashboard
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      # Localhost binding for secure reverse-proxy termination
+      - "127.0.0.1:${DASHBOARD_PORT:-3000}:3000"
     environment:
       - NODE_ENV=production
       - PORT=3000
       - HOSTNAME=0.0.0.0
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-}
+      - NEXT_PUBLIC_API_URL=${API_URL:-http://localhost:4000}/api/v1
     depends_on:
-      emitmail-api:
+      api:
         condition: service_started
     networks:
-      - emitmail-network
+      - mail_net
 
-  emitmail-docs:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.docs
+  docs:
+    image: ghcr.io/${GITHUB_REPO:-omkarbhosale-dev/emitmail}/docs:${APP_VERSION:-latest}
     container_name: emitmail-docs
     restart: unless-stopped
     ports:
-      - "3001:3001"
+      # Localhost binding for documentation portal
+      - "127.0.0.1:${DOCS_PORT:-3001}:3001"
     environment:
       - NODE_ENV=production
       - PORT=3001
       - HOSTNAME=0.0.0.0
     networks:
-      - emitmail-network
+      - mail_net
+
+  updater:
+    image: docker:27-cli
+    container_name: emitmail-updater
+    restart: unless-stopped
+    working_dir: /workspace
+    environment:
+      UPDATER_SECRET: ${UPDATER_SECRET:-changeme}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - .:/workspace
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "apk add --no-cache bash socat git curl 2>/dev/null || true; chmod +x /workspace/docker/updater-server.sh /workspace/docker/updater-handler.sh /workspace/update.sh 2>/dev/null || true; exec /workspace/docker/updater-server.sh"
+    networks:
+      - mail_net
 
 volumes:
   postgres_data:
@@ -159,5 +167,5 @@ volumes:
     driver: local
 
 networks:
-  emitmail-network:
+  mail_net:
     driver: bridge

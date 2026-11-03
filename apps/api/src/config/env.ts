@@ -49,8 +49,11 @@ const envSchema = z.object({
   SPF_INCLUDE_DOMAIN: z.string().min(1).default('_spf.yourdomain.com'),
   VPS_PUBLIC_IPV4: z.string().default('0.0.0.0'),
   CURRENT_VERSION: z.string().default('1.0.0'),
+  APP_VERSION: z.string().optional(),
   GITHUB_REPO: z.string().default('omkarbhosale-dev/emitmail'),
   GITHUB_TOKEN: z.string().optional(),
+  UPDATER_SECRET: z.string().default('changeme'),
+  UPDATER_URL: z.string().default('http://updater:9999/trigger-update'),
   ALLOW_PENDING_DOMAIN_API_KEYS: z
     .preprocess((val) => val === 'true' || val === true || val === '1', z.boolean())
     .default(false),
@@ -108,8 +111,11 @@ const parseEnv = () => {
   const rawEnv = {
     ...process.env,
     PORT: process.env.API_PORT || process.env.PORT || '4000',
-    CURRENT_VERSION: packageJsonVersion || '1.0.0',
-    GITHUB_REPO: OFFICIAL_GITHUB_REPO,
+    APP_VERSION: process.env.APP_VERSION,
+    CURRENT_VERSION: process.env.APP_VERSION || packageJsonVersion || '1.0.0',
+    GITHUB_REPO: process.env.GITHUB_REPO || OFFICIAL_GITHUB_REPO,
+    UPDATER_SECRET: process.env.UPDATER_SECRET || 'changeme',
+    UPDATER_URL: process.env.UPDATER_URL || 'http://updater:9999/trigger-update',
     SMTP_EHLO_HOSTNAME:
       process.env.SMTP_EHLO_HOSTNAME ||
       process.env.MAIL_SERVER_HOSTNAME ||

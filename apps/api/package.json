@@ -2,6 +2,7 @@
   "name": "emitmail-api",
   "version": "1.0.0",
   "description": "Core Backend API for EmitMail ESP platform",
+  "license": "Apache-2.0",
   "private": true,
   "main": "dist/index.js",
   "scripts": {

@@ -15,6 +15,7 @@ export interface CachedReleaseData {
 export interface SystemVersionResponse {
   currentVersion: string;
   latestVersion: string;
+  updateAvailable: boolean;
   isUpdateAvailable: boolean;
   hasUpdate: boolean;
   isMajor: boolean;
@@ -29,7 +30,7 @@ export interface SystemVersionResponse {
 
 export class SystemService {
   private static readonly UPDATE_COMMAND =
-    'git pull origin main && docker compose up -d --build';
+    'git pull origin main && docker compose up -d --remove-orphans';
 
   /**
    * Checks current running version against the latest GitHub release.
@@ -37,7 +38,7 @@ export class SystemService {
    * Gracefully degrades in offline/firewalled/rate-limited environments.
    */
   static async checkSystemUpdate(refresh = false): Promise<SystemVersionResponse> {
-    const rawCurrent = (env.CURRENT_VERSION || '1.0.0').trim();
+    const rawCurrent = (env.APP_VERSION || env.CURRENT_VERSION || '1.0.0').trim();
     const cleanCurrent =
       semver.clean(rawCurrent) ||
       semver.valid(semver.coerce(rawCurrent)) ||
@@ -47,7 +48,8 @@ export class SystemService {
     // Edge case: Development builds or unparseable versions
     const isDevBuild =
       rawCurrent.toLowerCase().includes('dev') ||
-      rawCurrent === '0.0.0';
+      rawCurrent === '0.0.0' ||
+      rawCurrent.toLowerCase() === 'latest';
 
     let releaseData: CachedReleaseData | null = null;
 
@@ -99,19 +101,21 @@ export class SystemService {
     }
 
     const checkedAt = new Date().toISOString();
+    const repo = env.GITHUB_REPO || OFFICIAL_GITHUB_REPO;
 
     // 3. Fallback when GitHub is unavailable and no cache exists
     if (!releaseData) {
       return {
         currentVersion: currentVersionDisplay,
         latestVersion: currentVersionDisplay,
+        updateAvailable: false,
         isUpdateAvailable: false,
         hasUpdate: false,
         isMajor: false,
         releaseName: null,
         publishedAt: null,
-        htmlUrl: `https://github.com/${OFFICIAL_GITHUB_REPO}/releases`,
-        releaseUrl: `https://github.com/${OFFICIAL_GITHUB_REPO}/releases`,
+        htmlUrl: `https://github.com/${repo}/releases`,
+        releaseUrl: `https://github.com/${repo}/releases`,
         releaseNotes: null,
         checkedAt,
         updateCommand: this.UPDATE_COMMAND,
@@ -134,7 +138,7 @@ export class SystemService {
           isMajor = semver.major(cleanLatest) > semver.major(cleanCurrent);
         }
       } catch {
-        // Fallback numeric comparator if semver fails
+        // Fallback comparison if semver parser fails
         isUpdateAvailable = cleanLatest !== cleanCurrent;
       }
     }
@@ -142,6 +146,7 @@ export class SystemService {
     return {
       currentVersion: currentVersionDisplay,
       latestVersion: cleanLatest || releaseData.cleanVersion || releaseData.tagName,
+      updateAvailable: isUpdateAvailable,
       isUpdateAvailable,
       hasUpdate: isUpdateAvailable,
       isMajor,
@@ -156,10 +161,47 @@ export class SystemService {
   }
 
   /**
+   * Dispatches an asynchronous update trigger to the internal updater sidecar service.
+   */
+  static async triggerUpdate(targetVersion?: string): Promise<{ status: string; message: string }> {
+    const updaterUrl = env.UPDATER_URL || 'http://updater:9999/trigger-update';
+    const updaterSecret = env.UPDATER_SECRET || 'changeme';
+
+    try {
+      const response = await fetch(updaterUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${updaterSecret}`,
+        },
+        body: JSON.stringify({ targetVersion: targetVersion || undefined }),
+        signal: AbortSignal.timeout(5000),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Updater sidecar returned HTTP ${response.status}: ${errorText || response.statusText}`
+        );
+      }
+
+      return {
+        status: 'updating',
+        message: 'Update started in background',
+      };
+    } catch (err) {
+      console.error('❌ [SystemService] Failed to reach updater sidecar:', err);
+      throw new Error(
+        `Failed to reach internal updater service: ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
+  }
+
+  /**
    * Queries GitHub Releases API with timeout, rate limit handling, and custom User-Agent.
    */
   private static async fetchLatestGitHubRelease(): Promise<CachedReleaseData | null> {
-    const repo = OFFICIAL_GITHUB_REPO;
+    const repo = env.GITHUB_REPO || OFFICIAL_GITHUB_REPO;
     const url = `https://api.github.com/repos/${repo}/releases/latest`;
     const headers: Record<string, string> = {
       'User-Agent': 'EmitMail-SelfHosted-Updater',

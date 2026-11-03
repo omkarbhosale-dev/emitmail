@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "description": "EmitMail - Open-source, self-hosted Email Service Provider (ESP)",
+  "license": "Apache-2.0",
   "scripts": {
     "dev:docker": "docker compose -f docker-compose.dev.yml up --build -d",
     "dev:docker:down": "docker compose -f docker-compose.dev.yml down",
