@@ -157,8 +157,8 @@ services:
     container_name: emitmail-caddy
     restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
+      - "${CADDY_HTTP_PORT:-80}:80"
+      - "${CADDY_HTTPS_PORT:-443}:443"
     environment:
       - DASHBOARD_DOMAIN=${DASHBOARD_DOMAIN:-emitmail.yourdomain.com}
       - DOCS_DOMAIN=${DOCS_DOMAIN:-emitdocs.yourdomain.com}
