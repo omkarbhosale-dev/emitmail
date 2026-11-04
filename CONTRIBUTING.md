@@ -1,7 +1,7 @@
 # Contributing to EmitMail
-### An open-source alternative of Resend that works on the Resend platform
+### An open-source, self-hosted alternative to Resend
 
-Thank you for your interest in contributing to **EmitMail**! EmitMail is a sovereign, self-hosted Email Service Provider (ESP) and Inbound Mailbox Engine built as an open-source alternative to Resend that works seamlessly with the official Resend SDK.
+Thank you for your interest in contributing to **EmitMail**. EmitMail is self-hosted email-sending and inbound mailbox software. It supports common email-sending requests from the official Resend Node.js SDK; API behavior may differ, so check the features you need before migrating.
 
 This document outlines our development workflow, repository structure, environment configuration, and submission guidelines.
 
@@ -18,10 +18,7 @@ emitmail/
 │   ├── worker/         # Decoupled BullMQ background delivery engine (Direct MTA on Port 25)
 │   ├── dashboard/      # Next.js 16 Web UI with Cloudflare Kumo design tokens (Port 3000)
 │   └── docs/           # Next.js 16 + Fumadocs interactive documentation (Port 3001)
-├── packages/
-│   ├── database/       # Shared database schemas and Prisma utilities
-│   ├── queue/          # Shared BullMQ queue schemas and payload types
-│   └── shared/         # Shared TypeScript utilities, constants, and validators
+├── packages/           # Empty workspace scaffolding; no shared package implementation yet
 ├── docker/             # Production Dockerfiles (Dockerfile.api, Dockerfile.worker)
 ├── scripts/            # Deliverability test suites and queue worker simulation scripts
 ├── docker-compose.yml  # Multi-container production deployment stack
@@ -52,7 +49,7 @@ Copy `.env.example` to `.env` in the repository root:
 ```bash
 cp .env.example .env
 ```
-EmitMail uses a **single global root `.env` architecture**—all apps (`api`, `worker`, `dashboard`, `docs`) read exclusively from this single root file.
+The API and worker load the repository-root `.env` during local development. Next.js applications use Next.js environment loading rules; set dashboard variables in the dashboard app's supported environment file when developing it separately. Docker Compose passes configured values into production containers. Do not commit `.env` files or real secrets.
 
 ### 2.4 Start Development Database & Redis
 ```bash
@@ -96,7 +93,7 @@ You can run individual services depending on which component you are working on:
 
 ### 4.1 Backend API (`apps/api`)
 - **Tech Stack**: Express, TypeScript, Prisma ORM, BullMQ, Redis, Zod, Nodemailer, `smtp-server`.
-- **Database Models**: Defined in `apps/api/prisma/schema.prisma`. After modifying models, always run `pnpm db:push` (in development) or `pnpm db:migrate` (for production migrations).
+- **Database Models**: Defined in `apps/api/prisma/schema.prisma`. Use `pnpm db:push` to sync your local development database. `pnpm db:migrate` runs `prisma migrate dev` for local migration development; the repository does not currently include a production migration history, so do not use it as a production deployment command.
 - **2048-bit RSA DKIM Cryptography**: Keys are generated using `crypto.generateKeyPairSync('rsa', { modulusLength: 2048 })` and encrypted at rest with AES-256-GCM. Multi-chunk DNS resolution handles the 255-character string chunk limit of DNS UDP packets.
 - **Inbound SMTP Server**: Runs on port 2525 (mapped to 25 in production). Handles `onRcptTo` recipient validation, alias matching, and streams raw MIME into `mailparser`.
 - **Resend Compatibility**: `POST /emails` and `POST /api/v1/emails` validate `em_live_...` Bearer API keys and enqueue outbound jobs to BullMQ.
