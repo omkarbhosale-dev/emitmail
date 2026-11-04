@@ -132,14 +132,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"emitmail\"\n}"
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"{{initialAdminPassword}}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/auth/login",
               "host": ["{{baseUrl}}"],
               "path": ["auth", "login"]
             },
-            "description": "Authenticates with username and password. Default: admin / emitmail."
+            "description": "Authenticates with username and the unique initial admin password configured during installation. Change it before using protected endpoints."
           },
           "response": []
         },
@@ -178,7 +178,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"currentPassword\": \"emitmail\",\n  \"newPassword\": \"NewSecurePass#2026\",\n  \"confirmPassword\": \"NewSecurePass#2026\"\n}"
+              "raw": "{\n  \"currentPassword\": \"{{initialAdminPassword}}\",\n  \"newPassword\": \"{{newAdminPassword}}\",\n  \"confirmPassword\": \"{{newAdminPassword}}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/auth/change-password",

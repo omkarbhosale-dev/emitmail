@@ -62,6 +62,12 @@ export const authenticateJwt = async (
       return;
     }
 
+    const requestPath = req.originalUrl.split('?')[0];
+    if (user.mustChangePassword && !requestPath.endsWith('/auth/change-password') && !requestPath.endsWith('/auth/me')) {
+      sendError(res, 'Password change required before using this account', 403);
+      return;
+    }
+
     // The root 'admin' user is always the main administrator
     if (user.username === 'admin') {
       user.role = UserRole.ADMIN;

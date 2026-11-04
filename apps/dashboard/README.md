@@ -84,9 +84,8 @@ pnpm dev
 ```
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-### 3. Default Login Credentials
-- **Username:** `admin`
-- **Password:** `emitmail`
+### 3. Initial Login
+The installer generates a unique one-time password for the `admin` account and prints it after deployment. You must change it before using other protected features. For a manual deployment, set `INITIAL_ADMIN_PASSWORD` in the root `.env` before starting the stack.
 
 ---
 

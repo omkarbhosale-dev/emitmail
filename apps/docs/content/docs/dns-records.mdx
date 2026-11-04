@@ -1,65 +1,40 @@
 ---
-title: Outbound DNS Records (10/10 Deliverability)
-description: Exact DNS records for 2048-bit RSA DKIM, custom Return-Path SPF, MX bounce handling, and DMARC.
+title: Configure Email DNS Records
+description: Publish and verify the DKIM, SPF, MX, and DMARC records shown by your EmitMail server.
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
-import { Step, Steps } from 'fumadocs-ui/components/steps';
+Email authentication records help receiving mail systems evaluate messages, but they do not guarantee inbox placement. Add the values shown in your EmitMail dashboard's DNS checklist. Hostnames and values depend on your server configuration, and DNS providers use different conventions for the record name field.
 
-To guarantee inbox placement and reach 10/10 on mail deliverability testers (like Mail-Tester.com), configure the following 4 records in your DNS management console (e.g., Cloudflare, AWS Route 53, Namecheap, Porkbun, Google Cloud DNS).
+## Add the records
 
----
+Add your sending domain in the dashboard to generate a DKIM key and view the DNS records required by your server configuration. Publish each record with your DNS provider, then use the dashboard's DNS verification action to check them.
 
-## 1. Required DNS Records Table
+| Type | Name / host | Value / target | Purpose |
+| :--- | :--- | :--- | :--- |
+| `TXT` | Selector shown in dashboard + `._domainkey` | DKIM value shown in dashboard | Publishes the public key used to verify signatures |
+| `TXT` | Return-path host shown in dashboard | SPF value shown in dashboard | Authorizes the configured sending infrastructure |
+| `MX` | Return-path host shown in dashboard | Mail host shown in dashboard | Routes mail sent to the return-path host |
+| `TXT` | `_dmarc` | DMARC policy for your domain | Tells receivers how to handle mail that fails authentication alignment |
 
-| Type | Name / Host | Value / Target | Priority | Purpose |
-| :--- | :--- | :--- | :--- | :--- |
-| `TXT` | `esp._domainkey` | `v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...` | — | Cryptographic 2048-bit DKIM signature verification |
-| `TXT` | `send` | `v=spf1 ip4:<YOUR_VPS_IP> a mx -all` | — | Return-Path (`bounces@send.<domain>`) SPF authorization |
-| `MX` | `send` | `mail.yourdomain.com` | `10` | Bounce server MX pointer (prevents -3 Mail-Tester penalty) |
-| `TXT` | `_dmarc` | `v=DMARC1; p=reject; sp=reject; rua=mailto:dmarc@yourdomain.com; adkim=r; aspf=r;` | — | Strict anti-spoofing DMARC policy |
+Follow the exact hostnames and values displayed by your EmitMail instance. Some DNS providers automatically append your domain to the name field; avoid accidentally creating a duplicated domain suffix. Publish only one SPF record at each hostname. If one already exists, merge the required authorization into that record instead of creating a second SPF record.
 
-<Callout type="info" title="Root Apex SPF Record">
-If your domain does not yet have an apex SPF record, add one at `@` to authorize your server:
-`v=spf1 ip4:<YOUR_VPS_IP> include:send.yourdomain.com -all`
-</Callout>
+## DKIM, SPF, and MX
 
----
+1. In the dashboard, add your sending domain. EmitMail generates a DKIM key and displays its selector and TXT value. Keep the private key and server secrets private.
+2. Add the DKIM TXT record using the selector hostname and full value shown in the dashboard. If your DNS provider offers proxying, set this record to DNS-only.
+3. Add the SPF and MX records using the return-path hostname and values in the dashboard. Confirm the mail hostname resolves to the correct public server address.
+4. If you use a proxy/CDN DNS provider, mail host A/AAAA and MX targets must resolve directly to the mail server; an HTTP proxy does not proxy SMTP.
 
-## 2. Step-by-Step DNS Walkthrough
+## DMARC rollout
 
-<Steps>
-  <Step>
-    ### Generate 2048-Bit RSA DKIM Key
-    In the EmitMail Dashboard, navigate to **Domains -> + Add Domain**. Enter your domain name (`yourdomain.com`). EmitMail automatically generates an enterprise-grade 2048-bit RSA key pair with AES-256-GCM encrypted database storage.
-  </Step>
+Start with a monitoring policy such as `p=none` and configure a working aggregate report address. Review reports and confirm legitimate mail passes SPF or DKIM alignment before moving to `p=quarantine` or `p=reject`. For example:
 
-  <Step>
-    ### Configure DKIM TXT Record in DNS
-    - **Type:** `TXT`
-    - **Name:** `esp._domainkey`
-    - **Value:** Copy the full `v=DKIM1; k=rsa; p=...` string from the dashboard.
-    - **Proxy Status:** DNS Only / Unproxied
-  </Step>
+```text
+v=DMARC1; p=none; rua=mailto:dmarc@yourdomain.com
+```
 
-  <Step>
-    ### Add Return-Path Subdomain SPF & MX Records
-    EmitMail routes RFC 5321 Return-Path bounce traffic through a dedicated subdomain (`send.yourdomain.com`):
-    - **TXT Record:** Name `send`, Content `v=spf1 ip4:<YOUR_VPS_IP> a mx -all`.
-    - **MX Record:** Name `send`, Mail Server `mail.yourdomain.com`, Priority `10`.
-  </Step>
+Use an address that exists and can receive reports. Apply a stricter policy only after you understand all legitimate services sending mail for the domain; otherwise, receivers may reject valid messages.
 
-  <Step>
-    ### Add DMARC Policy TXT Record
-    Protect your brand from phishing with strict DMARC rejection:
-    - **Type:** `TXT`
-    - **Name:** `_dmarc`
-    - **Value:** `v=DMARC1; p=reject; sp=reject; rua=mailto:dmarc@yourdomain.com; adkim=r; aspf=r;`
-  </Step>
+## Verify DNS
 
-  <Step>
-    ### Click "Verify Records" in Dashboard
-    Click **Verify DNS Records** in the EmitMail domain drawer. The public DNS resolver will check all 4 records across public edge nameservers (such as Cloudflare 1.1.1.1 and Google 8.8.8.8) and activate your domain.
-  </Step>
-</Steps>
-
+Click the domain's DNS verification action in the dashboard. The current verifier checks DKIM, SPF, and MX; DMARC is reported separately and is not required for the domain to pass the required checks. DNS changes may take time to appear in public resolvers, so recheck after your provider publishes them. A successful DNS check does not guarantee delivery or inbox placement.

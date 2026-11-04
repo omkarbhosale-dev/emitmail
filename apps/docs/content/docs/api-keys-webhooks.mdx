@@ -6,7 +6,7 @@ description: Generate em_live_ API credentials and subscribe to cryptographicall
 import { Callout } from 'fumadocs-ui/components/callout';
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 
-EmitMail provides domain-isolated API keys and an enterprise webhook dispatcher with automatic exponential-backoff retries.
+EmitMail provides API keys and a webhook dispatcher that retries failed deliveries according to its queue configuration.
 
 ---
 
@@ -46,7 +46,7 @@ Navigate to **Dashboard -> Webhooks** to register your server's callback URL. Su
 
 ## 3. Verifying Webhook Signatures (HMAC-SHA256)
 
-Every webhook request contains cryptographic verification headers:
+Webhook requests include these verification headers:
 - `X-EmitMail-Signature`: `sha256=<hex_hmac_signature>`
 - `X-EmitMail-Event`: Event name (e.g. `email.delivered`)
 - `X-EmitMail-Delivery`: Unique delivery attempt UUID
@@ -66,15 +66,21 @@ app.use(express.json({
 }));
 
 app.post('/api/emitmail-webhook', (req: Request, res: Response) => {
-  const signature = req.headers['x-emitmail-signature'] as string;
-  const webhookSecret = process.env.EMITMAIL_WEBHOOK_SECRET!; // e.g. whsec_...
+  const signature = req.headers['x-emitmail-signature'];
+  const webhookSecret = process.env.EMITMAIL_WEBHOOK_SECRET;
+  const rawBody = (req as any).rawBody as Buffer | undefined;
+  if (typeof signature !== 'string' || !webhookSecret || !rawBody) {
+    return res.status(401).json({ error: 'Missing webhook verification data' });
+  }
 
   const expectedSignature = `sha256=${crypto
     .createHmac('sha256', webhookSecret)
-    .update((req as any).rawBody)
+    .update(rawBody)
     .digest('hex')}`;
 
-  if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
+  const received = Buffer.from(signature);
+  const expected = Buffer.from(expectedSignature);
+  if (received.length !== expected.length || !crypto.timingSafeEqual(received, expected)) {
     return res.status(401).json({ error: 'Invalid webhook signature' });
   }
 

@@ -1,25 +1,25 @@
 ---
 title: Inbound Mailbox Setup (/inbox)
-description: Configure root-domain MX receiving to accept inbound emails at support@yourdomain.com with aliases and catch-all routing.
+description: Configure an inbound mail domain and mailbox aliases in EmitMail.
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 
-EmitMail includes a complete Inbound Mailbox Engine that allows you to receive, inspect, search, and reply to inbound emails directly from the EmitMail Dashboard (`/inbox`) or stream incoming emails to your webhooks.
+EmitMail can receive mail for configured domains, display messages in the dashboard inbox, and send inbound message events to subscribed webhooks.
 
 ---
 
 ## 1. Configure DNS: Inbound Root MX Record
 
-To direct incoming mail for your root domain (`@yourdomain.com`) to your EmitMail server, add this MX record in your DNS provider:
+To receive mail for a domain, publish an MX record that points to a mail hostname resolving to your server. Use the hostname configured for your EmitMail deployment. The example below is illustrative; confirm the value with your administrator:
 
 | Type | Host / Name | Mail Server Target | Priority | Proxy Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `MX` | `@` (root domain) | `mail.yourdomain.com` | `10` | **DNS Only / Unproxied** |
+| `MX` | `@` (root domain) | `mail.yourdomain.com` | `10` | DNS only; do not use an HTTP proxy |
 
 <Callout type="warn" title="Single MX Routing">
-If you currently receive mail through Google Workspace or Microsoft 365 on your root domain, adding EmitMail as an MX record will share incoming delivery. For dedicated application inboxes, use a subdomain like `support.yourdomain.com` or replace existing MX records if EmitMail is your primary mail provider.
+Changing MX records affects mail delivery for the whole hostname. Do not replace existing Google Workspace, Microsoft 365, or other provider MX records unless you intend to move that domain's inbound mail. Use a dedicated subdomain if appropriate, and check your existing provider's setup before changing DNS.
 </Callout>
 
 ---
@@ -28,16 +28,16 @@ If you currently receive mail through Google Workspace or Microsoft 365 on your 
 
 <Steps>
   <Step>
-    ### Verify MX Records
-    Navigate to **Dashboard -> Inbox (`/inbox`)** and click **Verify MX Record**. EmitMail performs an active DNS query to confirm that your domain's MX points to `mail.yourdomain.com`.
+    ### Configure and verify the domain
+    Add and verify the domain in **Dashboard -> Domains**. For inbound delivery, confirm its MX record points to the configured mail host and that the host resolves to your server IP. The inbound mailbox setup checks the domain's MX configuration.
   </Step>
 
   <Step>
     ### Create an Inbound Mailbox Alias
-    Click **+ Create Mailbox** and select your verified domain:
+    In **Dashboard -> Inbox**, create a mailbox on the configured domain:
     - **Exact Alias:** Enter `support` to receive mail at `support@yourdomain.com`.
     - **Team Alias:** Enter `hello`, `contact`, or `billing`.
-    - **Catch-All Mailbox:** Enter `*` to capture any email sent to an unassigned address on your domain (e.g. `anything@yourdomain.com`).
+    - **Catch-All Mailbox:** Enter `*` to accept mail for otherwise unassigned addresses. Use this carefully because it can receive unwanted mail.
   </Step>
 
   <Step>

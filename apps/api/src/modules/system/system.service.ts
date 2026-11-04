@@ -38,7 +38,7 @@ export class SystemService {
    * Gracefully degrades in offline/firewalled/rate-limited environments.
    */
   static async checkSystemUpdate(refresh = false): Promise<SystemVersionResponse> {
-    const rawCurrent = (env.APP_VERSION || env.CURRENT_VERSION || '1.0.0').trim();
+    const rawCurrent = (env.CURRENT_VERSION || '1.0.0').trim();
     const cleanCurrent =
       semver.clean(rawCurrent) ||
       semver.valid(semver.coerce(rawCurrent)) ||
@@ -48,8 +48,7 @@ export class SystemService {
     // Edge case: Development builds or unparseable versions
     const isDevBuild =
       rawCurrent.toLowerCase().includes('dev') ||
-      rawCurrent === '0.0.0' ||
-      rawCurrent.toLowerCase() === 'latest';
+      rawCurrent === '0.0.0';
 
     let releaseData: CachedReleaseData | null = null;
 
@@ -165,7 +164,7 @@ export class SystemService {
    */
   static async triggerUpdate(targetVersion?: string): Promise<{ status: string; message: string }> {
     const updaterUrl = env.UPDATER_URL || 'http://updater:9999/trigger-update';
-    const updaterSecret = env.UPDATER_SECRET || 'changeme';
+    const updaterSecret = env.UPDATER_SECRET;
 
     try {
       const response = await fetch(updaterUrl, {

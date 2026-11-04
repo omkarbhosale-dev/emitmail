@@ -6,7 +6,7 @@ description: Deep dive into the BullMQ background delivery engine, direct MX SMT
 import { Callout } from 'fumadocs-ui/components/callout';
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 
-The **Background Worker** (`apps/worker`) is EmitMail's asynchronous delivery engine. By decoupling mail dispatch from the HTTP API, EmitMail can handle massive email dispatch volume without blocking API response times or exposing mail transmission timeouts to client applications.
+The **Background Worker** (`apps/worker`) processes queued delivery jobs. This keeps SMTP network delays outside the API request, but throughput depends on server resources and recipient mail servers.
 
 ---
 
@@ -41,7 +41,7 @@ Client API Request
        │
        ▼
 apps/api (Port 4000)
-       │ (Enqueues job in < 15ms)
+       │ (Enqueues job)
        ▼
 Redis BullMQ Queue ('email-delivery-queue')
        │
@@ -50,7 +50,7 @@ apps/worker (Concurrent Workers)
        │
        ├─► 1. Lookup Domain & Decrypt 2048-bit RSA DKIM Private Key
        ├─► 2. Query Recipient Domain MX Records (e.g. gmail-smtp-in.l.google.com)
-       ├─► 3. Establish Direct TLS Handshake to MX on Port 25
+       ├─► 3. Connect to the recipient MX on port 25 (TLS depends on negotiation and configuration)
        ├─► 4. Transmit with EHLO mail.yourdomain.com & Return-Path bounces@send.<domain>
        └─► 5. Update PostgreSQL status to DELIVERED or schedule BullMQ exponential retry
 ```
@@ -59,7 +59,7 @@ apps/worker (Concurrent Workers)
 
 ## 3. Direct MX Resolution & SMTP Transport
 
-EmitMail transmits email directly from your server's IP address to recipient destination MTAs (Google Workspace, Microsoft 365, ProtonMail) without relying on third-party relay intermediaries.
+The worker attempts direct delivery from your server to the recipient domain's mail server. This requires outbound port 25 access and correct DNS and mail-server configuration.
 
 ### MX Resolution Workflow
 When an outbound email job is picked up by `emailDelivery.worker.ts`:

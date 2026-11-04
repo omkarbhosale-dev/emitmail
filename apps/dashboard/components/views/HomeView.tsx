@@ -352,6 +352,7 @@ export function HomeView({
 
   const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [isLoadingHealth, setIsLoadingHealth] = useState(true);
+  const [isServerConfigured, setIsServerConfigured] = useState<boolean>(true);
 
   const [systemHealth, setSystemHealth] = useState<{
     database: boolean;
@@ -379,6 +380,15 @@ export function HomeView({
   } | null>(null);
 
   useEffect(() => {
+    // 0. Check server configuration status
+    api.serverConfig.get()
+      .then((res) => {
+        if (res?.config) {
+          setIsServerConfigured(Boolean(res.config.isConfigured));
+        }
+      })
+      .catch(() => {});
+
     // 1. Fetch domains for Domains card
     setIsLoadingDomains(true);
     api.domains.list()
@@ -700,6 +710,32 @@ export function HomeView({
             </kbd>
           </div>
         </div>
+
+        {/* Onboarding Callout Banner if domain / VPS not yet configured */}
+        {!isServerConfigured && (
+          <div className="max-w-4xl mx-auto w-full mt-5 rounded-xl border border-cf-orange/40 bg-cf-orange-tint p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-left shadow-2xs">
+            <div className="flex items-start gap-3.5">
+              <div className="p-2.5 rounded-lg bg-cf-orange/15 text-cf-orange shrink-0 mt-0.5">
+                <Globe size={22} weight="bold" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-kumo-strong">
+                  Action Required: Complete Mail Server & Domain Setup
+                </h3>
+                <p className="text-xs text-kumo-muted mt-1 leading-relaxed">
+                  Connect your primary sending domain and VPS public IP to automatically generate 2048-bit RSA DKIM keys, SPF records, DMARC policies, and MX routes.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent("open-onboarding-modal"))}
+              className="shrink-0 px-4 py-2 rounded-lg bg-cf-orange hover:bg-cf-orange-hover text-white text-xs font-semibold shadow-xs transition-colors flex items-center gap-2 cursor-pointer"
+            >
+              <span>Launch Setup Wizard</span>
+              <CaretRight size={14} weight="bold" />
+            </button>
+          </div>
+        )}
 
         {/* 2. Three-Column Quick Access Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5 w-full mt-6 text-left">

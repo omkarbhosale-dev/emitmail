@@ -54,6 +54,10 @@ const envSchema = z.object({
 const parseEnv = () => {
   const rawEnv = {
     ...process.env,
+    ENCRYPTION_KEY:
+      process.env.ENCRYPTION_KEY && (process.env.NODE_ENV === 'production' || process.env.ENCRYPTION_KEY !== 'changeme')
+        ? process.env.ENCRYPTION_KEY
+        : '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
     SMTP_HOST: process.env.SMTP_HOST || process.env.SMTP_RELAY_HOST,
     SMTP_PORT: process.env.SMTP_PORT || process.env.SMTP_RELAY_PORT,
     SMTP_USER: process.env.SMTP_USER || process.env.SMTP_RELAY_USER,
@@ -77,6 +81,10 @@ const parseEnv = () => {
     for (const issue of result.error.issues) {
       console.error(`  - ${issue.path.join('.')}: ${issue.message}`);
     }
+    process.exit(1);
+  }
+  if (result.data.NODE_ENV === 'production' && result.data.ENCRYPTION_KEY === '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef') {
+    console.error('❌ [Worker] Production requires a unique ENCRYPTION_KEY.');
     process.exit(1);
   }
   return result.data;

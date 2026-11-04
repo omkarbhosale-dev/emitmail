@@ -10,21 +10,14 @@ import {
 } from "@/types";
 
 export function getApiBaseUrl(): string {
-  if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, "");
-  }
   if (typeof window !== "undefined" && window.location) {
-    // In local development on localhost/127.0.0.1 (port 3000), target backend API directly on port 4000
-    if (
-      (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") &&
-      window.location.port !== "4000"
-    ) {
-      return "http://localhost:4000/api/v1";
+    if (process.env.NODE_ENV === "development" && process.env.NEXT_PUBLIC_API_URL) {
+      return process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, "");
     }
-    // In production behind reverse proxy (e.g. emitmail.yourdomain.com), use same-origin /api/v1
+    // Production requests use the dashboard origin; Next.js proxies /api/v1 to the API service.
     return `${window.location.origin}/api/v1`;
   }
-  return "http://localhost:4000/api/v1";
+  return process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, "") || "http://localhost:4000/api/v1";
 }
 
 const TOKEN_STORAGE_KEY = "emitmail_admin_jwt";
@@ -260,9 +253,9 @@ export const api = {
       email: string;
       role: UserRole;
       username?: string;
-    }): Promise<DashboardUser> => {
+    }): Promise<DashboardUser & { initialPassword: string }> => {
       try {
-        return await apiFetch<DashboardUser>("/users", {
+        return await apiFetch<DashboardUser & { initialPassword: string }>("/users", {
           method: "POST",
           body: JSON.stringify(data),
         });
@@ -293,9 +286,11 @@ export const api = {
             updatedAt: new Date().toISOString(),
           };
 
+          const initialPassword = Array.from(crypto.getRandomValues(new Uint8Array(24)), (byte) => byte.toString(16).padStart(2, "0")).join("");
+
           const list = getLocalTeam();
           saveLocalTeam([...list, newUser]);
-          return newUser;
+          return { ...newUser, initialPassword };
         }
         throw err;
       }
@@ -339,9 +334,9 @@ export const api = {
       }
     },
 
-    resetPassword: async (id: string): Promise<{ id: string; username: string }> => {
+    resetPassword: async (id: string): Promise<{ id: string; username: string; initialPassword: string }> => {
       try {
-        return await apiFetch<{ id: string; username: string }>(`/users/${id}/reset-password`, {
+        return await apiFetch<{ id: string; username: string; initialPassword: string }>(`/users/${id}/reset-password`, {
           method: "POST",
         });
       } catch (err) {
@@ -356,7 +351,7 @@ export const api = {
             target.mustChangePassword = true;
             saveLocalTeam(list);
           }
-          return { id, username: target?.username || "user" };
+          throw new Error("Password reset is unavailable while the API is offline.");
         }
         throw err;
       }
@@ -1108,9 +1103,43 @@ export const api = {
           }>;
         }>("/server-config");
       },
+
+      update: async (data: {
+        mailServerHostname: string;
+        vpsPublicIpv4: string;
+        spfIncludeDomain: string;
+      }) => {
+        return apiFetch<{
+          serverConfig: {
+            mailServerHostname: string;
+            vpsPublicIpv4: string;
+            spfIncludeDomain: string;
+            isConfigured: boolean;
+          };
+          masterDnsChecklist: Array<{
+            type: string;
+            host?: string;
+            value: string;
+            purpose: string;
+            instructions: string;
+          }>;
+        }>("/server-config", {
+          method: "PATCH",
+          body: JSON.stringify(data),
+        });
+      },
     },
 
     system: {
+      detectIp: async (): Promise<{ ip: string | null }> => {
+        try {
+          const res = await apiFetch<{ ip: string | null }>("/system/detect-ip");
+          return (res as any)?.data || res;
+        } catch {
+          return { ip: null };
+        }
+      },
+
       getHealth: async (): Promise<{
         status: string;
         uptime: number;

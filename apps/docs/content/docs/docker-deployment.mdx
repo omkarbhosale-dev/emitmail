@@ -6,13 +6,13 @@ description: Deploying EmitMail API, background workers, PostgreSQL, and Redis w
 import { Callout } from 'fumadocs-ui/components/callout';
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 
-Deploying EmitMail takes less than 2 minutes using our official multi-container Docker Compose configuration and pre-built GitHub Container Registry (GHCR) images.
+Deploy EmitMail with Docker Compose. The quickstart uses the repository's installer and the GHCR images configured by the compose file.
 
 ---
 
 ## 1. Quickstart Installation (Automated)
 
-The fastest and most reliable way to deploy EmitMail on any Linux VPS is using our idempotent `install.sh` script, which automatically resolves port conflicts, generates cryptographically secure secrets, and boots the GHCR stack:
+On a supported Linux VPS with Docker Compose installed, run the installer from a fresh checkout. It creates or updates the environment configuration, checks host port availability, and starts the Compose stack. Review the script and environment file before exposing the service:
 
 ```bash
 git clone https://github.com/omkarbhosale-dev/emitmail.git
@@ -45,7 +45,7 @@ If you prefer to configure and launch each component manually:
 
   <Step>
     ### Configure Environment Variables
-    Open `.env` in your preferred editor (`nano .env`) and update the key host settings:
+    Open `.env` in your preferred editor (`nano .env`) and update the key host settings. Replace the secret markers below with actual generated values; do not leave marker text in the file. Generate random hex values with `openssl rand -hex 24` or `openssl rand -hex 32` as indicated.
     ```bash
     # App Version & GitHub Repository
     APP_VERSION=latest
@@ -53,34 +53,32 @@ If you prefer to configure and launch each component manually:
 
     # PostgreSQL Database Credentials
     POSTGRES_USER=mailuser
-    POSTGRES_PASSWORD=changeme
+    POSTGRES_PASSWORD=replace_with_output_of_openssl_rand_hex_24
     POSTGRES_DB=maildb
 
     # Security Keys
     # Must be at least 32 characters
-    JWT_SECRET=changeme
+    JWT_SECRET=replace_with_output_of_openssl_rand_hex_32
     # 64-character hex string (32 bytes) for AES-256-GCM DKIM encryption
-    ENCRYPTION_KEY=changeme
+    ENCRYPTION_KEY=replace_with_output_of_openssl_rand_hex_32
     # Internal secret for dashboard 1-click update trigger
-    UPDATER_SECRET=changeme
+    UPDATER_SECRET=replace_with_output_of_openssl_rand_hex_32
+    INITIAL_ADMIN_PASSWORD=choose_a_unique_value_of_at_least_16_characters
+    CORS_ORIGINS=https://emitmail.yourdomain.com
 
     # Public URLs & Host Port Bindings
-    APP_URL=http://localhost:3000
-    API_URL=http://localhost:4000
+    APP_URL=https://emitmail.yourdomain.com
+    API_URL=https://emitmail.yourdomain.com
     DASHBOARD_PORT=3000
     API_PORT=4000
     DOCS_PORT=3001
     SMTP_SUBMISSION_PORT=2525
     SMTP_RELAY_PORT=25
-
-    # Mail Server Network Configuration
-    SMTP_EHLO_HOSTNAME=mail.yourdomain.com
-    SENDING_SERVER_IP=198.51.100.1
-    RETURN_PATH_SUBDOMAIN=send
-    MAIL_SERVER_HOSTNAME=mail.yourdomain.com
-    SPF_INCLUDE_DOMAIN=_spf.yourdomain.com
-    VPS_PUBLIC_IPV4=198.51.100.1
     ```
+
+    <Callout type="info" title="Automatic Onboarding Wizard">
+      The installer generates required secrets automatically, including the one-time admin password. For manual setup, use unique secrets and configure `CORS_ORIGINS` to the dashboard origin. Change the initial admin password after signing in.
+    </Callout>
   </Step>
 
   <Step>
@@ -89,6 +87,11 @@ If you prefer to configure and launch each component manually:
     docker compose pull
     docker compose up -d
     ```
+  </Step>
+
+  <Step>
+    ### Complete Initial Setup Wizard
+    Open the dashboard at `http://localhost:3000` through an SSH tunnel or your configured reverse proxy. Sign in with the one-time initial admin password printed by the installer (or set in `.env` for manual setup), then change it. Add a sending domain and publish the DNS values shown by the dashboard.
   </Step>
 </Steps>
 
@@ -102,13 +105,16 @@ If you prefer to configure and launch each component manually:
 | `emitmail-docs` | GHCR Docs | `3001` | `127.0.0.1:3001` | EmitDocs developer documentation platform |
 | `emitmail-api` | GHCR API | `4000`, `2525` | `127.0.0.1:4000`, `0.0.0.0:25`, `0.0.0.0:2525` | Express REST API & Inbound ESMTP server |
 | `emitmail-worker` | GHCR Worker | — | — | BullMQ queue worker, DKIM signer & direct MX dispatcher |
-| `emitmail-updater` | `docker:27-cli` | `9999` (internal) | — | Secure internal sidecar for 1-Click updates |
+| `emitmail-updater` | `docker:27-cli` | `9999` (internal) | — | Internal update sidecar; Docker API access is filtered by a private socket proxy |
+| `emitmail-docker-socket-proxy` | `tecnativa/docker-socket-proxy` | `2375` (private network) | — | Filters Docker API routes used by the updater; remains a trusted host-control component |
 | `emitmail-postgres` | PostgreSQL 16 Alpine | `5432` | Internal (`mail_net`) | Primary database (never exposed to host) |
 | `emitmail-redis` | Redis 7 Alpine | `6379` | Internal (`mail_net`) | Distributed job broker & cache (never exposed) |
 
 ---
 
 ## 4. Updates & Upgrades
+
+The updater reaches the host Docker daemon through `emitmail-docker-socket-proxy`, which is attached only to a private internal network and enables only the API groups needed for Compose updates. This remains a trusted host-control path: keep the updater secret private and do not expose either service to the public network. If you do not want dashboard-triggered upgrades, disable both the `updater` and `docker-socket-proxy` services.
 
 EmitMail supports two seamless update paths:
 
@@ -134,7 +140,7 @@ To pin to a specific version:
 
 ## 5. Reverse Proxy & Domain Routing
 
-Web services (`dashboard`, `api`, `docs`) bind to `127.0.0.1` by default for zero firewall leaks. You can place your preferred reverse proxy (Nginx, Traefik, Caddy, or Cloudflare Tunnel) in front of them:
+Web services (`dashboard`, `api`, `docs`) bind to `127.0.0.1` by default. Place a reverse proxy (Nginx, Traefik, Caddy, or a tunnel) in front of them if they need public access:
 
 ### Host Nginx Configuration Example
 

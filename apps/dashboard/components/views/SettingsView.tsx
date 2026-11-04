@@ -327,7 +327,7 @@ export function SettingsView() {
 
       toast({
         title: "User Created Successfully",
-        description: `${created.fullName || created.username} added as ${created.role}. Default password: emitmail`,
+        description: `${created.fullName || created.username} added as ${created.role}. One-time password: ${created.initialPassword}`,
         type: "success",
       });
 
@@ -378,10 +378,10 @@ export function SettingsView() {
 
     setIsResetting(true);
     try {
-      await api.users.resetPassword(resetTargetUser.id);
+      const result = await api.users.resetPassword(resetTargetUser.id);
       toast({
         title: "Password Reset Completed",
-        description: `Temporary password for ${resetTargetUser.username} set to "emitmail". User must change it on login.`,
+        description: `One-time password for ${resetTargetUser.username}: ${result.initialPassword}. They must change it after signing in.`,
         type: "success",
       });
       setResetTargetUser(null);
@@ -482,18 +482,14 @@ export function SettingsView() {
             <div>
               <div className="flex items-center gap-2">
                 <h4 className="text-xs font-bold text-kumo-strong uppercase tracking-wider font-mono">
-                  Security Recommendation: Default Initial Password Active
+                  Security Recommendation: Initial Password Still Active
                 </h4>
                 <span className="text-[10px] font-mono px-2 py-0.2 rounded-full bg-cf-amber/20 text-cf-amber border border-cf-amber/30 font-bold">
                   Action Required
                 </span>
               </div>
               <p className="text-xs text-kumo-default mt-1 leading-relaxed">
-                Your account is currently secured with the default initial password (
-                <code className="font-mono text-cf-amber font-semibold bg-kumo-base/60 px-1 py-0.2 rounded border border-cf-amber/30">
-                  emitmail
-                </code>
-                ). We strongly suggest updating your password below immediately to prevent unauthorized access.
+                Your account still uses its one-time initial password. Change it below before using protected features.
               </p>
             </div>
           </div>
@@ -610,7 +606,7 @@ export function SettingsView() {
                       disabled={isViewer || isChangingPassword}
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
-                      placeholder="Initial: emitmail"
+                      placeholder="Enter your initial password"
                       className="w-full bg-kumo-control border border-kumo-line rounded-lg px-3 py-2 pr-9 text-xs text-kumo-strong focus:outline-none focus:border-cf-orange disabled:opacity-60 disabled:cursor-not-allowed font-mono"
                     />
                     <button
@@ -719,15 +715,26 @@ export function SettingsView() {
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={loadDiagnostics}
-                disabled={isLoadingHealth}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-kumo-default hover:text-kumo-strong hover:bg-kumo-recessed border border-kumo-hairline transition-colors cursor-pointer disabled:opacity-50"
-              >
-                <ArrowsClockwise size={14} className={isLoadingHealth ? "animate-spin" : ""} />
-                <span>Refresh Diagnostics</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => window.dispatchEvent(new CustomEvent("open-onboarding-modal"))}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-cf-orange hover:bg-cf-orange-tint border border-cf-orange/40 transition-colors cursor-pointer"
+                >
+                  <Globe size={14} weight="bold" />
+                  <span>Setup Wizard</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={loadDiagnostics}
+                  disabled={isLoadingHealth}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-kumo-default hover:text-kumo-strong hover:bg-kumo-recessed border border-kumo-hairline transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  <ArrowsClockwise size={14} className={isLoadingHealth ? "animate-spin" : ""} />
+                  <span>Refresh Diagnostics</span>
+                </button>
+              </div>
             </div>
 
             {/* Diagnostic Tiles Grid */}
@@ -1241,11 +1248,7 @@ export function SettingsView() {
                 </span>
               </div>
               <p className="text-xs text-kumo-subtle max-w-xl">
-                Only Administrators can provision users, assign roles, or reset credentials. Default password for new members is{" "}
-                <code className="text-kumo-strong bg-kumo-elevated px-1.5 py-0.5 rounded border border-kumo-hairline font-mono text-[11px]">
-                  emitmail
-                </code>
-                .
+                Only Administrators can provision users, assign roles, or reset credentials. A unique one-time password is generated for each account and shown once.
               </p>
             </div>
 
@@ -1448,7 +1451,7 @@ export function SettingsView() {
                               type="button"
                               onClick={() => setResetTargetUser(member)}
                               className="px-2.5 py-1 text-xs font-medium rounded-lg text-kumo-default hover:text-cf-orange bg-kumo-elevated hover:bg-kumo-line/40 border border-kumo-hairline transition-colors flex items-center gap-1 cursor-pointer"
-                              title="Reset Password to emitmail"
+                              title="Generate a one-time password"
                             >
                               <Key size={13} />
                               <span className="hidden lg:inline">Reset</span>
@@ -1650,14 +1653,8 @@ export function SettingsView() {
               <div className="p-3.5 rounded-xl bg-kumo-elevated border border-kumo-hairline text-[11px] text-kumo-subtle flex items-start gap-2.5">
                 <Info size={16} className="text-cf-orange shrink-0 mt-0.5" />
                 <div className="space-y-0.5">
-                  <p className="font-semibold text-kumo-strong">Default Initial Password</p>
-                  <p>
-                    The initial password will automatically be set to{" "}
-                    <code className="text-cf-orange font-mono font-bold bg-cf-orange/10 px-1 py-0.2 rounded border border-cf-orange/20">
-                      emitmail
-                    </code>
-                    . The user will be required to change it on their first login.
-                  </p>
+                  <p className="font-semibold text-kumo-strong">One-Time Initial Password</p>
+                  <p>A unique password is generated and shown once after creating the account. The user must change it after signing in.</p>
                 </div>
               </div>
 
@@ -1815,9 +1812,7 @@ export function SettingsView() {
             </div>
 
             <div className="p-3.5 rounded-xl bg-kumo-elevated border border-kumo-hairline text-[11px] text-kumo-subtle text-center">
-              The user&apos;s password will be restored to{" "}
-              <code className="text-cf-orange font-mono font-bold">emitmail</code> and they will be
-              prompted to configure a new password upon logging in.
+              A new one-time password will be generated and shown once. The user must change it after signing in.
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-2">
@@ -1840,7 +1835,7 @@ export function SettingsView() {
                     <span>Resetting...</span>
                   </>
                 ) : (
-                  <span>Reset to &quot;emitmail&quot;</span>
+                  <span>Generate Password</span>
                 )}
               </button>
             </div>

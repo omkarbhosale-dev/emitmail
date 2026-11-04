@@ -1,13 +1,14 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, Suspense } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { SystemUpdateBanner } from "@/components/layout/SystemUpdateBanner";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { CommandPalette } from "@/components/layout/CommandPalette";
 import { SendTestEmailModal } from "@/components/modals/SendTestEmailModal";
 import { UpgradeModal } from "@/components/modals/UpgradeModal";
+import { OnboardingModal } from "@/components/modals/OnboardingModal";
 import { ToastProvider } from "@/components/ui/Toast";
 import { VersionProvider, useSystemVersion } from "@/context/VersionContext";
 import { AuthProvider } from "@/context/AuthContext";
@@ -31,26 +32,31 @@ export const useModals = () => useContext(ModalContext);
 
 function AppShellInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isSendTestEmailOpen, setIsSendTestEmailOpen] = useState(false);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const { isUpgradeModalOpen, setIsUpgradeModalOpen } = useSystemVersion();
 
   useEffect(() => {
     const handleOpenPalette = () => setIsCommandPaletteOpen(true);
     const handleOpenSendModal = () => setIsSendTestEmailOpen(true);
     const handleOpenUpgradeModal = () => setIsUpgradeModalOpen(true);
+    const handleOpenOnboarding = () => setIsOnboardingOpen(true);
 
     window.addEventListener("open-command-palette", handleOpenPalette);
     window.addEventListener("open-send-email-modal", handleOpenSendModal);
     window.addEventListener("open-upgrade-modal", handleOpenUpgradeModal);
+    window.addEventListener("open-onboarding-modal", handleOpenOnboarding);
 
     return () => {
       window.removeEventListener("open-command-palette", handleOpenPalette);
       window.removeEventListener("open-send-email-modal", handleOpenSendModal);
       window.removeEventListener("open-upgrade-modal", handleOpenUpgradeModal);
+      window.removeEventListener("open-onboarding-modal", handleOpenOnboarding);
     };
   }, [setIsUpgradeModalOpen]);
 
@@ -65,12 +71,25 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
     }
 
     // Actively verify token validity against backend API
-    api.auth.getMe().catch((err: unknown) => {
+    api.auth.getMe().then((user) => {
+      if (user.mustChangePassword && pathname !== "/settings") {
+        router.replace("/settings");
+        return;
+      }
+      // If authenticated and onboarding not completed/dismissed in this session, check serverConfig
+      if (typeof window !== "undefined" && !sessionStorage.getItem("dismissed_onboarding")) {
+        api.serverConfig.get().then((res) => {
+          if (res?.config && !res.config.isConfigured) {
+            setIsOnboardingOpen(true);
+          }
+        }).catch(() => {});
+      }
+    }).catch((err: unknown) => {
       console.warn("Active session invalid or expired:", err);
       clearAuthToken();
       window.location.replace("/login");
     });
-  }, [pathname]);
+  }, [pathname, router]);
 
   // If on login route, render standalone login view without AppShell headers/sidebars
   if (pathname === "/login") {
@@ -132,6 +151,22 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         <UpgradeModal
           isOpen={isUpgradeModalOpen}
           onClose={() => setIsUpgradeModalOpen(false)}
+        />
+
+        <OnboardingModal
+          isOpen={isOnboardingOpen}
+          onClose={() => {
+            setIsOnboardingOpen(false);
+            if (typeof window !== "undefined") {
+              sessionStorage.setItem("dismissed_onboarding", "true");
+            }
+          }}
+          onCompleted={() => {
+            setIsOnboardingOpen(false);
+            if (typeof window !== "undefined") {
+              sessionStorage.setItem("dismissed_onboarding", "true");
+            }
+          }}
         />
       </div>
     </ModalContext.Provider>

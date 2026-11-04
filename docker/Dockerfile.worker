@@ -21,6 +21,8 @@ COPY apps/api/prisma ./apps/api/prisma
 COPY apps/worker ./apps/worker
 
 WORKDIR /app/apps/worker
+ARG APP_VERSION=1.0.0
+ENV APP_VERSION=${APP_VERSION}
 RUN npx prisma generate --schema=../api/prisma/schema.prisma
 RUN pnpm build
 

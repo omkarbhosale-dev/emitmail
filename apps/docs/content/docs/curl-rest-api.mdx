@@ -6,7 +6,7 @@ description: Dispatch emails, upload attachments, and query delivery status usin
 import { Callout } from 'fumadocs-ui/components/callout';
 import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 
-EmitMail mounts native REST endpoints at `/api/v1/emails`, `/v1/emails`, and `/emails` for seamless compatibility with any programming language.
+EmitMail exposes email endpoints at `/api/v1/emails` and compatibility aliases including `/emails`. Use the API URL configured for your deployment. The endpoint validates and queues a request; it does not wait for recipient delivery.
 
 ---
 
@@ -25,26 +25,26 @@ curl -X POST "https://api.yourdomain.com/emails" \
   }'
 ```
 
-### Server Response Payload (< 50ms)
+### Example response
 
 ```json
 {
-  "id": "em_5ff8cdb59a274161ba78f4628da2f8b5",
+  "id": "email_id_returned_by_server",
   "from": "hello@yourdomain.com",
   "to": ["recipient@example.com"],
-  "created_at": "2026-10-31T12:00:00.000Z",
+  "created_at": "2026-11-04T12:00:00.000Z",
   "status": "queued",
   "message": "Email successfully accepted and queued for delivery",
   "suppressed": false,
   "suppressionReason": null,
   "success": true,
   "data": {
-    "id": "em_5ff8cdb59a274161ba78f4628da2f8b5",
+    "id": "email_id_returned_by_server",
     "from": "hello@yourdomain.com",
     "to": ["recipient@example.com"],
     "status": "QUEUED",
-    "messageId": "<em_5ff8cdb59a274161ba78f4628da2f8b5@mail.yourdomain.com>",
-    "createdAt": "2026-10-31T12:00:00.000Z"
+    "messageId": "message-id-assigned-by-server",
+    "createdAt": "2026-11-04T12:00:00.000Z"
   }
 }
 ```
@@ -94,7 +94,7 @@ curl -X GET "https://api.yourdomain.com/api/v1/emails/em_5ff8cdb59a274161ba78f46
 {
   "success": true,
   "data": {
-    "id": "em_5ff8cdb59a274161ba78f4628da2f8b5",
+  "id": "email_id_returned_by_server",
     "status": "DELIVERED",
     "from": "hello@yourdomain.com",
     "to": ["recipient@example.com"],

@@ -5,7 +5,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-mailuser}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: ${POSTGRES_DB:-maildb}
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -48,12 +48,14 @@ services:
       API_PORT: 4000
       APP_VERSION: ${APP_VERSION:-latest}
       GITHUB_REPO: ${GITHUB_REPO:-omkarbhosale-dev/emitmail}
-      UPDATER_SECRET: ${UPDATER_SECRET:-changeme}
+      UPDATER_SECRET: ${UPDATER_SECRET:?Set UPDATER_SECRET in .env}
+      INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD:?Set INITIAL_ADMIN_PASSWORD in .env}
+      CORS_ORIGINS: ${CORS_ORIGINS:-${APP_URL:-http://localhost:3000}}
       UPDATER_URL: http://updater:9999/trigger-update
-      DATABASE_URL: postgresql://${POSTGRES_USER:-mailuser}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-maildb}?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER:-mailuser}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-maildb}?schema=public
       REDIS_URL: redis://redis:6379
-      JWT_SECRET: ${JWT_SECRET:-changeme}
-      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-changeme}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?Set ENCRYPTION_KEY in .env}
       APP_URL: ${APP_URL:-http://localhost:3000}
       API_URL: ${API_URL:-http://localhost:4000}
       INBOUND_SMTP_ENABLED: "true"
@@ -90,9 +92,9 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://${POSTGRES_USER:-mailuser}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-maildb}?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER:-mailuser}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-maildb}?schema=public
       REDIS_URL: redis://redis:6379
-      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-changeme}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?Set ENCRYPTION_KEY in .env}
       MAIL_SERVER_HOSTNAME: ${MAIL_SERVER_HOSTNAME:-mail.yourdomain.com}
       SMTP_EHLO_HOSTNAME: ${SMTP_EHLO_HOSTNAME:-${MAIL_SERVER_HOSTNAME:-mail.yourdomain.com}}
       SENDING_SERVER_IP: ${SENDING_SERVER_IP:-${VPS_PUBLIC_IPV4:-0.0.0.0}}
@@ -150,15 +152,35 @@ services:
     restart: unless-stopped
     working_dir: /workspace
     environment:
-      UPDATER_SECRET: ${UPDATER_SECRET:-changeme}
+      UPDATER_SECRET: ${UPDATER_SECRET:?Set UPDATER_SECRET in .env}
+      DOCKER_HOST: tcp://docker-socket-proxy:2375
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
       - .:/workspace
     entrypoint: ["/bin/sh", "-c"]
     command: >
       "apk add --no-cache bash socat git curl 2>/dev/null || true; chmod +x /workspace/docker/updater-server.sh /workspace/docker/updater-handler.sh /workspace/update.sh 2>/dev/null || true; exec /workspace/docker/updater-server.sh"
     networks:
       - mail_net
+      - docker-control
+
+  docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy:0.3.0
+    container_name: emitmail-docker-socket-proxy
+    restart: unless-stopped
+    environment:
+      POST: 1
+      CONTAINERS: 1
+      IMAGES: 1
+      NETWORKS: 1
+      VOLUMES: 1
+      EXEC: 0
+      INFO: 1
+      PING: 1
+      VERSION: 1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - docker-control
 
 volumes:
   postgres_data:
@@ -169,3 +191,5 @@ volumes:
 networks:
   mail_net:
     driver: bridge
+  docker-control:
+    internal: true

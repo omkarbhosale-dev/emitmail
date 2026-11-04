@@ -10,18 +10,18 @@
 [![Prisma](https://img.shields.io/badge/Prisma-5.22-blue.svg)](https://www.prisma.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
 
-The **EmitMail Backend API** (`apps/api`) serves as the central control plane and REST gateway for the EmitMail platform. It provides tenant authentication, database persistence via Prisma, automatic 2048-bit RSA DKIM key generation, live DNS verification, an embedded Inbound SMTP mail receiver (Port 2525), and 100% drop-in compatibility with the official Resend SDK.
+The **EmitMail Backend API** (`apps/api`) provides the REST API, authentication, database access through Prisma, DKIM key generation, DNS checks, and an inbound SMTP receiver on port 2525. It supports common email sending requests used by the Resend Node.js SDK; see the API and SDK guides for current behavior.
 
 ---
 
 ## Key Capabilities
 
-- **Resend Drop-in Compatibility:** Provides exact route and parameter compatibility with the official `resend` NPM package (`POST /emails`, `POST /api/v1/emails`, `GET /emails/:id`).
+- **Resend SDK support:** Provides email send endpoints for common use with the official `resend` package. Compatibility is not complete across every SDK feature.
 - **2048-Bit RSA DKIM Key Generation:** Generates cryptographically secure 2048-bit RSA key pairs (`modulusLength: 2048`) on domain registration and encrypts private keys at rest using AES-256-GCM.
 - **Multi-Chunk DNS Verifier:** Implements RFC 4408 / 6376 compliant DNS string-chunk joining to verify 400+ character 2048-bit DKIM records across edge nameservers (`1.1.1.1` and `8.8.8.8`).
 - **Inbound SMTP Receiver:** Embedded ESMTP server running on port 2525 (mapped to 25 in Docker) with dynamic `onRcptTo` alias and catch-all validation, raw MIME stream parsing via `mailparser`, and BullMQ queue dispatch.
 - **Single Global Root `.env` Architecture:** Reads all configuration from the root `emitmail/.env` file with Zod runtime validation.
-- **Decoupled Asynchronous Dispatch:** Enqueues outbound email jobs into BullMQ (`email-delivery-queue`) in `< 15ms`, isolating the HTTP API from mail transmission latencies.
+- **Decoupled Asynchronous Dispatch:** Enqueues outbound email jobs into BullMQ (`email-delivery-queue`) so the HTTP API does not wait for SMTP delivery.
 
 ---
 
@@ -31,8 +31,7 @@ The **EmitMail Backend API** (`apps/api`) serves as the central control plane an
 apps/api/
 ├── prisma/
 │   ├── schema.prisma        # PostgreSQL database schema
-│   ├── migrations/          # Version-controlled SQL migrations
-│   └── seed.ts              # Default admin seed script (admin / emitmail)
+│   └── seed.ts              # Creates the first admin using INITIAL_ADMIN_PASSWORD
 ├── src/
 │   ├── config/              # Zod environment schema, Prisma DB, Redis client
 │   ├── middlewares/         # JWT admin auth and Bearer em_live_ API key auth
@@ -78,6 +77,8 @@ pnpm db:push
 pnpm db:seed
 ```
 
+Set `INITIAL_ADMIN_PASSWORD` in the root `.env` before seeding. It must contain at least 16 characters; the first admin must change it before using other protected endpoints.
+
 ### 3. Start Development Server
 ```bash
 # From repository root:
@@ -118,6 +119,7 @@ Run the end-to-end API integration workflow:
 ```bash
 pnpm test:workflow
 ```
+Set distinct `INITIAL_ADMIN_PASSWORD` and `TEST_ADMIN_PASSWORD` values in the root `.env`. The workflow changes the initial password to the test password on its first run and reuses it on later runs.
 
 ---
 

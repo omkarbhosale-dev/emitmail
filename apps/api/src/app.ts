@@ -33,12 +33,26 @@ export const createApp = (): Express => {
   // Security & Utility Middlewares (relaxed CSP for dashboard console)
   app.use(
     helmet({
-      contentSecurityPolicy: false,
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'"],
+          scriptSrcAttr: ["'unsafe-inline'"],
+          styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+          fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+          imgSrc: ["'self'", 'data:', 'https:'],
+          connectSrc: ["'self'"],
+          objectSrc: ["'none'"],
+          baseUri: ["'self'"],
+          frameAncestors: ["'none'"],
+        },
+      },
     })
   );
+  const allowedOrigins = env.CORS_ORIGINS.split(',').map((origin) => origin.trim().replace(/\/+$/, '')).filter(Boolean);
   app.use(
     cors({
-      origin: '*',
+      origin: (origin, callback) => callback(null, !origin || allowedOrigins.includes(origin)),
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key', 'x-api-secret'],
     })
@@ -60,7 +74,7 @@ export const createApp = (): Express => {
       await prisma.$queryRaw`SELECT 1`;
       dbStatus = 'connected';
     } catch (err: unknown) {
-      dbStatus = `error: ${err instanceof Error ? err.message : 'failed'}`;
+      dbStatus = 'disconnected';
     }
 
     try {
@@ -72,7 +86,7 @@ export const createApp = (): Express => {
         redisStatus = pingResponse === 'PONG' ? 'connected' : 'error';
       }
     } catch (err: unknown) {
-      redisStatus = `error: ${err instanceof Error ? err.message : 'failed'}`;
+      redisStatus = 'disconnected';
     }
 
     const isHealthy = dbStatus === 'connected' && redisStatus === 'connected';

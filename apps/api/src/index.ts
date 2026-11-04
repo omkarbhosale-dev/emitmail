@@ -2,37 +2,6 @@ import { createApp } from './app.js';
 import { env } from './config/env.js';
 import { prisma } from './config/db.js';
 import { redis } from './config/redis.js';
-import bcrypt from 'bcryptjs';
-
-/**
- * Ensures the default administrator account exists in the database.
- * Auto-bootstrapped on server startup if not already seeded.
- */
-export async function ensureDefaultAdminExists(): Promise<void> {
-  try {
-    const existingAdmin = await prisma.user.findFirst({
-      where: { username: 'admin' },
-    });
-
-    if (!existingAdmin) {
-      const passwordHash = await bcrypt.hash('emitmail', 12);
-
-      await prisma.user.create({
-        data: {
-          username: 'admin',
-          fullName: 'EmitMail Administrator',
-          passwordHash,
-          mustChangePassword: true,
-          timezone: 'UTC',
-        },
-      });
-
-      console.log('✅ [Bootstrap] Default admin account initialized.');
-    }
-  } catch (error) {
-    console.error('❌ [Bootstrap] Failed to verify or seed default admin:', error);
-  }
-}
 
 /**
  * Ensures the singleton master ServerConfig exists in the database.
@@ -62,8 +31,7 @@ async function startServer(): Promise<void> {
     // Redis client will retry connection in background
   }
 
-  // 3. Ensure Default Admin & Master ServerConfig Exist
-  await ensureDefaultAdminExists();
+  // 3. Ensure Master ServerConfig Exists (admin is provisioned explicitly by the seed step)
   await ensureServerConfigExists();
 
   // Run Pre-Flight Deliverability Check for 10/10 deliverability

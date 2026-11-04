@@ -17,7 +17,7 @@ The **EmitMail Delivery Worker** (`apps/worker`) is the decoupled, high-performa
 ## Key Capabilities
 
 - **Decoupled Architecture:** Runs independently from the REST API, reading delivery jobs from Redis (`email-delivery-queue`) using BullMQ.
-- **Direct MTA Port 25 Delivery:** Queries recipient domain `MX` records (`dns.promises.resolveMx`) and establishes direct TLS SMTP connections to destination mail servers (Google Workspace, Microsoft 365, ProtonMail).
+- **Direct MTA Port 25 Delivery:** Queries recipient domain `MX` records and attempts direct SMTP delivery. TLS use depends on SMTP negotiation and server configuration.
 - **2048-Bit DKIM Signing:** Decrypts the sender domain's private key using AES-256-GCM and computes RFC 6376 cryptographic signatures on outgoing MIME messages.
 - **Strict Return-Path Alignment:** Routes envelope bounce messages through a dedicated subdomain (`bounces@send.<domain>`) for strict SPF alignment.
 - **Inbound Stream Worker:** Consumes raw email payloads from `inbound-email-queue`, parses attachments and HTML, and saves them to PostgreSQL.
@@ -38,7 +38,7 @@ apps/worker/
 │   │   └── inboundEmail.worker.ts  # Inbound email processing & webhook dispatch
 │   ├── services/            # Core transmission services
 │   │   ├── mxResolver.service.ts   # Recipient MX DNS resolution
-│   │   ├── smtpTransport.service.ts# Direct MTA TLS handshake
+│   │   ├── smtpTransport.service.ts# SMTP transport setup
 │   │   └── webhookDispatcher.service.ts # Signed webhook publisher
 │   ├── utils/               # DKIM signing and deliverability verification
 │   │   ├── dkimSigner.ts    # Nodemailer 2048-bit DKIM signer

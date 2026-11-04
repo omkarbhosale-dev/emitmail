@@ -56,8 +56,8 @@ services:
       UPDATER_URL: http://updater:9999/trigger-update
       DATABASE_URL: postgresql://${POSTGRES_USER:-mailuser}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-maildb}?schema=public
       REDIS_URL: redis://redis:6379
-      JWT_SECRET: ${JWT_SECRET:-changeme}
-      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-changeme}
+      JWT_SECRET: ${JWT_SECRET:-development_only_jwt_secret_change_before_production}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
       APP_URL: ${APP_URL:-http://localhost:3000}
       API_URL: ${API_URL:-http://localhost:4000}
       INBOUND_SMTP_ENABLED: "true"
@@ -92,7 +92,7 @@ services:
       NODE_ENV: development
       DATABASE_URL: postgresql://${POSTGRES_USER:-mailuser}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-maildb}?schema=public
       REDIS_URL: redis://redis:6379
-      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-changeme}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
       MAIL_SERVER_HOSTNAME: ${MAIL_SERVER_HOSTNAME:-mail.yourdomain.com}
       SMTP_EHLO_HOSTNAME: ${SMTP_EHLO_HOSTNAME:-${MAIL_SERVER_HOSTNAME:-mail.yourdomain.com}}
       SENDING_SERVER_IP: ${SENDING_SERVER_IP:-${VPS_PUBLIC_IPV4:-0.0.0.0}}

@@ -1,27 +1,27 @@
 ---
 title: System & VPS Prerequisites
-description: Hardware requirements, network firewall policies, and unblocking outbound Port 25 for EmitMail.
+description: Server, network, and DNS requirements for an EmitMail deployment.
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 
-Before deploying EmitMail, ensure your server environment satisfies these three fundamental network prerequisites:
+Before deploying EmitMail, check that your server meets these baseline requirements:
 
 <Steps>
   <Step>
     ### Linux Server (VPS or Dedicated Host)
     - **OS:** Ubuntu 22.04 LTS, Ubuntu 24.04 LTS, or Debian 12 recommended.
-    - **Hardware:** Minimum 1 vCPU, 2 GB RAM, 20 GB SSD storage.
-    - **IP Address:** A dedicated, static public IPv4 address with clean IP reputation (not listed on Spamhaus or Barracuda RBLs).
+    - **Hardware:** Start with at least 1 vCPU, 2 GB RAM, and 20 GB SSD; actual needs depend on message volume and retention.
+    - **IP Address:** A static public IP address is strongly recommended. Check its reputation and whether your provider allows mail server traffic.
   </Step>
 
   <Step>
-    ### Unblocked Inbound & Outbound Port 25 (CRITICAL)
-    SMTP mail dispatch and receiving strictly operate on **TCP Port 25**. Many cloud providers (AWS EC2, DigitalOcean, Hetzner, Linode) block outbound Port 25 by default to prevent spam.
+    ### SMTP Network Access
+    Inbound TCP port 25 is needed to receive internet email. Outbound TCP port 25 is needed for direct-to-recipient delivery. Hosting providers may restrict either direction; check the current policy for your plan and region.
     
-    <Callout type="warn" title="Requesting Port 25 Unblocking">
-      Open a support ticket with your VPS hosting provider to request opening outbound TCP Port 25. Explain that you are self-hosting a transactional email server with strict SPF, 2048-bit DKIM, and DMARC policies.
+    <Callout type="warn" title="Check provider and firewall rules">
+      If port 25 is restricted, ask your hosting provider whether it can be enabled. Also check the provider firewall/security group and the server firewall.
     </Callout>
   </Step>
 
@@ -30,7 +30,7 @@ Before deploying EmitMail, ensure your server environment satisfies these three 
     Ensure your root domain (e.g. `yourdomain.com`) is managed under an active DNS provider (such as Cloudflare, AWS Route 53, Namecheap, Porkbun, or Google Cloud DNS) so you can configure custom TXT, MX, and A records.
     
     <Callout type="info" title="Important Proxy / CDN Notice">
-      If your DNS provider offers an HTTP reverse-proxy feature (such as Cloudflare's Orange Cloud proxy), all mail-related records (`mail.yourdomain.com`, `send.yourdomain.com`) MUST be set to **DNS Only (Unproxied / Grey Cloud)**. HTTP proxies only handle web traffic (ports 80/443) and will drop raw SMTP Port 25 mail traffic.
+      If your DNS provider offers an HTTP reverse proxy, mail hostnames and MX targets must resolve directly to the mail server. An HTTP proxy does not proxy SMTP. Follow the hostnames and values in the dashboard DNS checklist.
     </Callout>
   </Step>
 </Steps>
@@ -53,4 +53,4 @@ Connection to gmail-smtp-in.l.google.com 25 port [tcp/smtp] succeeded!
 220 mx.google.com ESMTP
 ```
 
-If the connection times out, outbound Port 25 is blocked at your hosting provider's network edge.
+If the connection fails or times out, check provider restrictions, firewall rules, and network connectivity. A timeout alone does not identify which layer blocked the connection.
