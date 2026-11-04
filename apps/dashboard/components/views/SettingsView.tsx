@@ -719,15 +719,26 @@ export function SettingsView() {
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={loadDiagnostics}
-                disabled={isLoadingHealth}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-kumo-default hover:text-kumo-strong hover:bg-kumo-recessed border border-kumo-hairline transition-colors cursor-pointer disabled:opacity-50"
-              >
-                <ArrowsClockwise size={14} className={isLoadingHealth ? "animate-spin" : ""} />
-                <span>Refresh Diagnostics</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => window.dispatchEvent(new CustomEvent("open-onboarding-modal"))}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-cf-orange hover:bg-cf-orange-tint border border-cf-orange/40 transition-colors cursor-pointer"
+                >
+                  <Globe size={14} weight="bold" />
+                  <span>Setup Wizard</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={loadDiagnostics}
+                  disabled={isLoadingHealth}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-kumo-default hover:text-kumo-strong hover:bg-kumo-recessed border border-kumo-hairline transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  <ArrowsClockwise size={14} className={isLoadingHealth ? "animate-spin" : ""} />
+                  <span>Refresh Diagnostics</span>
+                </button>
+              </div>
             </div>
 
             {/* Diagnostic Tiles Grid */}

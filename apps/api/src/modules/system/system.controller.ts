@@ -36,3 +36,19 @@ export const triggerSystemUpdate = async (req: Request, res: Response): Promise<
     sendError(res, message, 502);
   }
 };
+
+export const detectServerPublicIp = async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const response = await fetch('https://api.ipify.org?format=json', {
+      signal: AbortSignal.timeout(4000),
+    });
+    if (response.ok) {
+      const data = (await response.json()) as { ip?: string };
+      sendSuccess(res, { ip: data.ip || null }, 'Public IP detected');
+      return;
+    }
+  } catch {
+    // Graceful offline fallback
+  }
+  sendSuccess(res, { ip: null }, 'Could not auto-detect public IP');
+};

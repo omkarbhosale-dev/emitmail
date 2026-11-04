@@ -10,7 +10,18 @@ To guarantee inbox placement and reach 10/10 on mail deliverability testers (lik
 
 ---
 
-## 1. Required DNS Records Table
+## 1. Automated Setup Wizard (Recommended)
+
+<Callout type="info" title="Automatic Onboarding on First Login">
+  You do not need to generate DKIM keys or calculate SPF strings manually! When you log in to the EmitMail Dashboard for the first time, the **Interactive Onboarding Setup Wizard** automatically:
+  1. Detects your VPS outbound public IPv4 address.
+  2. Provisions your primary sending domain with an enterprise 2048-bit RSA key pair.
+  3. Displays an interactive **Master DNS Checklist** with 1-click copy buttons and live DNS propagation checking.
+</Callout>
+
+---
+
+## 2. Required DNS Records Reference Table
 
 | Type | Name / Host | Value / Target | Priority | Purpose |
 | :--- | :--- | :--- | :--- | :--- |
@@ -26,7 +37,7 @@ If your domain does not yet have an apex SPF record, add one at `@` to authorize
 
 ---
 
-## 2. Step-by-Step DNS Walkthrough
+## 3. Step-by-Step DNS Walkthrough
 
 <Steps>
   <Step>

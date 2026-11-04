@@ -1108,9 +1108,43 @@ export const api = {
           }>;
         }>("/server-config");
       },
+
+      update: async (data: {
+        mailServerHostname: string;
+        vpsPublicIpv4: string;
+        spfIncludeDomain: string;
+      }) => {
+        return apiFetch<{
+          serverConfig: {
+            mailServerHostname: string;
+            vpsPublicIpv4: string;
+            spfIncludeDomain: string;
+            isConfigured: boolean;
+          };
+          masterDnsChecklist: Array<{
+            type: string;
+            host?: string;
+            value: string;
+            purpose: string;
+            instructions: string;
+          }>;
+        }>("/server-config", {
+          method: "PATCH",
+          body: JSON.stringify(data),
+        });
+      },
     },
 
     system: {
+      detectIp: async (): Promise<{ ip: string | null }> => {
+        try {
+          const res = await apiFetch<{ ip: string | null }>("/system/detect-ip");
+          return (res as any)?.data || res;
+        } catch {
+          return { ip: null };
+        }
+      },
+
       getHealth: async (): Promise<{
         status: string;
         uptime: number;

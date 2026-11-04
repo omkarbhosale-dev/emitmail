@@ -78,9 +78,24 @@ emitmail/
 
 ---
 
-## Setting Up the Entire Project
+## Quickstart: Zero-Friction Self-Hosting
 
-Follow these steps to set up and run the entire EmitMail ecosystem locally:
+The fastest way to deploy EmitMail on any Linux VPS or server is using our idempotent `install.sh` script, which automatically resolves port conflicts, generates cryptographically secure secrets, and pulls pre-built GitHub Container Registry (GHCR) images:
+
+```bash
+git clone https://github.com/omkarbhosale-dev/emitmail.git
+cd emitmail
+chmod +x install.sh
+./install.sh
+```
+
+Once installed, open **http://localhost:3000** (or your domain) and log in (`admin` / `emitmail`). The **Interactive Onboarding Setup Wizard** will automatically detect your VPS public IP, prompt for your domain, and auto-provision your 2048-bit RSA DKIM, SPF, DMARC, and MX DNS records!
+
+---
+
+## Setting Up the Monorepo for Local Development
+
+If you are developing or contributing to EmitMail locally:
 
 ### 1. Prerequisites
 - **Node.js**: `v20.x` or `v22.x` (LTS recommended)
@@ -103,28 +118,6 @@ pnpm install
 Copy the root `.env.example` file to `.env`:
 ```bash
 cp .env.example .env
-```
-
-The default values in `.env.example` work out-of-the-box for local development:
-```bash
-# Service Ports
-PORT=4000
-API_PORT=4000
-NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
-INBOUND_SMTP_PORT=2525
-
-# PostgreSQL & Redis
-DATABASE_URL=postgresql://emitmail:emitmail_pass@localhost:5432/emitmail?schema=public
-REDIS_URL=redis://localhost:6379
-
-# Cryptography & Security
-JWT_SECRET=emitmail_super_secret_jwt_key_change_in_prod_2026
-ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
-
-# Mail Server Hostname & Return-Path
-MAIL_SERVER_HOSTNAME=mail.yourdomain.com
-SMTP_EHLO_HOSTNAME=mail.yourdomain.com
-RETURN_PATH_SUBDOMAIN=send
 ```
 
 ### 5. Start Local PostgreSQL & Redis

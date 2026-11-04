@@ -8,6 +8,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { CommandPalette } from "@/components/layout/CommandPalette";
 import { SendTestEmailModal } from "@/components/modals/SendTestEmailModal";
 import { UpgradeModal } from "@/components/modals/UpgradeModal";
+import { OnboardingModal } from "@/components/modals/OnboardingModal";
 import { ToastProvider } from "@/components/ui/Toast";
 import { VersionProvider, useSystemVersion } from "@/context/VersionContext";
 import { AuthProvider } from "@/context/AuthContext";
@@ -36,21 +37,25 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isSendTestEmailOpen, setIsSendTestEmailOpen] = useState(false);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const { isUpgradeModalOpen, setIsUpgradeModalOpen } = useSystemVersion();
 
   useEffect(() => {
     const handleOpenPalette = () => setIsCommandPaletteOpen(true);
     const handleOpenSendModal = () => setIsSendTestEmailOpen(true);
     const handleOpenUpgradeModal = () => setIsUpgradeModalOpen(true);
+    const handleOpenOnboarding = () => setIsOnboardingOpen(true);
 
     window.addEventListener("open-command-palette", handleOpenPalette);
     window.addEventListener("open-send-email-modal", handleOpenSendModal);
     window.addEventListener("open-upgrade-modal", handleOpenUpgradeModal);
+    window.addEventListener("open-onboarding-modal", handleOpenOnboarding);
 
     return () => {
       window.removeEventListener("open-command-palette", handleOpenPalette);
       window.removeEventListener("open-send-email-modal", handleOpenSendModal);
       window.removeEventListener("open-upgrade-modal", handleOpenUpgradeModal);
+      window.removeEventListener("open-onboarding-modal", handleOpenOnboarding);
     };
   }, [setIsUpgradeModalOpen]);
 
@@ -65,7 +70,16 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
     }
 
     // Actively verify token validity against backend API
-    api.auth.getMe().catch((err: unknown) => {
+    api.auth.getMe().then(() => {
+      // If authenticated and onboarding not completed/dismissed in this session, check serverConfig
+      if (typeof window !== "undefined" && !sessionStorage.getItem("dismissed_onboarding")) {
+        api.serverConfig.get().then((res) => {
+          if (res?.config && !res.config.isConfigured) {
+            setIsOnboardingOpen(true);
+          }
+        }).catch(() => {});
+      }
+    }).catch((err: unknown) => {
       console.warn("Active session invalid or expired:", err);
       clearAuthToken();
       window.location.replace("/login");
@@ -132,6 +146,22 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         <UpgradeModal
           isOpen={isUpgradeModalOpen}
           onClose={() => setIsUpgradeModalOpen(false)}
+        />
+
+        <OnboardingModal
+          isOpen={isOnboardingOpen}
+          onClose={() => {
+            setIsOnboardingOpen(false);
+            if (typeof window !== "undefined") {
+              sessionStorage.setItem("dismissed_onboarding", "true");
+            }
+          }}
+          onCompleted={() => {
+            setIsOnboardingOpen(false);
+            if (typeof window !== "undefined") {
+              sessionStorage.setItem("dismissed_onboarding", "true");
+            }
+          }}
         />
       </div>
     </ModalContext.Provider>
