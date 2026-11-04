@@ -1,11 +1,10 @@
 # EmitMail
-### An open-source alternative of Resend that works on the Resend platform
+### An open-source, self-hosted alternative to Resend
 
 > 📚 **Official Documentation:** [https://emitmail.vercel.app](https://emitmail.vercel.app)
 
 [![Official Docs](https://img.shields.io/badge/Documentation-emitmail.vercel.app-FF6600.svg)](https://emitmail.vercel.app)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![Client Libraries: MIT](https://img.shields.io/badge/Client%20SDKs-MIT-green.svg)](LICENSE-MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-v20%20%7C%20v22-green.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
@@ -41,7 +40,7 @@ emitmail/
 │   ├── worker/         # Decoupled BullMQ background delivery engine (Port 25 direct MTA)
 │   ├── dashboard/      # Next.js 16 Web UI with Cloudflare Kumo design tokens (Port 3000)
 │   └── docs/           # Next.js 16 + Fumadocs interactive documentation engine (Port 3001)
-├── packages/           # Shared packages and type definitions
+├── packages/           # Empty workspace scaffolding; no shared packages are published yet
 ├── docker/             # Production Dockerfiles (Dockerfile.api, Dockerfile.worker)
 ├── scripts/            # Deliverability test suites and queue worker simulation scripts
 ├── docker-compose.yml  # Multi-container production deployment stack
@@ -80,7 +79,7 @@ emitmail/
 
 ## Quickstart: Zero-Friction Self-Hosting
 
-The fastest way to deploy EmitMail on any Linux VPS or server is using our idempotent `install.sh` script, which automatically resolves port conflicts, generates cryptographically secure secrets, and pulls pre-built GitHub Container Registry (GHCR) images:
+For a guided deployment on a supported Linux server, use `install.sh`. It creates `.env` from `.env.example` when needed, generates missing or invalid secrets, prompts for the public dashboard URL, checks host ports and asks for alternatives when a port is occupied, then pulls the configured images from GHCR and starts Docker Compose. Review the script and deployment requirements before running it.
 
 ```bash
 git clone https://github.com/omkarbhosale-dev/emitmail.git
@@ -89,7 +88,7 @@ chmod +x install.sh
 ./install.sh
 ```
 
-Once installed, open the Dashboard URL entered during setup and sign in as `admin` using the unique one-time password printed by the installer. You will be required to change it before using protected features. The **Interactive Onboarding Setup Wizard** will automatically detect your VPS public IP, prompt for your domain, and auto-provision your 2048-bit RSA DKIM, SPF, DMARC, and MX DNS records.
+Once installation completes, access the dashboard through the configured reverse proxy or an SSH tunnel. Sign in as `admin` with the one-time password printed by the installer and change it at first login. Add your domain in the dashboard, copy the generated DNS values, and publish them with your DNS provider. EmitMail does not change your DNS records automatically. Configure the server IP and reverse DNS with your hosting provider as described in the deployment docs.
 
 ---
 
@@ -224,14 +223,11 @@ cd emitmail
 cp .env.example .env
 nano .env
 
-# Build and start all production containers
-docker compose up --build -d
+# Follow the guided install, which configures the environment and pulls images
+./install.sh
 ```
 
-The production `docker-compose.yml` mounts:
-- Port `4000`: API REST Gateway
-- Port `25`: Raw Inbound Port 25 SMTP Mail Receiver
-- Internal: PostgreSQL 16 & Redis 7
+For manual configuration and reverse proxy setup, follow the [Docker deployment guide](apps/docs/content/docs/docker-deployment.mdx). In production, web ports bind to localhost, inbound SMTP is exposed on host TCP port 25, and PostgreSQL/Redis stay on the internal Compose network. Do not expose the API, dashboard, docs, database, or Redis ports directly to the public internet.
 
 ---
 
@@ -255,10 +251,5 @@ We welcome contributions from developers across all skill levels! Please see our
 
 ## License
 
-EmitMail is open-source software licensed as follows:
-
-- **Core Server, Engine & Web Applications (`apps/api`, `apps/worker`, `apps/dashboard`, `apps/docs`):** Licensed under the **[Apache License 2.0](LICENSE)** (see [LICENSE-APACHE](LICENSE-APACHE)).
-- **Client Libraries & SDKs (`packages/`):** Licensed under the **[MIT License](LICENSE-MIT)** to allow friction-free embedding into any commercial or proprietary application without licensing constraints.
-
-See [LICENSE](LICENSE), [LICENSE-APACHE](LICENSE-APACHE), [LICENSE-MIT](LICENSE-MIT), and [NOTICE](NOTICE) for complete licensing terms.
+This repository is licensed under the **[Apache License 2.0](LICENSE)**. Third-party dependencies retain their respective licenses; see their package metadata and license files. The `packages/` directories are empty scaffolding and do not contain separately licensed client libraries.
 

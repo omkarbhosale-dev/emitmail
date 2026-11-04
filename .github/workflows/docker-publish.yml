@@ -4,16 +4,15 @@ on:
   push:
     branches:
       - main
-      - fix/dkim
     tags:
       - 'v*.*.*'
       - 'v*'
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Specific image tag to publish (default: latest)'
+        description: 'Optional image tag to publish (use latest only from main)'
         required: false
-        default: 'latest'
+        default: ''
 
 # Grants write permission to GitHub Container Registry (GHCR)
 permissions:
@@ -47,6 +46,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Protect the latest image tag
+        if: github.event_name == 'workflow_dispatch' && inputs.tag == 'latest' && github.ref != 'refs/heads/main'
+        run: |
+          echo "The latest tag can only be published from the main branch." >&2
+          exit 1
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -66,7 +71,7 @@ jobs:
             type=ref,event=branch
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/fix/dkim' }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=raw,value=${{ github.event.inputs.tag }},enable=${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag != '' }}
             type=sha,format=short
 
