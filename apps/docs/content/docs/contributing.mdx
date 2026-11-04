@@ -15,7 +15,7 @@ Whether you are fixing a bug, adding a new feature to the **Backend API**, optim
 
 ## 1. Monorepo Architecture Overview
 
-EmitMail is organized as a `pnpm` workspace containing four core applications and shared packages:
+EmitMail is organized as a `pnpm` workspace containing four applications. The `packages/` directories are workspace scaffolding and are not currently shared implementation packages.
 
 ```text
 emitmail/
@@ -24,10 +24,7 @@ emitmail/
 │   ├── worker/         # Decoupled BullMQ delivery engine, direct MX transport (Port 25)
 │   ├── dashboard/      # Next.js 16 UI, @cloudflare/kumo design system, React 19
 │   └── docs/           # Next.js 16 + Fumadocs documentation engine (Port 3001)
-├── packages/
-│   ├── database/       # Shared database client contracts & types
-│   ├── queue/          # Shared BullMQ queue schemas and job definitions
-│   └── shared/         # Shared TypeScript utilities, constants, and validators
+├── packages/           # Workspace scaffolding; currently no shared package implementation
 ├── docker/             # Production & development Dockerfiles
 ├── scripts/            # Deliverability tests and queue simulation scripts
 └── docker-compose.dev.yml # Local development PostgreSQL & Redis infrastructure
@@ -99,11 +96,7 @@ emitmail/
     ```bash
     cp .env.example .env
     ```
-    The default settings in `.env.example` are preconfigured to work out-of-the-box with our local development Docker services:
-    - `DATABASE_URL`: `postgresql://emitmail:emitmail_pass@localhost:5432/emitmail?schema=public`
-    - `REDIS_URL`: `redis://localhost:6379`
-    - `API_PORT`: `4000`
-    - `NEXT_PUBLIC_API_URL`: `http://localhost:4000/api/v1`
+    Review the values in `.env.example`. It contains safe placeholders, not production-ready secrets. For local development, `docker-compose.dev.yml` provides PostgreSQL and Redis; set the API and worker connection variables to match that compose file before starting services.
   </Step>
 
   <Step>
@@ -128,9 +121,10 @@ emitmail/
     # Push schema to local Postgres
     pnpm db:push
 
-    # Seed default admin user (admin / emitmail)
+    # Set INITIAL_ADMIN_PASSWORD in the root .env, then seed the administrator
     pnpm db:seed
     ```
+    The initial password must be unique and at least 16 characters. The admin must change it before using protected endpoints.
   </Step>
 </Steps>
 
@@ -147,10 +141,8 @@ You can run individual services depending on which part of EmitMail you are deve
 | `pnpm dev:dashboard` | **Dashboard UI** | `http://localhost:3000` | Next.js 16 App Router + Cloudflare Kumo components |
 | `pnpm dev:docs` | **Documentation** | `http://localhost:3001` | Fumadocs MDX documentation site |
 
-<Callout type="info" title="Default Seed Credentials">
-When the database is seeded, log in to the dashboard at `http://localhost:3000/login` with:
-- **Username:** `admin`
-- **Password:** `emitmail`
+<Callout type="info" title="Initial Admin Account">
+Set a unique `INITIAL_ADMIN_PASSWORD` of at least 16 characters in the root `.env` before seeding. Log in as `admin` with that password, then change it before using protected endpoints.
 </Callout>
 
 ---

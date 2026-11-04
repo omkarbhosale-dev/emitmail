@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, Suspense } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { SystemUpdateBanner } from "@/components/layout/SystemUpdateBanner";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -32,6 +32,7 @@ export const useModals = () => useContext(ModalContext);
 
 function AppShellInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -70,7 +71,11 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
     }
 
     // Actively verify token validity against backend API
-    api.auth.getMe().then(() => {
+    api.auth.getMe().then((user) => {
+      if (user.mustChangePassword && pathname !== "/settings") {
+        router.replace("/settings");
+        return;
+      }
       // If authenticated and onboarding not completed/dismissed in this session, check serverConfig
       if (typeof window !== "undefined" && !sessionStorage.getItem("dismissed_onboarding")) {
         api.serverConfig.get().then((res) => {
@@ -84,7 +89,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
       clearAuthToken();
       window.location.replace("/login");
     });
-  }, [pathname]);
+  }, [pathname, router]);
 
   // If on login route, render standalone login view without AppShell headers/sidebars
   if (pathname === "/login") {

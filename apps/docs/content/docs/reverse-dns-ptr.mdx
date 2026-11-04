@@ -1,12 +1,12 @@
 ---
 title: Mail Server Hostname & Reverse DNS (PTR) Setup
-description: Setting up Forward-Confirmed Reverse DNS (FCrDNS) to achieve a 10/10 Mail-Tester score.
+description: Configure a mail hostname and reverse DNS (PTR) for your server IP.
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 
-Modern inbox providers (Gmail, Microsoft 365, Yahoo) immediately reject emails dispatched from servers that fail **Forward-Confirmed Reverse DNS (FCrDNS)**. This guide walks you through establishing perfect bidirectional hostname-to-IP symmetry.
+Correct forward and reverse DNS is an important mail-server setup step. Some receiving systems may reject or filter messages when the sending IP has missing or inconsistent reverse DNS. It does not guarantee inbox placement.
 
 ```text
 Forward Resolution:  mail.yourdomain.com  ──────(DNS A Record)──────►  198.51.100.1
@@ -21,7 +21,7 @@ Add the `A` records pointing your mail server, web dashboard, and docs platform 
 
 | Type | Name / Host | IPv4 Address | Proxy Status | Purpose |
 | :--- | :--- | :--- | :--- | :--- |
-| `A` | `mail` | `<YOUR_VPS_IP>` | **DNS Only / Unproxied** | SMTP EHLO & Reverse DNS (PTR) for 10/10 deliverability |
+| `A` | `mail` | `<YOUR_VPS_IP>` | **DNS Only / Unproxied** | Mail server hostname and forward lookup |
 | `A` | `emitmail` | `<YOUR_VPS_IP>` | **DNS Only** or **Proxied** | EmitMail Web Dashboard & REST API (`https://emitmail...`) |
 | `A` | `emitdocs` | `<YOUR_VPS_IP>` | **DNS Only** or **Proxied** | EmitDocs Documentation Platform (`https://emitdocs...`) |
 
@@ -66,5 +66,5 @@ dig +short -x <YOUR_VPS_IP>
 # Output should return: mail.yourdomain.com.
 ```
 
-When both outputs match, your mail server satisfies strict anti-spoofing requirements.
+Confirm the A record resolves to the sending IP and the PTR record resolves to the configured mail hostname. PTR changes are managed by your IP hosting provider and may take time to propagate. This configuration is one part of mail authentication and does not guarantee delivery.
 

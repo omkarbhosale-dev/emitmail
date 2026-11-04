@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import crypto from 'node:crypto';
+import bcrypt from 'bcryptjs';
 import { createApp } from './src/app.js';
 import { prisma } from './src/config/db.js';
 import { redis } from './src/config/redis.js';
@@ -49,6 +50,11 @@ function logSection(title: string) {
 async function runWorkflow() {
   const results: StepResult[] = [];
   const TEST_PORT = 4099;
+  const initialAdminPassword = process.env.INITIAL_ADMIN_PASSWORD;
+  const testAdminPassword = process.env.TEST_ADMIN_PASSWORD;
+  if (!initialAdminPassword || !testAdminPassword || testAdminPassword.length < 8 || initialAdminPassword === testAdminPassword) {
+    throw new Error('Set distinct INITIAL_ADMIN_PASSWORD (16+ chars) and TEST_ADMIN_PASSWORD (8+ chars) values before running this workflow.');
+  }
   const baseUrl = `http://127.0.0.1:${TEST_PORT}/api/v1`;
   const rootBaseUrl = `http://127.0.0.1:${TEST_PORT}`;
 
@@ -212,9 +218,16 @@ async function runWorkflow() {
       expectedStatus: 200,
     });
 
+    const admin = await prisma.user.findUnique({ where: { username: 'admin' }, select: { passwordHash: true } });
+    if (!admin) throw new Error('Admin account is not seeded. Run pnpm db:seed first.');
+    const initialPasswordMatches = await bcrypt.compare(initialAdminPassword, admin.passwordHash);
+    const testPasswordMatches = await bcrypt.compare(testAdminPassword, admin.passwordHash);
+    const loginPassword = initialPasswordMatches ? initialAdminPassword : testPasswordMatches ? testAdminPassword : null;
+    if (!loginPassword) throw new Error('Admin password matches neither INITIAL_ADMIN_PASSWORD nor TEST_ADMIN_PASSWORD.');
+
     // Step 3: Admin Login
     const loginRes = await executeStep(3, 'Admin Authentication Login', 'POST', '/auth/login', {
-      body: { username: 'admin', password: 'emitmail' },
+      body: { username: 'admin', password: loginPassword },
       expectedStatus: 200,
     });
 
@@ -226,6 +239,18 @@ async function runWorkflow() {
     }
 
     const authHeader = { Authorization: `Bearer ${adminAccessToken}` };
+
+    if (loginRes.data?.data?.user?.mustChangePassword) {
+      await executeStep(3.5, 'Change Initial Admin Password', 'POST', '/auth/change-password', {
+        headers: authHeader,
+        body: {
+          currentPassword: loginPassword,
+          newPassword: testAdminPassword,
+          confirmPassword: testAdminPassword,
+        },
+        expectedStatus: 200,
+      });
+    }
 
     // Step 4: Register New Sender Domain (triggers BullMQ DNS Verification Worker)
     const domainRes = await executeStep(4, 'Register Sender Domain (DKIM + BullMQ Enqueue)', 'POST', '/domains', {

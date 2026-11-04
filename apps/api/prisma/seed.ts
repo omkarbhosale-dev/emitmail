@@ -10,7 +10,11 @@ export async function ensureDefaultAdminExists(): Promise<void> {
   });
 
   if (!existingAdmin) {
-    const passwordHash = await bcrypt.hash('emitmail', 12);
+    const initialPassword = process.env.INITIAL_ADMIN_PASSWORD;
+    if (!initialPassword || initialPassword.length < 16) {
+      throw new Error('INITIAL_ADMIN_PASSWORD must be set to a unique value of at least 16 characters before seeding the first admin.');
+    }
+    const passwordHash = await bcrypt.hash(initialPassword, 12);
 
     await prisma.user.create({
       data: {
@@ -25,6 +29,17 @@ export async function ensureDefaultAdminExists(): Promise<void> {
 
     console.log('✅ Default admin account seeded successfully.');
   } else {
+    if (existingAdmin.mustChangePassword && await bcrypt.compare('emitmail', existingAdmin.passwordHash)) {
+      const initialPassword = process.env.INITIAL_ADMIN_PASSWORD;
+      if (!initialPassword || initialPassword.length < 16) {
+        throw new Error('INITIAL_ADMIN_PASSWORD must be set to a unique value of at least 16 characters to replace the legacy default admin password.');
+      }
+      await prisma.user.update({
+        where: { id: existingAdmin.id },
+        data: { passwordHash: await bcrypt.hash(initialPassword, 12), mustChangePassword: true, role: 'ADMIN' },
+      });
+      console.log('🔐 Replaced the legacy default admin password with INITIAL_ADMIN_PASSWORD.');
+    }
     if (existingAdmin.role !== 'ADMIN') {
       await prisma.user.update({
         where: { id: existingAdmin.id },

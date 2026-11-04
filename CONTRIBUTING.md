@@ -71,9 +71,11 @@ pnpm db:generate
 # Push relational schema to PostgreSQL
 pnpm db:push
 
-# Seed default administrator (admin / emitmail)
+# Set INITIAL_ADMIN_PASSWORD in the root .env, then seed the administrator
 pnpm db:seed
 ```
+
+Set a unique `INITIAL_ADMIN_PASSWORD` of at least 16 characters in the root `.env` before seeding. No shared default account password is used.
 
 ---
 
@@ -102,7 +104,7 @@ You can run individual services depending on which component you are working on:
 
 ### 4.2 Background Delivery Worker (`apps/worker`)
 - **Tech Stack**: BullMQ `Worker`, Redis, Nodemailer direct transport, Prisma client.
-- **Direct MTA Dispatch**: Worker resolves recipient domain MX records (`dns.promises.resolveMx`), decrypts the sender domain's 2048-bit RSA DKIM private key, and performs a direct TLS handshake on Port 25.
+- **Direct MTA Dispatch**: Worker resolves recipient MX records, decrypts the sender domain's DKIM private key, and attempts SMTP delivery on port 25. TLS behavior depends on negotiation and configuration.
 - **Return-Path Alignment**: Configures bounce handling envelopes (`bounces@send.<domain>`) for strict SPF alignment.
 - **Inbound & Webhooks**: Consumes incoming mail events and dispatches HTTP POST payloads with HMAC-SHA256 signatures (`X-EmitMail-Signature`).
 - **Testing**: Run `pnpm test:resend-worker` to simulate the full Redis Queue -> Worker -> MTA dispatch pipeline.

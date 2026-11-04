@@ -120,6 +120,11 @@ export const authenticateApiKey = async (
         });
 
         if (user) {
+          const requestPath = req.originalUrl.split('?')[0];
+          if (user.mustChangePassword && !requestPath.endsWith('/auth/change-password') && !requestPath.endsWith('/auth/me')) {
+            sendError(res, 'Password change required before using this account', 403);
+            return;
+          }
           req.user = user;
           req.apiKey = undefined;
           req.domain = null; // Admin has full access to all registered domains

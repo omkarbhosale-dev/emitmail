@@ -18,9 +18,9 @@ The **EmitMail Documentation** (`apps/docs`) is the official developer documenta
 
 - **Interactive Code Blocks:** Every code snippet and DNS record contains an interactive one-click copy button with instant visual feedback.
 - **Category Navigation:** Structured into 5 core categories in `meta.json`:
-  1. `Introduction` — Architecture, ESP overview, Resend drop-in compatibility.
+  1. `Introduction` — Architecture, project overview, Resend SDK setup.
   2. `Installation` — Prerequisites, Docker Compose deployment, VPS firewalls.
-  3. `Setup` — 10/10 Outbound DNS, Reverse DNS (PTR), Inbound Mailboxes, API Keys.
+  3. `Setup` — Email DNS, Reverse DNS (PTR), Inbound Mailboxes, API Keys.
   4. `Example (Resend)` — Resend NPM SDK integration, Next.js React Email, cURL, Inbound replies.
   5. `Contributions` — Monorepo setup, Backend API, Delivery Worker, Dashboard, Docs.
 - **Provider-Neutral DNS Instructions:** Universal DNS setup instructions applicable to any provider (Cloudflare, AWS Route 53, Namecheap, Porkbun, Google Cloud DNS).

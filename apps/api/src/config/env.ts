@@ -53,7 +53,9 @@ const envSchema = z.object({
   APP_VERSION: z.string().optional(),
   GITHUB_REPO: z.string().default('omkarbhosale-dev/emitmail'),
   GITHUB_TOKEN: z.string().optional(),
-  UPDATER_SECRET: z.string().default('changeme'),
+  UPDATER_SECRET: z.string().default(''),
+  INITIAL_ADMIN_PASSWORD: z.preprocess((value) => value === '' ? undefined : value, z.string().min(16).optional()),
+  CORS_ORIGINS: z.string().default(''),
   UPDATER_URL: z.string().default('http://updater:9999/trigger-update'),
   ALLOW_PENDING_DOMAIN_API_KEYS: z
     .preprocess((val) => val === 'true' || val === true || val === '1', z.boolean())
@@ -122,11 +124,21 @@ const parseEnv = () => {
   // Support both PORT and API_PORT, and fallback to package.json for CURRENT_VERSION
   const rawEnv = {
     ...process.env,
+    JWT_SECRET:
+      process.env.JWT_SECRET && (process.env.NODE_ENV === 'production' || process.env.JWT_SECRET !== 'changeme')
+        ? process.env.JWT_SECRET
+        : 'emitmail_super_secret_jwt_key_change_in_prod_2026',
+    ENCRYPTION_KEY:
+      process.env.ENCRYPTION_KEY && (process.env.NODE_ENV === 'production' || process.env.ENCRYPTION_KEY !== 'changeme')
+        ? process.env.ENCRYPTION_KEY
+        : '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
     PORT: process.env.API_PORT || process.env.PORT || '4000',
     APP_VERSION: process.env.APP_VERSION,
     CURRENT_VERSION: resolvedCurrentVersion,
     GITHUB_REPO: process.env.GITHUB_REPO || OFFICIAL_GITHUB_REPO,
-    UPDATER_SECRET: process.env.UPDATER_SECRET || 'changeme',
+    UPDATER_SECRET: process.env.UPDATER_SECRET || '',
+    INITIAL_ADMIN_PASSWORD: process.env.INITIAL_ADMIN_PASSWORD,
+    CORS_ORIGINS: process.env.CORS_ORIGINS || '',
     UPDATER_URL: process.env.UPDATER_URL || 'http://updater:9999/trigger-update',
     SMTP_EHLO_HOSTNAME:
       process.env.SMTP_EHLO_HOSTNAME ||
@@ -143,6 +155,19 @@ const parseEnv = () => {
       console.error(`  - ${issue.path.join('.')}: ${issue.message}`);
     }
     process.exit(1);
+  }
+  if (result.data.NODE_ENV === 'production') {
+    const insecureJwtDefault = 'emitmail_super_secret_jwt_key_change_in_prod_2026';
+    const insecureEncryptionDefault = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
+    const missingProductionSecrets = [
+      result.data.JWT_SECRET === insecureJwtDefault && 'JWT_SECRET',
+      result.data.ENCRYPTION_KEY === insecureEncryptionDefault && 'ENCRYPTION_KEY',
+      result.data.UPDATER_SECRET.length < 32 && 'UPDATER_SECRET',
+    ].filter(Boolean);
+    if (missingProductionSecrets.length > 0) {
+      console.error(`❌ Production requires unique secure values for: ${missingProductionSecrets.join(', ')}`);
+      process.exit(1);
+    }
   }
   return result.data;
 };

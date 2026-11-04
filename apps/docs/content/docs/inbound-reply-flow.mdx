@@ -1,73 +1,45 @@
 ---
-title: Inbound Processing & Threaded Replies
-description: Process inbound messages via webhooks and reply directly inside email conversation threads.
+title: Inbound Events and Replies
+description: Subscribe to inbound message webhooks and reply to messages in the dashboard inbox.
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
-import { Step, Steps } from 'fumadocs-ui/components/steps';
+When EmitMail receives a message for a configured mailbox, it stores the message and can send an `inbound.email.received` webhook to subscribed endpoints. The webhook contains message metadata; it does not include the full message body, headers, or attachments.
 
-When an external customer sends an email to your EmitMail mailbox (`support@yourdomain.com`), EmitMail streams the full MIME payload to your application via an `inbound.email.received` webhook event.
+## Inbound webhook payload
 
----
-
-## 1. Webhook Inbound Payload Schema
+The webhook uses the common envelope described in the API keys and webhooks guide. The inbound event's `data` includes fields such as:
 
 ```json
 {
-  "id": "evt_4a7bc910283e4c76",
-  "event": "inbound.email.received",
-  "timestamp": "2026-10-31T12:00:00.000Z",
-  "data": {
-    "messageId": "<CABc123_xyz@mail.gmail.com>",
-    "mailbox": "support@yourdomain.com",
-    "from": "Alex Carter <alex@customer.com>",
-    "to": ["support@yourdomain.com"],
-    "subject": "Help with API authentication",
-    "text": "Hi team, I am getting a 401 when calling the /emails endpoint. Can you help?",
-    "html": "<p>Hi team, I am getting a 401 when calling the /emails endpoint. Can you help?</p>",
-    "headers": {
-      "message-id": "<CABc123_xyz@mail.gmail.com>",
-      "references": "<em_prev123@yourdomain.com>"
-    },
-    "attachments": []
-  }
+  "id": "stored-inbound-message-id",
+  "mailboxId": "mailbox-id",
+  "emailAddress": "support@yourdomain.com",
+  "threadId": "thread-id",
+  "messageId": "<original-message-id@example.net>",
+  "from": { "name": "Alex Carter", "address": "alex@example.net" },
+  "to": ["support@yourdomain.com"],
+  "subject": "Help with my account",
+  "snippet": "A short preview of the message",
+  "hasAttachments": false,
+  "receivedAt": "2026-11-04T12:00:00.000Z"
 }
 ```
 
----
+For the full message and attachment details, retrieve it through the authenticated inbox API or view it in **Dashboard -> Inbox**. Verify the webhook signature against the raw request body before trusting event data.
 
-## 2. Replying to an Inbound Thread (Node.js)
+## Reply in the dashboard
 
-To maintain RFC 5322 thread alignment in customer email clients (such as Gmail, Apple Mail, and Outlook), preserve the original `Message-ID` in the `In-Reply-To` and `References` headers:
+Open the message thread in **Dashboard -> Inbox** and use its reply action. EmitMail uses the stored message and thread metadata to construct the reply. This is the simplest way to preserve the conversation thread.
 
-```typescript
-import { Resend } from 'resend';
+## Reply through the inbox API
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+The inbox API exposes a reply endpoint at `POST /api/v1/inbox/messages/:messageId/reply`. Authenticate with a dashboard session and send the message body as `text` or `html`:
 
-async function replyToCustomer(inboundData: any, replyText: string) {
-  const { data, error } = await resend.emails.send({
-    from: 'EmitMail Support <support@yourdomain.com>',
-    to: [inboundData.from],
-    subject: inboundData.subject.startsWith('Re:')
-      ? inboundData.subject
-      : `Re: ${inboundData.subject}`,
-    text: replyText,
-    html: `<p>${replyText.replace(/\n/g, '<br/>')}</p>`,
-    headers: {
-      'In-Reply-To': inboundData.messageId,
-      'References': inboundData.headers['references']
-        ? `${inboundData.headers['references']} ${inboundData.messageId}`
-        : inboundData.messageId,
-    },
-  });
-
-  if (error) {
-    console.error('Failed to send reply:', error);
-    return;
-  }
-
-  console.log('Reply dispatched into thread:', data?.id);
-}
+```bash
+curl -X POST "https://emitmail.yourdomain.com/api/v1/inbox/messages/INBOUND_MESSAGE_ID/reply" \
+  -H "Authorization: Bearer YOUR_SESSION_TOKEN_OR_WRITE_SCOPED_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"text":"Thanks for contacting us. We are looking into this."}'
 ```
 
+The endpoint also accepts optional `cc` and `bcc` recipients. Use a dashboard session or an API key with write access to the mailbox.

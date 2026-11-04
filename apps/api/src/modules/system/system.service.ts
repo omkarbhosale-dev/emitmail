@@ -164,7 +164,7 @@ export class SystemService {
    */
   static async triggerUpdate(targetVersion?: string): Promise<{ status: string; message: string }> {
     const updaterUrl = env.UPDATER_URL || 'http://updater:9999/trigger-update';
-    const updaterSecret = env.UPDATER_SECRET || 'changeme';
+    const updaterSecret = env.UPDATER_SECRET;
 
     try {
       const response = await fetch(updaterUrl, {

@@ -1,65 +1,32 @@
 ---
-title: VPS Firewall & Port 25 Routing
-description: Configuring UFW firewall rules and iptables port forwarding for inbound SMTP without running Node as root.
+title: VPS Firewall
+description: Configure the host firewall for EmitMail web access and SMTP delivery.
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
-import { Step, Steps } from 'fumadocs-ui/components/steps';
+EmitMail's production Docker Compose file maps host TCP port `25` to the API container's inbound SMTP listener on port `2525`. You do not need an extra `iptables` redirect when using Compose. The dashboard, API, and docs web ports bind to localhost by default and should be reached through a reverse proxy or SSH tunnel.
 
-When hosting EmitMail on a Linux VPS, external mail servers (like Google, Microsoft, and Yahoo) deliver inbound emails to standard **TCP Port 25**. To allow non-root Docker execution while supporting simultaneous outbound MTA dispatch, we route Port 25 to EmitMail's internal `:2525` receiver using Linux `iptables` and `ufw`.
+## Allow required ports
 
----
-
-## 1. Firewall Rule Configuration (UFW)
-
-Ensure ports 22 (SSH), 80/443 (Web), 4000 (API), and 25/2525 (SMTP) are open:
+For a typical public deployment, allow SSH, web traffic, and inbound SMTP. Compose also maps host port `2525` to the same inbound SMTP listener; only allow it if you specifically need that alternate listener port.
 
 ```bash
 sudo ufw allow 22/tcp
 sudo ufw allow 80/tcp
 sudo ufw allow 443/tcp
-sudo ufw allow 4000/tcp
 sudo ufw allow 25/tcp
+# Optional alternate port for the inbound SMTP listener
 sudo ufw allow 2525/tcp
 sudo ufw enable
 ```
 
----
+Apply equivalent rules in your provider's network firewall or security group. Do not expose the API, dashboard, docs, database, or Redis ports directly to the internet. Outbound TCP 25 is needed for direct-to-recipient delivery and may have separate provider restrictions.
 
-## 2. Inbound Port 25 -> 2525 Kernel Forwarding
+## Test inbound SMTP
 
-To route incoming traffic arriving at port `25` directly into the EmitMail ESMTP receiver on port `2525`:
-
-```bash
-# Replace <YOUR_VPS_IP> with your public server IP
-sudo iptables -t nat -A PREROUTING -p tcp -d <YOUR_VPS_IP> --dport 25 -j REDIRECT --to-port 2525
-sudo iptables -t nat -A OUTPUT -p tcp -d <YOUR_VPS_IP> --dport 25 -j REDIRECT --to-port 2525
-```
-
-### Making iptables Rules Persistent Across Reboots
-
-On Debian/Ubuntu systems, install `iptables-persistent` to preserve rules across machine restarts:
-
-```bash
-sudo apt-get update && sudo apt-get install -y iptables-persistent
-sudo netfilter-persistent save
-sudo netfilter-persistent reload
-```
-
----
-
-## 3. Testing Local Port Forwarding
-
-Verify that connecting to port 25 locally greets you with the EmitMail ESMTP banner:
+After starting the production Compose stack, test the host's SMTP listener:
 
 ```bash
 telnet localhost 25
 ```
 
-**Expected response:**
-```text
-220 mail.yourdomain.com ESMTP EmitMail Inbound ESMTP Service Ready
-```
-
-Type `QUIT` to close the test connection.
-
+A successful connection displays an SMTP `220` greeting. Type `QUIT` to close the connection. If it fails, check that the API container is healthy, host TCP 25 is not already in use, and both the host firewall and provider firewall permit inbound TCP 25.

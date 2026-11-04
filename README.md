@@ -11,17 +11,17 @@
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
 [![Next.js](https://img.shields.io/badge/Next.js-16.4-black.svg)](https://nextjs.org/)
 
-**EmitMail** is a sovereign, production-grade Email Service Provider (ESP) and Inbound Mailbox Engine. Built with Node.js, TypeScript, PostgreSQL, Redis, and BullMQ, EmitMail gives developers and engineering teams 100% control over email deliverability, 2048-bit RSA DKIM keys, inbound routing, and operational privacy—without artificial sending limits or monthly SaaS invoices.
+**EmitMail** is self-hosted software for sending email and receiving messages into mailboxes you manage. Built with Node.js, TypeScript, PostgreSQL, Redis, and BullMQ, it gives operators control over the application and its data. Operators remain responsible for server security, DNS, IP reputation, and delivery configuration.
 
-EmitMail provides **100% drop-in compatibility with the official Resend SDK (`resend` npm package)** and REST API endpoints, allowing you to switch by simply changing the `baseUrl`.
+EmitMail supports common email sending requests through REST endpoints and the official Resend Node.js SDK when configured with a custom `baseUrl`. API behavior may differ from Resend; check the features your application uses before migrating.
 
 ---
 
 ## Key Features
 
-- **100% Resend SDK Compatibility:** Drop-in replacement for the official `resend` NPM package. Just set `baseUrl: "https://your-api.com"` (or `http://localhost:4000`) and use your `em_live_...` API key.
+- **Resend Node.js SDK:** Configure the official `resend` package with your EmitMail API base URL and API key. See the SDK guide for an example.
 - **2048-Bit RSA DKIM Key Generation:** Enterprise-grade cryptographic key generation (SPKI/PKCS#8) with AES-256-GCM encrypted database storage and multi-chunk DNS TXT verification.
-- **10/10 Inbox Deliverability Architecture:** Direct Port 25 SMTP handshake with recipient MTAs, dedicated Return-Path (`bounces@send.<domain>`) SPF & MX alignment, strict DMARC (`p=reject`), and rDNS (PTR) validation.
+- **Email authentication support:** DKIM key generation and DNS checks for records used by your sending configuration. These checks cannot guarantee inbox placement; IP reputation and recipient policies also matter.
 - **Inbound Mailbox Engine (`/inbox`):** Embedded ESMTP server running on port 2525 (mapped to port 25 in production). Supports domain aliases (`support@yourdomain.com`), catch-all routing (`*@yourdomain.com`), rich HTML parsing, and dashboard replies.
 - **Decoupled Background Delivery Pipeline:** Asynchronous job processing powered by BullMQ and Redis with automatic exponential backoff retries and bounce tracking.
 - **Real-Time Webhook Engine:** Subscribe to `email.sent`, `email.delivered`, `email.bounced`, and `inbound.email.received` with cryptographic HMAC-SHA256 signature verification.
@@ -89,7 +89,7 @@ chmod +x install.sh
 ./install.sh
 ```
 
-Once installed, open **http://localhost:3000** (or your domain) and log in (`admin` / `emitmail`). The **Interactive Onboarding Setup Wizard** will automatically detect your VPS public IP, prompt for your domain, and auto-provision your 2048-bit RSA DKIM, SPF, DMARC, and MX DNS records!
+Once installed, open the Dashboard URL entered during setup and sign in as `admin` using the unique one-time password printed by the installer. You will be required to change it before using protected features. The **Interactive Onboarding Setup Wizard** will automatically detect your VPS public IP, prompt for your domain, and auto-provision your 2048-bit RSA DKIM, SPF, DMARC, and MX DNS records.
 
 ---
 
@@ -119,6 +119,7 @@ Copy the root `.env.example` file to `.env`:
 ```bash
 cp .env.example .env
 ```
+Before running `pnpm db:seed`, set `INITIAL_ADMIN_PASSWORD` to a unique value of at least 16 characters in `.env`.
 
 ### 5. Start Local PostgreSQL & Redis
 Launch the containerized development database and Redis instances:
@@ -139,7 +140,7 @@ pnpm db:generate
 # Push relational schema to PostgreSQL
 pnpm db:push
 
-# Seed default admin user (admin / emitmail)
+# Set a unique initial admin password in .env before seeding, then seed the administrator
 pnpm db:seed
 ```
 
@@ -163,7 +164,7 @@ pnpm dev:docs
 ### 8. Access the Applications
 | App | Local URL | Default Credentials / Notes |
 | :--- | :--- | :--- |
-| **Dashboard** | [http://localhost:3000](http://localhost:3000) | Username: `admin` \| Password: `emitmail` |
+| **Dashboard** | [http://localhost:3000](http://localhost:3000) | Username: `admin` \| Password: set `INITIAL_ADMIN_PASSWORD` in `.env` |
 | **Backend API** | [http://localhost:4000](http://localhost:4000) | Healthcheck: `http://localhost:4000/api/v1/health` |
 | **Inbound SMTP** | `localhost:2525` | Accepts incoming SMTP mail traffic |
 | **Documentation** | [http://localhost:3001](http://localhost:3001) | Complete interactive guide |
@@ -172,7 +173,7 @@ pnpm dev:docs
 
 ## Using the Official Resend SDK
 
-EmitMail is 100% compatible with the official `resend` NPM package:
+The official `resend` Node.js package can send requests to EmitMail when configured with a custom base URL. Review the SDK guide and confirm that the API features you need are supported:
 
 ```bash
 npm install resend
@@ -189,7 +190,7 @@ const { data, error } = await resend.emails.send({
   from: 'notifications@yourdomain.com',
   to: 'customer@example.com',
   subject: 'Welcome to EmitMail',
-  html: '<strong>Drop-in Resend compatibility working seamlessly!</strong>',
+  html: '<strong>Email queued by EmitMail.</strong>',
 });
 
 console.log('Dispatched Email ID:', data?.id);
@@ -212,7 +213,7 @@ curl -X POST "http://localhost:4000/emails" \
 
 ## Production Deployment with Docker Compose
 
-Deploy EmitMail to any Linux VPS (Ubuntu, Debian) with Docker Compose in under 2 minutes:
+Deploy EmitMail on a supported Linux VPS with Docker Compose:
 
 ```bash
 # Clone and enter repo
@@ -238,7 +239,7 @@ The production `docker-compose.yml` mounts:
 
 Full interactive documentation is included in `apps/docs`:
 - **Architecture & Introduction**: [http://localhost:3001/docs](http://localhost:3001/docs)
-- **10/10 Deliverability DNS Setup**: [http://localhost:3001/docs/dns-records](http://localhost:3001/docs/dns-records)
+- **Email DNS Setup**: [http://localhost:3001/docs/dns-records](http://localhost:3001/docs/dns-records)
 - **Reverse DNS (PTR) Guide**: [http://localhost:3001/docs/reverse-dns-ptr](http://localhost:3001/docs/reverse-dns-ptr)
 - **Inbound Mailbox Setup**: [http://localhost:3001/docs/inbox-mailbox-setup](http://localhost:3001/docs/inbox-mailbox-setup)
 - **Resend SDK Examples**: [http://localhost:3001/docs/resend-npm-sdk](http://localhost:3001/docs/resend-npm-sdk)

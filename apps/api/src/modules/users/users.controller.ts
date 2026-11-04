@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
+import { randomBytes } from 'node:crypto';
 import { UserRole } from '@prisma/client';
 import { prisma } from '../../config/db.js';
 import { sendSuccess, sendError } from '../../utils/response.js';
@@ -146,7 +147,7 @@ export const listUsers = async (_req: Request, res: Response): Promise<void> => 
 
 /**
  * POST /api/v1/users
- * Create a new team user with a designated role and default password 'emitmail'.
+ * Create a new team user with a one-time random initial password.
  * Restricted to administrators only.
  */
 export const createUser = async (req: Request, res: Response): Promise<void> => {
@@ -183,8 +184,8 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
   // Generate deterministic facehash avatar URL
   const avatarUrl = `/api/avatar?name=${encodeURIComponent(finalUsername)}`;
 
-  // Hash default password 'emitmail'
-  const passwordHash = await bcrypt.hash('emitmail', 12);
+  const initialPassword = randomBytes(24).toString('base64url');
+  const passwordHash = await bcrypt.hash(initialPassword, 12);
 
   const newUser = await prisma.user.create({
     data: {
@@ -211,12 +212,7 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
     },
   });
 
-  sendSuccess(
-    res,
-    newUser,
-    'User created successfully. Default password is set to "emitmail".',
-    201
-  );
+  sendSuccess(res, { ...newUser, initialPassword }, 'User created. Share the initial password securely; it is shown only once.', 201);
 };
 
 /**
@@ -281,7 +277,7 @@ export const updateUserRole = async (req: Request, res: Response): Promise<void>
 
 /**
  * POST /api/v1/users/:id/reset-password
- * Reset a user's password to the default 'emitmail'.
+ * Reset a user's password to a one-time random value.
  * Restricted to administrators only.
  */
 export const resetUserPassword = async (req: Request, res: Response): Promise<void> => {
@@ -296,7 +292,8 @@ export const resetUserPassword = async (req: Request, res: Response): Promise<vo
     return;
   }
 
-  const passwordHash = await bcrypt.hash('emitmail', 12);
+  const initialPassword = randomBytes(24).toString('base64url');
+  const passwordHash = await bcrypt.hash(initialPassword, 12);
 
   await prisma.user.update({
     where: { id },
@@ -308,8 +305,8 @@ export const resetUserPassword = async (req: Request, res: Response): Promise<vo
 
   sendSuccess(
     res,
-    { id: targetUser.id, username: targetUser.username },
-    'Password successfully reset to default "emitmail". First login password change will be enforced.'
+    { id: targetUser.id, username: targetUser.username, initialPassword },
+    'Password reset. Share the initial password securely; it is shown only once.'
   );
 };
 

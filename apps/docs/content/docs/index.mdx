@@ -1,6 +1,6 @@
 ---
 title: Welcome to EmitMail
-description: High-performance, sovereign email delivery platform and inbound mailbox engine built for engineering teams.
+description: Self-hosted email sending and inbound mailbox software for engineering teams.
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
@@ -8,7 +8,7 @@ import { Card, Cards } from 'fumadocs-ui/components/card';
 
 ## 1. What is EmitMail?
 
-**EmitMail** is a self-hosted, enterprise-grade Email Service Provider (ESP) and Inbound Mailbox Engine. Built with Node.js, TypeScript, PostgreSQL, Redis, and BullMQ, EmitMail gives engineering teams complete control over their email deliverability, cryptographic keys, inbound routing, and operational privacy—without artificial per-email rate limits or monthly SaaS invoices.
+**EmitMail** is self-hosted software for sending email and receiving messages into mailboxes you manage. It uses Node.js, TypeScript, PostgreSQL, Redis, and BullMQ. You operate the server, DNS, IP reputation, and mail delivery configuration.
 
 ```text
                ┌────────────────────────────────────────────────────────┐
@@ -17,21 +17,21 @@ import { Card, Cards } from 'fumadocs-ui/components/card';
                │       Outbound Engine      │       Inbound Engine      │
                ├────────────────────────────┼───────────────────────────┤
                │ • 2048-bit RSA DKIM Keys   │ • ESMTP Port 25 Receiver  │
-               │ • Return-Path Alignment    │ • Alias & Catch-all Mail  │
+               │ • SPF / Return-Path Setup │ • Alias & Catch-all Mail  │
                │ • BullMQ Worker Pipeline   │ • Real-time Webhooks      │
                │ • Resend SDK Drop-In       │ • In-Dashboard Reader/Sent│
                └────────────────────────────┴───────────────────────────┘
 ```
 
-<Callout type="info" title="100% Drop-In Resend SDK Compatibility">
-Migrate existing applications from Resend to EmitMail in under 60 seconds by changing only your `RESEND_BASE_URL` to point to your self-hosted instance. No code refactoring required.
+<Callout type="info" title="Resend SDK support">
+The official `resend` Node.js package can be configured to send requests to EmitMail. Check the SDK guide for the required base URL option and review the API features you use before migrating.
 </Callout>
 
 ---
 
 ## 2. Core Architecture & Processing Flow
 
-EmitMail decouples API intake from SMTP network dispatch using Redis-backed distributed queues. This guarantees that your web applications receive immediate `<50ms` HTTP responses while background workers handle DNS MX resolution, cryptographic DKIM signing, and TLS socket connections.
+EmitMail queues accepted API requests in Redis so background workers can perform DNS lookup, DKIM signing, and SMTP delivery. Queue acceptance does not mean the receiving mail server has accepted or delivered the message.
 
 ### Outbound Dispatch Pipeline
 
@@ -39,7 +39,7 @@ EmitMail decouples API intake from SMTP network dispatch using Redis-backed dist
 [ Client App / SDK ]
         │
         ▼ (POST /emails with Bearer em_live_...)
-[ EmitMail Express API ] ──(Fast Validation <20ms)──► Return { id: "em_..." }
+[ EmitMail Express API ] ──► Return a queued email ID
         │
         ▼ (Enqueue Job: email-delivery-queue)
 [ Redis 7 + BullMQ ]
@@ -51,7 +51,7 @@ EmitMail decouples API intake from SMTP network dispatch using Redis-backed dist
         ├─► [ Crypto Subsystem ] : Signs raw MIME payload with 2048-bit RSA DKIM private key
         ├─► [ DNS Resolver ] : Queries remote MX records for recipient domain
         ▼
-[ Direct MX Dispatch ] ──(TLS 1.3 / Port 25)──► [ Receiving MTA: Gmail, Outlook, Yahoo ]
+[ Direct MX Dispatch ] ──(SMTP / Port 25)──► [ Recipient's mail server ]
         │
         ▼ (Delivery or Bounce Event)
 [ Webhook Dispatcher ] ──► [ Your Backend Server ]
@@ -63,7 +63,7 @@ EmitMail decouples API intake from SMTP network dispatch using Redis-backed dist
 [ External Sender (e.g. Gmail) ]
         │
         ▼ (Port 25 TCP Connection)
-[ Host Firewall: iptables REDIRECT 25 -> 2525 ]
+[ Docker Compose host-port mapping: 25 -> container 2525 ]
         │
         ▼
 [ EmitMail Inbound SMTP Server (smtp-server) ]
@@ -86,14 +86,14 @@ EmitMail decouples API intake from SMTP network dispatch using Redis-backed dist
 ## 3. Key Features
 
 <Cards>
-  <Card title="100% Drop-In Resend SDK Compatibility" href="/docs/resend-npm-sdk">
-    Point the official `resend` NPM package to your EmitMail instance via a single base URL override. Works with Next.js, Node.js, and React Email.
+  <Card title="Resend Node.js SDK" href="/docs/resend-npm-sdk">
+    Configure the official Node.js SDK to use your EmitMail server. Review supported API behavior before migrating.
   </Card>
-  <Card title="10/10 Deliverability by Default" href="/docs/dns-records">
-    Automated 2048-bit RSA DKIM key generation, Return-Path (`bounces@send.<domain>`) SPF alignment, strict DMARC, and pre-flight PTR diagnostics.
+  <Card title="Email DNS setup" href="/docs/dns-records">
+    Review the DKIM, SPF, MX, and DMARC records required by your server configuration. DNS records do not guarantee inbox placement.
   </Card>
   <Card title="Inbound Mailbox Engine (/inbox)" href="/docs/inbox-mailbox-setup">
-    Receive emails on any verified domain. Create unlimited aliases (`support@`, `hello@`, or catch-all `*@`), read rich HTML, and send replies.
+    Configure mailbox aliases, receive messages, and reply from the dashboard.
   </Card>
   <Card title="Cryptographic Webhook Telemetry" href="/docs/api-keys-webhooks">
     Receive signed HMAC-SHA256 webhooks for `email.delivered`, `email.bounced`, `email.complaint`, and `inbound.email.received`.

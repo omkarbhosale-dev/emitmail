@@ -18,21 +18,6 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     },
   });
 
-  // If no user exists yet and logging in as default admin, initialize default administrator
-  if (!user && username === 'admin') {
-    const passwordHash = await bcrypt.hash('emitmail', 12);
-    user = await prisma.user.create({
-      data: {
-        username: 'admin',
-        fullName: 'EmitMail Administrator',
-        role: 'ADMIN',
-        passwordHash,
-        mustChangePassword: true,
-        timezone: 'UTC',
-      },
-    });
-  }
-
   if (!user) {
     sendError(res, 'Invalid credentials provided', 401);
     return;

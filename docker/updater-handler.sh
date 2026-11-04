@@ -40,7 +40,7 @@ fi
 
 # Route dispatch
 if [ "$METHOD" = "POST" ] && [ "$REQUEST_URI" = "/trigger-update" ]; then
-  EXPECTED_SECRET="${UPDATER_SECRET:-changeme}"
+  EXPECTED_SECRET="${UPDATER_SECRET:-}"
   if [ -n "$EXPECTED_SECRET" ] && [ "$AUTH_HEADER" = "$EXPECTED_SECRET" ]; then
     echo -e "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n{\"status\":\"updating\",\"message\":\"Update started in background\",\"targetVersion\":\"${TARGET_VERSION}\"}"
     
