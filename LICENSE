@@ -199,10 +199,3 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
-
---------------------------------------------------------------------------------
-Client Libraries and SDKs Exception:
-
-Client SDKs, libraries, and integration adapters located in the `packages/` directory
-are licensed under the permissive MIT License (see LICENSE-MIT) to allow seamless,
-frictionless integration into third-party commercial and open-source applications.
