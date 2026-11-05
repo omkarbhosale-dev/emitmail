@@ -28,4 +28,4 @@ RUN pnpm build
 EXPOSE 4000 2525
 
 # Push DB schema on container boot if needed, then launch API server
-CMD ["sh", "-c", "npx prisma db push --schema=./prisma/schema.prisma --skip-generate && pnpm exec tsx prisma/seed.ts && node dist/index.js"]
+CMD ["sh", "-c", "npx prisma db push --schema=./prisma/schema.prisma --skip-generate && node dist/prisma/seed.js && node dist/index.js"]
