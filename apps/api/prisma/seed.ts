@@ -53,6 +53,7 @@ export async function ensureServerConfigExists(): Promise<void> {
     where: { id: 'master' },
   });
 
+  if (!existingConfig) {
     const isPlaceholder = (h?: string | null) =>
       !h || h === 'mail.yourdomain.com' || h === 'mail.example.com' || h === 'localhost';
     const mailServerHostname =
