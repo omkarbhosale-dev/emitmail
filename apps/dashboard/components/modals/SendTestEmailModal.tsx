@@ -48,12 +48,12 @@ export function SendTestEmailModal({ isOpen, onClose }: SendTestEmailModalProps)
           const verified = items.find((d) => d.status === "VERIFIED");
           setFromDomain(verified ? verified.domainName : items[0].domainName);
         } else {
-          setFromDomain("omkarbhosale.dev");
+          setFromDomain("");
         }
       })
       .catch((err) => {
         console.error("Failed to load domains in SendTestEmailModal:", err);
-        setFromDomain("omkarbhosale.dev");
+        setFromDomain("");
       });
   }, [isOpen]);
 
@@ -64,6 +64,15 @@ export function SendTestEmailModal({ isOpen, onClose }: SendTestEmailModalProps)
       toast({
         title: "Action Not Permitted",
         description: "View-only members are not permitted to dispatch emails.",
+        type: "error",
+      });
+      return;
+    }
+
+    if (!fromDomain) {
+      toast({
+        title: "No Sending Domain",
+        description: "Please configure and verify a sending domain before dispatching test emails.",
         type: "error",
       });
       return;
@@ -206,7 +215,7 @@ export function SendTestEmailModal({ isOpen, onClose }: SendTestEmailModalProps)
                       </option>
                     ))}
                     {domains.length === 0 && (
-                      <option value="omkarbhosale.dev">omkarbhosale.dev (Default)</option>
+                      <option value="" disabled>No domains configured (Add a domain first)</option>
                     )}
                   </select>
                 </div>

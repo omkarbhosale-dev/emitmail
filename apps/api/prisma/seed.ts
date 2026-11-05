@@ -55,7 +55,14 @@ export async function ensureServerConfigExists(): Promise<void> {
 
   if (!existingConfig) {
     const isPlaceholder = (h?: string | null) =>
-      !h || h === 'mail.yourdomain.com' || h === 'mail.example.com' || h === 'localhost';
+      !h ||
+      h === 'mail.yourdomain.com' ||
+      h === 'mail.example.com' ||
+      h === 'mail.omkarbhosale.dev' ||
+      h.includes('yourdomain.com') ||
+      h.includes('example.com') ||
+      h.includes('omkarbhosale.dev') ||
+      h === 'localhost';
     const mailServerHostname =
       (process.env.SMTP_EHLO_HOSTNAME && !isPlaceholder(process.env.SMTP_EHLO_HOSTNAME))
         ? process.env.SMTP_EHLO_HOSTNAME
@@ -80,11 +87,19 @@ export async function ensureServerConfigExists(): Promise<void> {
   } else if (
     (existingConfig.mailServerHostname === 'mail.yourdomain.com' ||
       existingConfig.mailServerHostname === 'mail.example.com' ||
+      existingConfig.mailServerHostname === 'mail.omkarbhosale.dev' ||
       existingConfig.mailServerHostname === 'localhost') &&
     process.env.SMTP_EHLO_HOSTNAME
   ) {
     const isPlaceholder = (h?: string | null) =>
-      !h || h === 'mail.yourdomain.com' || h === 'mail.example.com' || h === 'localhost';
+      !h ||
+      h === 'mail.yourdomain.com' ||
+      h === 'mail.example.com' ||
+      h === 'mail.omkarbhosale.dev' ||
+      h.includes('yourdomain.com') ||
+      h.includes('example.com') ||
+      h.includes('omkarbhosale.dev') ||
+      h === 'localhost';
     const activeHost =
       (process.env.SMTP_EHLO_HOSTNAME && !isPlaceholder(process.env.SMTP_EHLO_HOSTNAME))
         ? process.env.SMTP_EHLO_HOSTNAME

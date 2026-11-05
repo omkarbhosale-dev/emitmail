@@ -68,9 +68,27 @@ export function Sidebar({
   const pathname = usePathname();
   const { versionData, isUpdateAvailable, setIsUpgradeModalOpen } = useSystemVersion();
   const [unreadCount, setUnreadCount] = React.useState<number>(0);
+  const [activeDomainName, setActiveDomainName] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     let isMounted = true;
+
+    const fetchDomains = async () => {
+      try {
+        const { api } = await import("@/lib/api");
+        const domains = await api.domains.list();
+        if (isMounted && Array.isArray(domains) && domains.length > 0) {
+          const verified = domains.find((d) => d.status === "VERIFIED");
+          setActiveDomainName(verified ? verified.domainName : domains[0].domainName);
+        } else if (isMounted) {
+          setActiveDomainName(null);
+        }
+      } catch {
+        if (isMounted) setActiveDomainName(null);
+      }
+    };
+
+    fetchDomains();
 
     const fetchUnread = async () => {
       try {
@@ -226,14 +244,14 @@ export function Sidebar({
               href="/domains"
               onClick={() => handleItemClick("domains")}
               className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg bg-kumo-control hover:bg-kumo-elevated border border-kumo-line text-xs font-medium text-kumo-strong transition-colors"
-              title="Active domain: omkarbhosale.dev"
+              title={activeDomainName ? `Active domain: ${activeDomainName}` : "Add domain"}
             >
               <div className="flex items-center gap-2 min-w-0">
                 <span className="w-5 h-5 rounded-md bg-cf-orange/15 text-cf-orange font-bold text-[11px] flex items-center justify-center shrink-0">
-                  O
+                  {activeDomainName ? activeDomainName.charAt(0).toUpperCase() : "+"}
                 </span>
                 <span className="truncate font-semibold text-kumo-strong">
-                  omkarbhosale.dev
+                  {activeDomainName || "Add Domain"}
                 </span>
               </div>
               <CaretUpDown size={14} className="text-kumo-subtle shrink-0" />
@@ -281,11 +299,11 @@ export function Sidebar({
             <Link
               href="/domains"
               onClick={() => onSelectTab?.("domains")}
-              title="Domain: omkarbhosale.dev"
+              title={activeDomainName ? `Domain: ${activeDomainName}` : "Add domain"}
               className="w-full h-9 flex items-center justify-center rounded-lg bg-kumo-control hover:bg-kumo-elevated border border-kumo-line text-xs font-bold text-cf-orange transition-colors"
             >
               <span className="w-6 h-6 rounded-md bg-cf-orange/15 flex items-center justify-center">
-                O
+                {activeDomainName ? activeDomainName.charAt(0).toUpperCase() : "+"}
               </span>
             </Link>
           ) : (
@@ -293,14 +311,14 @@ export function Sidebar({
               href="/domains"
               onClick={() => onSelectTab?.("domains")}
               className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-kumo-control hover:bg-kumo-elevated border border-kumo-line text-xs font-medium text-kumo-strong transition-colors group cursor-pointer"
-              title="Active domain: omkarbhosale.dev"
+              title={activeDomainName ? `Active domain: ${activeDomainName}` : "No domains configured"}
             >
               <div className="flex items-center gap-2 min-w-0">
                 <span className="w-5 h-5 rounded-md bg-cf-orange/15 text-cf-orange font-bold text-[11px] flex items-center justify-center shrink-0">
-                  O
+                  {activeDomainName ? activeDomainName.charAt(0).toUpperCase() : "+"}
                 </span>
                 <span className="truncate font-semibold text-kumo-strong">
-                  omkarbhosale.dev
+                  {activeDomainName || "Add Domain"}
                 </span>
               </div>
               <CaretUpDown size={14} className="text-kumo-subtle shrink-0 group-hover:text-kumo-strong" />

@@ -71,8 +71,8 @@ export function SettingsView() {
     services: { database: string; redis: string; worker?: string };
   } | null>(null);
   const [isLoadingHealth, setIsLoadingHealth] = useState(false);
-  const [serverHostname, setServerHostname] = useState<string>("mail.omkarbhosale.dev");
-  const [serverIp, setServerIp] = useState<string>("157.245.108.179");
+  const [serverHostname, setServerHostname] = useState<string>("mail.yourdomain.com");
+  const [serverIp, setServerIp] = useState<string>("0.0.0.0");
 
   // Copied state for API endpoints
   const [copiedKey, setCopiedKey] = useState<string | null>(null);

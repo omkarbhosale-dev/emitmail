@@ -18,24 +18,6 @@ import { useAuth } from "@/context/AuthContext";
 import { ViewOnlyBanner } from "@/components/ui/ViewOnlyBanner";
 import { api } from "@/lib/api";
 
-const INITIAL_FALLBACK_DOMAINS: InboundDomainItem[] = [
-  {
-    id: "dom_omkar",
-    domainName: "omkarbhosale.dev",
-    inboundEnabled: true,
-    inboundMxVerified: false,
-    createdAt: "2026-10-28T10:00:00.000Z",
-    requiredMxRecord: {
-      type: "MX",
-      host: "@",
-      value: "mail.omkarbhosale.dev",
-      priority: 10,
-      ttl: "Auto",
-      status: "PENDING",
-    },
-  },
-];
-
 export function AddMailboxView() {
   const router = useRouter();
   const { toast } = useToast();

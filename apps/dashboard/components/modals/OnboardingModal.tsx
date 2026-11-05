@@ -63,7 +63,13 @@ export function OnboardingModal({ isOpen, onClose, onCompleted }: OnboardingModa
             if (res.config.vpsPublicIpv4 && res.config.vpsPublicIpv4 !== "0.0.0.0") {
               setVpsIp(res.config.vpsPublicIpv4);
             }
-            if (res.config.mailServerHostname && !res.config.mailServerHostname.includes("yourdomain.com") && !res.config.mailServerHostname.includes("example.com")) {
+            if (
+              res.config.mailServerHostname &&
+              !res.config.mailServerHostname.includes("yourdomain.com") &&
+              !res.config.mailServerHostname.includes("example.com") &&
+              !res.config.mailServerHostname.includes("omkarbhosale.dev") &&
+              res.config.mailServerHostname !== "localhost"
+            ) {
               setMailHostname(res.config.mailServerHostname);
             }
           }

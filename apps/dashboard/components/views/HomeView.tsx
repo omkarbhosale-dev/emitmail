@@ -14,6 +14,7 @@ import {
   Tray,
   CalendarBlank,
   ArrowSquareOut,
+  Clock,
 } from "@phosphor-icons/react";
 import { useSystemVersion } from "@/context/VersionContext";
 import { NavTab, ApiDomain } from "@/types";
@@ -559,60 +560,10 @@ export function HomeView({
     }
   };
 
-  // Fallback domains if database empty
-  const displayDomains = domains.length > 0
-    ? domains.slice(0, 3)
-    : [
-        { id: "1", domainName: "omkarbhosale.dev", status: "VERIFIED" },
-        { id: "2", domainName: "emitmail.dev", status: "VERIFIED" },
-        { id: "3", domainName: "preview.mailflow.io", status: "PENDING" },
-      ];
+  // Real domains list (empty when starting fresh, no mock fallback)
+  const displayDomains = domains.slice(0, 3);
 
-  // Fallback recents if no activity exists yet
-  const fallbackRecents: RecentActivityItem[] = [
-    {
-      id: "fb_1",
-      type: "inbox",
-      title: "support@omkarbhosale.dev",
-      subtitle: "Inbox / Mailbox Ready",
-      timestamp: "Just now",
-      createdAt: "2026-10-29T12:00:00.000Z",
-      tab: "inbox",
-      href: "/inbox",
-    },
-    {
-      id: "fb_2",
-      type: "domain",
-      title: "omkarbhosale.dev",
-      subtitle: "Domains / Verified DKIM",
-      timestamp: "1h ago",
-      createdAt: "2026-10-29T11:00:00.000Z",
-      tab: "domains",
-      href: "/domains",
-    },
-    {
-      id: "fb_3",
-      type: "email",
-      title: "Outbound Dispatch Feed",
-      subtitle: "Emails / BullMQ Active",
-      timestamp: "2h ago",
-      createdAt: "2026-10-29T10:00:00.000Z",
-      tab: "emails",
-      href: "/emails",
-    },
-    {
-      id: "fb_4",
-      type: "api-key",
-      title: "Production Secret Key",
-      subtitle: "API Keys / Active Token",
-      timestamp: "1d ago",
-      createdAt: "2026-10-28T12:00:00.000Z",
-      tab: "api-keys",
-      href: "/api-keys",
-    },
-  ];
-
-  const activeRecents = recentItems.length > 0 ? recentItems : fallbackRecents;
+  const activeRecents = recentItems;
 
   // Real SVG Timeseries Data Points for 1 Month (30-day timeline)
   const defaultDispatches = [
@@ -711,8 +662,8 @@ export function HomeView({
           </div>
         </div>
 
-        {/* Onboarding Callout Banner if domain / VPS not yet configured */}
-        {!isServerConfigured && (
+        {/* Onboarding Callout Banner if domain / VPS not yet configured or no domains exist */}
+        {(!isServerConfigured || (!isLoadingDomains && domains.length === 0)) && (
           <div className="max-w-4xl mx-auto w-full mt-5 rounded-xl border border-cf-orange/40 bg-cf-orange-tint p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-left shadow-2xs">
             <div className="flex items-start gap-3.5">
               <div className="p-2.5 rounded-lg bg-cf-orange/15 text-cf-orange shrink-0 mt-0.5">
@@ -759,6 +710,16 @@ export function HomeView({
                   <Skeleton className="h-8 w-full rounded-lg" />
                   <Skeleton className="h-8 w-full rounded-lg" />
                 </div>
+              ) : displayDomains.length === 0 ? (
+                <div className="py-5 text-center space-y-2">
+                  <div className="w-8 h-8 mx-auto rounded-full bg-cf-orange/10 text-cf-orange flex items-center justify-center">
+                    <Globe size={18} />
+                  </div>
+                  <div className="text-xs font-semibold text-kumo-strong">No domains configured</div>
+                  <p className="text-[11px] text-kumo-subtle max-w-[200px] mx-auto leading-relaxed">
+                    Add and verify your domain to generate 2048-bit DKIM keys and start delivering.
+                  </p>
+                </div>
               ) : (
                 <ul className="space-y-1.5">
                   {displayDomains.map((dom) => (
@@ -781,12 +742,22 @@ export function HomeView({
               )}
             </div>
             {!isViewer && (
-              <Link
-                href="/domains/add"
-                className="mt-3 w-full py-1.5 rounded-lg bg-kumo-elevated hover:bg-kumo-interact border border-kumo-hairline text-center text-xs font-medium text-kumo-default transition-colors block"
-              >
-                + Add Domain
-              </Link>
+              displayDomains.length === 0 ? (
+                <button
+                  type="button"
+                  onClick={() => window.dispatchEvent(new CustomEvent("open-onboarding-modal"))}
+                  className="mt-3 w-full py-1.5 rounded-lg bg-cf-orange hover:bg-cf-orange-hover text-white text-center text-xs font-semibold transition-colors flex items-center justify-center gap-1 cursor-pointer shadow-2xs"
+                >
+                  + Setup Domain
+                </button>
+              ) : (
+                <Link
+                  href="/domains/add"
+                  className="mt-3 w-full py-1.5 rounded-lg bg-kumo-elevated hover:bg-kumo-interact border border-kumo-hairline text-center text-xs font-medium text-kumo-default transition-colors block"
+                >
+                  + Add Domain
+                </Link>
+              )
             )}
           </div>
 
@@ -875,6 +846,16 @@ export function HomeView({
                   <Skeleton className="h-8 w-full rounded-lg" />
                   <Skeleton className="h-8 w-full rounded-lg" />
                   <Skeleton className="h-8 w-full rounded-lg" />
+                </div>
+              ) : activeRecents.length === 0 ? (
+                <div className="py-5 text-center space-y-2">
+                  <div className="w-8 h-8 mx-auto rounded-full bg-kumo-control text-kumo-muted flex items-center justify-center">
+                    <Clock size={18} />
+                  </div>
+                  <div className="text-xs font-semibold text-kumo-strong">No recent activity</div>
+                  <p className="text-[11px] text-kumo-subtle max-w-[200px] mx-auto leading-relaxed">
+                    Dispatched emails, inbound messages, and API key events will appear here in real time.
+                  </p>
                 </div>
               ) : (
                 <div className="divide-y divide-kumo-hairline text-xs">
@@ -976,16 +957,22 @@ export function HomeView({
               <>
                 <div className="mt-2 flex items-baseline gap-2">
                   <span className="text-2xl font-bold tracking-tight text-kumo-strong font-mono">
-                    {emailStats ? emailStats.deliveryRate : "100%"}
+                    {emailStats && emailStats.total > 0 ? emailStats.deliveryRate : "0%"}
                   </span>
-                  <span className="text-xs font-semibold text-cf-success flex items-center">
-                    250 OK
-                  </span>
+                  {emailStats && emailStats.total > 0 ? (
+                    <span className="text-xs font-semibold text-cf-success flex items-center">
+                      250 OK
+                    </span>
+                  ) : (
+                    <span className="text-xs font-medium text-kumo-muted flex items-center">
+                      0 Delivered
+                    </span>
+                  )}
                 </div>
                 <span className="text-[11px] text-kumo-subtle block mt-1">
                   {emailStats && emailStats.total > 0
                     ? `${emailStats.delivered} of ${emailStats.total} delivered`
-                    : "Inbox placement rate"}
+                    : "No dispatches yet"}
                 </span>
               </>
             )}
@@ -1006,10 +993,10 @@ export function HomeView({
               <>
                 <div className="mt-2 flex items-baseline gap-2">
                   <span className="text-2xl font-bold tracking-tight text-kumo-strong font-mono">
-                    {emailStats ? emailStats.bounceRate : "0%"}
+                    {emailStats && emailStats.total > 0 ? emailStats.bounceRate : "0%"}
                   </span>
-                  <span className="text-xs font-semibold text-cf-success flex items-center">
-                    {emailStats && emailStats.bounced > 0 ? "Filtered" : "0 Bounces"}
+                  <span className="text-xs font-medium text-kumo-muted flex items-center">
+                    {emailStats && emailStats.bounced > 0 ? `${emailStats.bounced} Bounces` : "0 Bounces"}
                   </span>
                 </div>
                 <span className="text-[11px] text-kumo-subtle block mt-1">
