@@ -8,7 +8,6 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { CommandPalette } from "@/components/layout/CommandPalette";
 import { SendTestEmailModal } from "@/components/modals/SendTestEmailModal";
 import { UpgradeModal } from "@/components/modals/UpgradeModal";
-import { OnboardingModal } from "@/components/modals/OnboardingModal";
 import { ToastProvider } from "@/components/ui/Toast";
 import { VersionProvider, useSystemVersion } from "@/context/VersionContext";
 import { AuthProvider } from "@/context/AuthContext";
@@ -38,14 +37,13 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isSendTestEmailOpen, setIsSendTestEmailOpen] = useState(false);
-  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const { isUpgradeModalOpen, setIsUpgradeModalOpen } = useSystemVersion();
 
   useEffect(() => {
     const handleOpenPalette = () => setIsCommandPaletteOpen(true);
     const handleOpenSendModal = () => setIsSendTestEmailOpen(true);
     const handleOpenUpgradeModal = () => setIsUpgradeModalOpen(true);
-    const handleOpenOnboarding = () => setIsOnboardingOpen(true);
+    const handleOpenOnboarding = () => router.push("/onboarding");
 
     window.addEventListener("open-command-palette", handleOpenPalette);
     window.addEventListener("open-send-email-modal", handleOpenSendModal);
@@ -58,7 +56,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
       window.removeEventListener("open-upgrade-modal", handleOpenUpgradeModal);
       window.removeEventListener("open-onboarding-modal", handleOpenOnboarding);
     };
-  }, [setIsUpgradeModalOpen]);
+  }, [setIsUpgradeModalOpen, router]);
 
   // Check auth state on client and verify token against backend
   useEffect(() => {
@@ -72,23 +70,30 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
 
     // Actively verify token validity against backend API
     api.auth.getMe().then((user) => {
-      if (user.mustChangePassword && pathname !== "/settings") {
+      if (user.mustChangePassword && !pathname.startsWith("/settings")) {
         router.replace("/settings");
         return;
       }
-      // If authenticated and onboarding not completed/dismissed in this session, check serverConfig and domains
-      if (typeof window !== "undefined" && !sessionStorage.getItem("dismissed_onboarding")) {
-        Promise.all([
-          api.serverConfig.get().catch(() => null),
-          api.domains.list().catch(() => []),
-        ]).then(([configRes, domainsList]) => {
-          const isConfigured = Boolean(configRes?.config?.isConfigured);
-          const hasDomains = Array.isArray(domainsList) && domainsList.length > 0;
-          if (!isConfigured || !hasDomains) {
-            setIsOnboardingOpen(true);
+
+      // Check whether domain and server config are set up
+      Promise.all([
+        api.serverConfig.get().catch(() => null),
+        api.domains.list().catch(() => []),
+      ]).then(([configRes, domainsList]) => {
+        const isConfigured = Boolean(configRes?.config?.isConfigured);
+        const hasDomains = Array.isArray(domainsList) && domainsList.length > 0;
+        const isSetupComplete = isConfigured && hasDomains;
+
+        if (!isSetupComplete) {
+          // If setup is not complete, redirect to /onboarding for all routes except /settings and /login
+          if (pathname !== "/onboarding" && !pathname.startsWith("/settings") && pathname !== "/login") {
+            router.replace("/onboarding");
           }
-        }).catch(() => {});
-      }
+        } else if (pathname === "/onboarding") {
+          // If setup is complete and user visits /onboarding, redirect to overview
+          router.replace("/");
+        }
+      }).catch(() => {});
     }).catch((err: unknown) => {
       console.warn("Active session invalid or expired:", err);
       clearAuthToken();
@@ -96,8 +101,8 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
     });
   }, [pathname, router]);
 
-  // If on login route, render standalone login view without AppShell headers/sidebars
-  if (pathname === "/login") {
+  // If on login or onboarding route, render standalone view without AppShell headers/sidebars
+  if (pathname === "/login" || pathname === "/onboarding") {
     return <>{children}</>;
   }
 
@@ -156,22 +161,6 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         <UpgradeModal
           isOpen={isUpgradeModalOpen}
           onClose={() => setIsUpgradeModalOpen(false)}
-        />
-
-        <OnboardingModal
-          isOpen={isOnboardingOpen}
-          onClose={() => {
-            setIsOnboardingOpen(false);
-            if (typeof window !== "undefined") {
-              sessionStorage.setItem("dismissed_onboarding", "true");
-            }
-          }}
-          onCompleted={() => {
-            setIsOnboardingOpen(false);
-            if (typeof window !== "undefined") {
-              sessionStorage.setItem("dismissed_onboarding", "true");
-            }
-          }}
         />
       </div>
     </ModalContext.Provider>

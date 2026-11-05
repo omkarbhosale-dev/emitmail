@@ -678,13 +678,13 @@ export function HomeView({
                 </p>
               </div>
             </div>
-            <button
-              onClick={() => window.dispatchEvent(new CustomEvent("open-onboarding-modal"))}
+            <Link
+              href="/onboarding"
               className="shrink-0 px-4 py-2 rounded-lg bg-cf-orange hover:bg-cf-orange-hover text-white text-xs font-semibold shadow-xs transition-colors flex items-center gap-2 cursor-pointer"
             >
               <span>Launch Setup Wizard</span>
               <CaretRight size={14} weight="bold" />
-            </button>
+            </Link>
           </div>
         )}
 
@@ -743,13 +743,12 @@ export function HomeView({
             </div>
             {!isViewer && (
               displayDomains.length === 0 ? (
-                <button
-                  type="button"
-                  onClick={() => window.dispatchEvent(new CustomEvent("open-onboarding-modal"))}
+                <Link
+                  href="/onboarding"
                   className="mt-3 w-full py-1.5 rounded-lg bg-cf-orange hover:bg-cf-orange-hover text-white text-center text-xs font-semibold transition-colors flex items-center justify-center gap-1 cursor-pointer shadow-2xs"
                 >
                   + Setup Domain
-                </button>
+                </Link>
               ) : (
                 <Link
                   href="/domains/add"

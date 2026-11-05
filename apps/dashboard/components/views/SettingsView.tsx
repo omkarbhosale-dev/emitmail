@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import {
   ShieldCheck,
   ShieldWarning,
@@ -716,14 +717,13 @@ export function SettingsView() {
               </div>
 
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => window.dispatchEvent(new CustomEvent("open-onboarding-modal"))}
+                <Link
+                  href="/onboarding"
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-cf-orange hover:bg-cf-orange-tint border border-cf-orange/40 transition-colors cursor-pointer"
                 >
                   <Globe size={14} weight="bold" />
                   <span>Setup Wizard</span>
-                </button>
+                </Link>
 
                 <button
                   type="button"
