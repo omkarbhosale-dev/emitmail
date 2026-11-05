@@ -1,7 +1,9 @@
 @import "tailwindcss";
 
 @theme {
-  --font-bricolage: var(--font-bricolage);
+  /* Use installed system fonts so production builds never depend on Google Fonts. */
+  --font-bricolage: "Arial", "Helvetica Neue", sans-serif;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   
   /* Surfaces & Backgrounds */
   --color-kumo-canvas: var(--kumo-canvas);
