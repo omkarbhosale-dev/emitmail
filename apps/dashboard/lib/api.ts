@@ -720,7 +720,7 @@ export const api = {
           return s === "QUEUED" || s === "SENDING";
         }).length;
 
-        const deliveryRate = total > 0 ? `${((delivered / total) * 100).toFixed(1)}%` : "100%";
+        const deliveryRate = total > 0 ? `${((delivered / total) * 100).toFixed(1)}%` : "0%";
         const bounceRate = total > 0 ? `${((bounced / total) * 100).toFixed(1)}%` : "0%";
 
         const inboundMessages = inboxRes.status === "fulfilled" && inboxRes.value?.messages ? inboxRes.value.messages : [];
@@ -902,7 +902,7 @@ export const api = {
         const failed = filteredEmails.filter((e) => (e.status || "").toUpperCase() === "FAILED").length;
         const suppressed = filteredEmails.filter((e) => (e.status || "").toUpperCase() === "SUPPRESSED").length;
 
-        const deliveryRate = totalSent > 0 ? `${((delivered / totalSent) * 100).toFixed(1)}%` : "100.0%";
+        const deliveryRate = totalSent > 0 ? `${((delivered / totalSent) * 100).toFixed(1)}%` : "0.0%";
         const bounceRate = totalSent > 0 ? `${((bounced / totalSent) * 100).toFixed(1)}%` : "0.0%";
 
         const totalInbound = filteredInbound.length;

@@ -355,7 +355,7 @@ export function CreateApiKeyView() {
 const resend = new Resend('${createdKey.apiKey}');
 
 await resend.emails.send({
-  from: 'notifications@${createdKey.domain?.domainName || "omkarbhosale.dev"}',
+  from: 'notifications@${createdKey.domain?.domainName || "yourdomain.com"}',
   to: 'user@example.com',
   subject: 'Hello from EmitMail',
   html: '<p>Dispatched via EmitMail self-hosted engine.</p>'

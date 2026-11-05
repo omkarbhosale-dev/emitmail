@@ -31,95 +31,6 @@ interface MailboxEmailsViewProps {
 }
 
 const STATIC_5MIN_AGO = "2026-10-28T09:55:00.000Z";
-const STATIC_25MIN_AGO = "2026-10-28T09:35:00.000Z";
-const STATIC_1HR_AGO = "2026-10-28T09:00:00.000Z";
-
-const FALLBACK_EMAILS: InboundEmailItem[] = [
-  {
-    id: "inb_01j7b92x",
-    mailboxId: "mbx_support",
-    domainId: "dom_omkar",
-    threadId: "thr_01j7b92x",
-    messageId: "<pat-notice@github.com>",
-    fromAddress: "support@github.com",
-    fromName: "GitHub Security",
-    toAddresses: ["support@omkarbhosale.dev"],
-    subject: "[GitHub] A personal access token has been granted read permissions",
-    snippet: "Hey omkarbhosale, a new fine-grained personal access token was created with repository permissions...",
-    textBody: "Hey omkarbhosale, a new fine-grained personal access token was created with repository permissions.",
-    receivedAt: STATIC_5MIN_AGO,
-    createdAt: STATIC_5MIN_AGO,
-    updatedAt: STATIC_5MIN_AGO,
-    direction: "INBOUND",
-    isRead: false,
-    isStarred: true,
-    isArchived: false,
-    isTrash: false,
-    spamScore: 0.1,
-    dkimPass: true,
-    spfPass: true,
-    attachments: [
-      {
-        filename: "token-manifest.json",
-        contentType: "application/json",
-        sizeBytes: 1024,
-      },
-    ],
-    sizeBytes: 4096,
-  },
-  {
-    id: "inb_02k8c01y",
-    mailboxId: "mbx_support",
-    domainId: "dom_omkar",
-    threadId: "thr_02k8c01y",
-    messageId: "<dns-verify@cloudflare.com>",
-    fromAddress: "noreply@cloudflare.com",
-    fromName: "Cloudflare Edge",
-    toAddresses: ["support@omkarbhosale.dev"],
-    subject: "DNS record propagation confirmed for omkarbhosale.dev",
-    snippet: "Your DNS TXT and MX verification records for selector 'esp._domainkey' have been successfully propagated globally...",
-    textBody: "Cloudflare Edge DNS Notification: All authoritative nameservers are now answering with 2048-bit RSA public key.",
-    receivedAt: STATIC_25MIN_AGO,
-    createdAt: STATIC_25MIN_AGO,
-    updatedAt: STATIC_25MIN_AGO,
-    direction: "INBOUND",
-    isRead: false,
-    isStarred: false,
-    isArchived: false,
-    isTrash: false,
-    spamScore: 0.0,
-    dkimPass: true,
-    spfPass: true,
-    attachments: [],
-    sizeBytes: 3200,
-  },
-  {
-    id: "inb_03m9d44z",
-    mailboxId: "mbx_billing",
-    domainId: "dom_omkar",
-    threadId: "thr_03m9d44z",
-    messageId: "<delay-notice@google.com>",
-    fromAddress: "mailer-daemon@google.com",
-    fromName: "Google Mailer Daemon",
-    toAddresses: ["billing@omkarbhosale.dev"],
-    subject: "Delivery Status Notification (Delay): Host busy",
-    snippet: "This is an informational notice regarding delivery to external destination. The server has queued retry attempt #2...",
-    textBody: "Technical report: Reporting-MTA: dns; mail.omkarbhosale.dev. Action: delayed. Status: 4.4.1 Connection timed out.",
-    receivedAt: STATIC_1HR_AGO,
-    createdAt: STATIC_1HR_AGO,
-    updatedAt: STATIC_1HR_AGO,
-    direction: "INBOUND",
-    isRead: true,
-    isStarred: false,
-    isArchived: false,
-    isTrash: false,
-    spamScore: 0.2,
-    dkimPass: true,
-    spfPass: true,
-    attachments: [],
-    sizeBytes: 2150,
-  },
-];
 
 export function MailboxEmailsView({ mailboxId }: MailboxEmailsViewProps) {
   const router = useRouter();
@@ -552,10 +463,10 @@ export function MailboxEmailsView({ mailboxId }: MailboxEmailsViewProps) {
               <div>
                 <span className="text-[10px] text-kumo-subtle font-sans block">Target Value</span>
                 <div className="flex items-center gap-1">
-                  <span className="truncate">{domain.requiredMxRecord?.value || domain.mxHost || "mail.omkarbhosale.dev"}</span>
+                  <span className="truncate">{domain.requiredMxRecord?.value || domain.mxHost || (domain.domainName ? `mail.${domain.domainName}` : "mail.yourdomain.com")}</span>
                   <button
                     type="button"
-                    onClick={() => handleCopy(domain.requiredMxRecord?.value || domain.mxHost || "mail.omkarbhosale.dev", "val")}
+                    onClick={() => handleCopy(domain.requiredMxRecord?.value || domain.mxHost || (domain.domainName ? `mail.${domain.domainName}` : "mail.yourdomain.com"), "val")}
                     className="p-0.5 text-kumo-subtle hover:text-kumo-strong"
                     title="Copy value"
                   >

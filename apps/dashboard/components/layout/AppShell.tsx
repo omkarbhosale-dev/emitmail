@@ -76,10 +76,15 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         router.replace("/settings");
         return;
       }
-      // If authenticated and onboarding not completed/dismissed in this session, check serverConfig
+      // If authenticated and onboarding not completed/dismissed in this session, check serverConfig and domains
       if (typeof window !== "undefined" && !sessionStorage.getItem("dismissed_onboarding")) {
-        api.serverConfig.get().then((res) => {
-          if (res?.config && !res.config.isConfigured) {
+        Promise.all([
+          api.serverConfig.get().catch(() => null),
+          api.domains.list().catch(() => []),
+        ]).then(([configRes, domainsList]) => {
+          const isConfigured = Boolean(configRes?.config?.isConfigured);
+          const hasDomains = Array.isArray(domainsList) && domainsList.length > 0;
+          if (!isConfigured || !hasDomains) {
             setIsOnboardingOpen(true);
           }
         }).catch(() => {});

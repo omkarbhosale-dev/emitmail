@@ -541,8 +541,10 @@ export function AnalyticsView() {
             {isLoading ? (
               <Skeleton className="h-7 w-16" />
             ) : (
-              <div className="text-2xl font-bold font-mono text-cf-success tracking-tight">
-                {stats?.deliveryRate ?? "100.0%"}
+              <div className={`text-2xl font-bold font-mono tracking-tight ${
+                stats && stats.totalSent > 0 ? "text-cf-success" : "text-kumo-strong"
+              }`}>
+                {stats && stats.totalSent > 0 ? stats.deliveryRate : "0.0%"}
               </div>
             )}
             <div className="text-[11px] text-kumo-muted font-mono mt-0.5">
