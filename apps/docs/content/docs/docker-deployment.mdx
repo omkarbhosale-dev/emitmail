@@ -63,7 +63,6 @@ If you prefer to configure and launch each component manually:
     ENCRYPTION_KEY=replace_with_output_of_openssl_rand_hex_32
     # Internal secret for dashboard 1-click update trigger
     UPDATER_SECRET=replace_with_output_of_openssl_rand_hex_32
-    INITIAL_ADMIN_PASSWORD=choose_a_unique_value_of_at_least_16_characters
     CORS_ORIGINS=https://emitmail.yourdomain.com
 
     # Public URLs & Host Port Bindings
@@ -77,7 +76,10 @@ If you prefer to configure and launch each component manually:
     ```
 
     <Callout type="info" title="Automatic Onboarding Wizard">
-      The installer generates required secrets automatically, including the one-time admin password. For manual setup, use unique secrets and configure `CORS_ORIGINS` to the dashboard origin. Change the initial admin password after signing in.
+      The installer generates required cryptographic and database secrets automatically. For manual setup, use unique secrets and configure `CORS_ORIGINS` to the dashboard origin. The initial admin login is `admin` / `emitmail`; change the temporary password in Settings before using protected features.
+    </Callout>
+    <Callout type="warn" title="Protect the dashboard during first login">
+      `emitmail` is a shared, publicly known temporary password. Keep the dashboard restricted to a trusted network until you sign in and change it. The API blocks protected actions until the password changes, but anyone who reaches the login page could claim the admin account first.
     </Callout>
   </Step>
 
@@ -91,7 +93,7 @@ If you prefer to configure and launch each component manually:
 
   <Step>
     ### Complete Initial Setup Wizard
-    Open the dashboard at `http://localhost:3000` through an SSH tunnel or your configured reverse proxy. Sign in with the one-time initial admin password printed by the installer (or set in `.env` for manual setup), then change it. Add a sending domain and publish the DNS values shown by the dashboard.
+    Open the dashboard at `http://localhost:3000` through an SSH tunnel or your configured reverse proxy. Sign in as `admin` with password `emitmail`, then change it in Settings. The API blocks other protected actions until you do. Add a sending domain and publish the DNS values shown by the dashboard.
   </Step>
 </Steps>
 
@@ -198,3 +200,34 @@ emitmail-worker  | ⚙️ [BullMQ Worker] Connected to Redis at redis:6379
 emitmail-worker  | 🔒 [Crypto] AES-256-GCM encryption verified for DKIM key storage
 emitmail-updater | 🚀 [EmitMail Updater] Starting internal HTTP daemon on port 9999...
 ```
+
+### PostgreSQL `P1000` authentication failure
+
+If the API or worker logs show Prisma error `P1000`, the password in `.env` does
+not match the password stored for the PostgreSQL role. The Postgres image only
+uses `POSTGRES_PASSWORD` when it initializes an empty data volume; editing `.env`
+later does not change the existing database password. Keep the database volume
+intact.
+
+To make the current `.env` password authoritative, connect through the local
+PostgreSQL socket inside the container and reset the role password interactively:
+
+```bash
+docker compose exec postgres psql -U mailuser -d postgres
+```
+
+At the `psql` prompt, run `\password mailuser`, enter the exact value of
+`POSTGRES_PASSWORD` from `.env` twice, then run `\q`. Replace `mailuser` with
+your configured `POSTGRES_USER` if you changed the default. Recreate the app
+containers so they retry their database connection:
+
+```bash
+docker compose up -d --force-recreate api worker
+docker compose ps
+docker compose logs --tail=50 api worker
+```
+
+Do not use `docker compose down -v` for this recovery; it deletes the database
+volume and its data. If the local `psql` connection is rejected, restore the
+original `.env` backup or use your PostgreSQL recovery procedure before
+restarting EmitMail.

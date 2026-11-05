@@ -121,10 +121,10 @@ emitmail/
     # Push schema to local Postgres
     pnpm db:push
 
-    # Set INITIAL_ADMIN_PASSWORD in the root .env, then seed the administrator
+    # Seed the administrator (temporary password: emitmail)
     pnpm db:seed
     ```
-    The initial password must be unique and at least 16 characters. The admin must change it before using protected endpoints.
+    Sign in as `admin` with temporary password `emitmail`, then change it in dashboard Settings before using protected endpoints.
   </Step>
 </Steps>
 
@@ -142,7 +142,7 @@ You can run individual services depending on which part of EmitMail you are deve
 | `pnpm dev:docs` | **Documentation** | `http://localhost:3001` | Fumadocs MDX documentation site |
 
 <Callout type="info" title="Initial Admin Account">
-Set a unique `INITIAL_ADMIN_PASSWORD` of at least 16 characters in the root `.env` before seeding. Log in as `admin` with that password, then change it before using protected endpoints.
+The seeded admin credentials are `admin` / `emitmail`. Change the temporary password in dashboard Settings before using protected endpoints.
 </Callout>
 
 ---

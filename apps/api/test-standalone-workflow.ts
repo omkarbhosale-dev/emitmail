@@ -50,10 +50,10 @@ function logSection(title: string) {
 async function runWorkflow() {
   const results: StepResult[] = [];
   const TEST_PORT = 4099;
-  const initialAdminPassword = process.env.INITIAL_ADMIN_PASSWORD;
+  const initialAdminPassword = 'emitmail';
   const testAdminPassword = process.env.TEST_ADMIN_PASSWORD;
   if (!initialAdminPassword || !testAdminPassword || testAdminPassword.length < 8 || initialAdminPassword === testAdminPassword) {
-    throw new Error('Set distinct INITIAL_ADMIN_PASSWORD (16+ chars) and TEST_ADMIN_PASSWORD (8+ chars) values before running this workflow.');
+    throw new Error('Set TEST_ADMIN_PASSWORD (8+ chars) to a value other than the default "emitmail" before running this workflow.');
   }
   const baseUrl = `http://127.0.0.1:${TEST_PORT}/api/v1`;
   const rootBaseUrl = `http://127.0.0.1:${TEST_PORT}`;
@@ -223,7 +223,7 @@ async function runWorkflow() {
     const initialPasswordMatches = await bcrypt.compare(initialAdminPassword, admin.passwordHash);
     const testPasswordMatches = await bcrypt.compare(testAdminPassword, admin.passwordHash);
     const loginPassword = initialPasswordMatches ? initialAdminPassword : testPasswordMatches ? testAdminPassword : null;
-    if (!loginPassword) throw new Error('Admin password matches neither INITIAL_ADMIN_PASSWORD nor TEST_ADMIN_PASSWORD.');
+    if (!loginPassword) throw new Error('Admin password matches neither the default "emitmail" password nor TEST_ADMIN_PASSWORD.');
 
     // Step 3: Admin Login
     const loginRes = await executeStep(3, 'Admin Authentication Login', 'POST', '/auth/login', {

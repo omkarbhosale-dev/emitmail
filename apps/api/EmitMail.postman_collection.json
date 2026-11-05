@@ -139,7 +139,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["auth", "login"]
             },
-            "description": "Authenticates with username and the unique initial admin password configured during installation. Change it before using protected endpoints."
+            "description": "Authenticates with username admin and temporary password emitmail on a fresh install. Change it before using protected endpoints."
           },
           "response": []
         },

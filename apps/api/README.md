@@ -31,7 +31,7 @@ The **EmitMail Backend API** (`apps/api`) provides the REST API, authentication,
 apps/api/
 ├── prisma/
 │   ├── schema.prisma        # PostgreSQL database schema
-│   └── seed.ts              # Creates the first admin using INITIAL_ADMIN_PASSWORD
+│   └── seed.ts              # Creates the first admin with a forced-change temporary password
 ├── src/
 │   ├── config/              # Zod environment schema, Prisma DB, Redis client
 │   ├── middlewares/         # JWT admin auth and Bearer em_live_ API key auth
@@ -77,7 +77,7 @@ pnpm db:push
 pnpm db:seed
 ```
 
-Set `INITIAL_ADMIN_PASSWORD` in the root `.env` before seeding. It must contain at least 16 characters; the first admin must change it before using other protected endpoints.
+The first admin is `admin` with temporary password `emitmail`. The account must change this password before using other protected endpoints.
 
 ### 3. Start Development Server
 ```bash
@@ -119,7 +119,7 @@ Run the end-to-end API integration workflow:
 ```bash
 pnpm test:workflow
 ```
-Set distinct `INITIAL_ADMIN_PASSWORD` and `TEST_ADMIN_PASSWORD` values in the root `.env`. The workflow changes the initial password to the test password on its first run and reuses it on later runs.
+Set `TEST_ADMIN_PASSWORD` in the root `.env` to a value of at least 8 characters other than `emitmail`. The workflow changes the temporary admin password to this test password on its first run and reuses it on later runs.
 
 ---
 
