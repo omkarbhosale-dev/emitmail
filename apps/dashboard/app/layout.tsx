@@ -1,21 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { Bricolage_Grotesque, Inter } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/layout/AppShell";
-
-const bricolage = Bricolage_Grotesque({
-  subsets: ["latin"],
-  weight: ["700", "800"],
-  variable: "--font-bricolage",
-  display: "swap",
-});
-
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-sans",
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: "EmitMail — Cloudflare-Grade Email Infrastructure",
@@ -33,7 +19,7 @@ export default function RootLayout({
       lang="en"
       data-mode="dark"
       suppressHydrationWarning
-      className={`${bricolage.variable} ${inter.variable} h-full`}
+      className="h-full"
     >
       <head>
         <script
