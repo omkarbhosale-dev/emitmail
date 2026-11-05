@@ -10,9 +10,33 @@ Deploy EmitMail with Docker Compose. The quickstart uses the repository's instal
 
 ---
 
-## 1. Quickstart Installation (Automated)
+## 1. Prepare the VPS Firewall
 
-On a supported Linux VPS with Docker Compose installed, run the installer from a fresh checkout. It creates or updates the environment configuration, checks host port availability, and starts the Compose stack. Review the script and environment file before exposing the service:
+Configure both your VPS provider's network firewall and the server firewall before starting EmitMail. Keep SSH reachable so you do not lock yourself out. If SSH uses a custom port, allow that port before enabling UFW.
+
+For UFW, allow SSH, web traffic when you plan to use a reverse proxy, and the mail ports EmitMail needs:
+
+```bash
+sudo ufw allow OpenSSH
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+# Allow these only if you use a public HTTP/HTTPS reverse proxy.
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+# Allow these mail ports if you use EmitMail's SMTP services.
+sudo ufw allow 25/tcp
+sudo ufw allow 2525/tcp
+sudo ufw enable
+sudo ufw status verbose
+```
+
+If you will access the dashboard only through an SSH tunnel, ports `80` and `443` are not needed. Keep dashboard `3000`, API `4000`, docs `3001`, PostgreSQL `5432`, Redis `6379`, and the Docker socket proxy `2375` closed to the public internet. The web services bind to localhost; publish them through a reverse proxy after completing the first admin password change. Apply the same allowed-port policy in your VPS provider firewall.
+
+---
+
+## 2. Quickstart Installation (Automated)
+
+After completing the firewall setup above, run the installer from a fresh checkout on a supported Linux VPS with Docker Compose installed. It creates or updates the environment configuration, checks host port availability, and starts the Compose stack. Review the script and environment file before exposing the service:
 
 ```bash
 git clone https://github.com/omkarbhosale-dev/emitmail.git
@@ -23,7 +47,7 @@ chmod +x install.sh
 
 ---
 
-## 2. Manual Installation
+## 3. Manual Installation
 
 If you prefer to configure and launch each component manually:
 
@@ -63,7 +87,6 @@ If you prefer to configure and launch each component manually:
     ENCRYPTION_KEY=replace_with_output_of_openssl_rand_hex_32
     # Internal secret for dashboard 1-click update trigger
     UPDATER_SECRET=replace_with_output_of_openssl_rand_hex_32
-    INITIAL_ADMIN_PASSWORD=choose_a_unique_value_of_at_least_16_characters
     CORS_ORIGINS=https://emitmail.yourdomain.com
 
     # Public URLs & Host Port Bindings
@@ -77,8 +100,16 @@ If you prefer to configure and launch each component manually:
     ```
 
     <Callout type="info" title="Automatic Onboarding Wizard">
-      The installer generates required secrets automatically, including the one-time admin password. For manual setup, use unique secrets and configure `CORS_ORIGINS` to the dashboard origin. Change the initial admin password after signing in.
+      The installer generates required cryptographic and database secrets automatically. For manual setup, use unique secrets and configure `CORS_ORIGINS` to the dashboard origin. The initial admin login is `admin` / `emitmail`; change the temporary password in Settings before using protected features.
     </Callout>
+    <Callout type="warn" title="Protect the dashboard during first login">
+      `emitmail` is a shared, publicly known temporary password. Keep the dashboard restricted to a trusted network until you sign in and change it. The API blocks protected actions until the password changes, but anyone who reaches the login page could claim the admin account first.
+    </Callout>
+  </Step>
+
+  <Step>
+    ### Configure the VPS Firewall
+    Before launching Compose, apply the firewall rules in [Prepare the VPS Firewall](#1-prepare-the-vps-firewall). At minimum, preserve SSH access and allow the mail ports you plan to use. Do not expose dashboard, API, docs, database, Redis, or Docker proxy ports directly.
   </Step>
 
   <Step>
@@ -90,14 +121,23 @@ If you prefer to configure and launch each component manually:
   </Step>
 
   <Step>
-    ### Complete Initial Setup Wizard
-    Open the dashboard at `http://localhost:3000` through an SSH tunnel or your configured reverse proxy. Sign in with the one-time initial admin password printed by the installer (or set in `.env` for manual setup), then change it. Add a sending domain and publish the DNS values shown by the dashboard.
+    ### Verify the Containers
+    ```bash
+    docker compose ps
+    docker compose logs --tail=50 api worker
+    ```
+    Confirm PostgreSQL and Redis are healthy and that the API and worker stay running before opening the dashboard.
+  </Step>
+
+  <Step>
+    ### Change the Temporary Admin Password
+    Keep public access disabled for now. Open `http://localhost:3000` through an SSH tunnel, sign in as `admin` with password `emitmail`, and change it in Settings. EmitMail blocks protected actions until the password changes. Afterward, add your sending domain and publish the DNS values shown by the dashboard.
   </Step>
 </Steps>
 
 ---
 
-## 3. Docker Services Overview
+## 4. Docker Services Overview
 
 | Container Name | Image / Base | Internal Port | Host Port | Role |
 | :--- | :--- | :--- | :--- | :--- |
@@ -112,35 +152,9 @@ If you prefer to configure and launch each component manually:
 
 ---
 
-## 4. Updates & Upgrades
-
-The updater reaches the host Docker daemon through `emitmail-docker-socket-proxy`, which is attached only to a private internal network and enables only the API groups needed for Compose updates. This remains a trusted host-control path: keep the updater secret private and do not expose either service to the public network. If you do not want dashboard-triggered upgrades, disable both the `updater` and `docker-socket-proxy` services.
-
-EmitMail supports two seamless update paths:
-
-### Method A: 1-Click Update from Dashboard UI
-When a new GitHub release is published, a notification badge appears in your Dashboard header. Click **"Download & Install Update"** &rarr; **"Update Now"**. The internal `emitmail-updater` sidecar automatically:
-1. Pulls new pre-built GHCR images.
-2. Synchronizes any new `.env.example` settings non-destructively.
-3. Recreates containers without touching user data or secrets.
-
-### Method B: Terminal Update Script
-Run the non-destructive updater on your VPS:
-
-```bash
-./update.sh
-```
-
-To pin to a specific version:
-```bash
-./update.sh v1.2.0
-```
-
----
-
 ## 5. Reverse Proxy & Domain Routing
 
-Web services (`dashboard`, `api`, `docs`) bind to `127.0.0.1` by default. Place a reverse proxy (Nginx, Traefik, Caddy, or a tunnel) in front of them if they need public access:
+After changing the temporary admin password, web services (`dashboard`, `api`, `docs`) remain bound to `127.0.0.1` by default. Place a reverse proxy (Nginx, Traefik, Caddy, or a tunnel) in front of them if they need public access:
 
 ### Host Nginx Configuration Example
 
@@ -182,7 +196,33 @@ server {
 
 ---
 
-## 6. Verifying Container Health & Diagnostic Logs
+## 6. Updates & Upgrades
+
+The updater reaches the host Docker daemon through `emitmail-docker-socket-proxy`, which is attached only to a private internal network and enables only the API groups needed for Compose updates. This remains a trusted host-control path: keep the updater secret private and do not expose either service to the public network. If you do not want dashboard-triggered upgrades, disable both the `updater` and `docker-socket-proxy` services.
+
+EmitMail supports two update paths:
+
+### Method A: 1-Click Update from Dashboard UI
+When a new GitHub release is published, a notification badge appears in your Dashboard header. Click **"Download & Install Update"** &rarr; **"Update Now"**. The internal `emitmail-updater` sidecar automatically:
+1. Pulls new pre-built GHCR images.
+2. Synchronizes any new `.env.example` settings non-destructively.
+3. Recreates containers without touching user data or secrets.
+
+### Method B: Terminal Update Script
+Run the non-destructive updater on your VPS:
+
+```bash
+./update.sh
+```
+
+To pin to a specific version:
+```bash
+./update.sh v1.2.0
+```
+
+---
+
+## 7. Verifying Container Health & Diagnostic Logs
 
 To inspect real-time operational logs:
 
@@ -198,3 +238,34 @@ emitmail-worker  | ⚙️ [BullMQ Worker] Connected to Redis at redis:6379
 emitmail-worker  | 🔒 [Crypto] AES-256-GCM encryption verified for DKIM key storage
 emitmail-updater | 🚀 [EmitMail Updater] Starting internal HTTP daemon on port 9999...
 ```
+
+### PostgreSQL `P1000` authentication failure
+
+If the API or worker logs show Prisma error `P1000`, the password in `.env` does
+not match the password stored for the PostgreSQL role. The Postgres image only
+uses `POSTGRES_PASSWORD` when it initializes an empty data volume; editing `.env`
+later does not change the existing database password. Keep the database volume
+intact.
+
+To make the current `.env` password authoritative, connect through the local
+PostgreSQL socket inside the container and reset the role password interactively:
+
+```bash
+docker compose exec postgres psql -U mailuser -d postgres
+```
+
+At the `psql` prompt, run `\password mailuser`, enter the exact value of
+`POSTGRES_PASSWORD` from `.env` twice, then run `\q`. Replace `mailuser` with
+your configured `POSTGRES_USER` if you changed the default. Recreate the app
+containers so they retry their database connection:
+
+```bash
+docker compose up -d --force-recreate api worker
+docker compose ps
+docker compose logs --tail=50 api worker
+```
+
+Do not use `docker compose down -v` for this recovery; it deletes the database
+volume and its data. If the local `psql` connection is rejected, restore the
+original `.env` backup or use your PostgreSQL recovery procedure before
+restarting EmitMail.

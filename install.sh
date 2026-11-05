@@ -81,6 +81,24 @@ get_env_var() {
   echo "$default_val"
 }
 
+has_existing_postgres_volume() {
+  docker volume ls --quiet --filter "label=com.docker.compose.volume=postgres_data" | grep -q .
+}
+
+# Never replace a missing/blank database password when an existing database
+# volume is present. The official Postgres image only applies POSTGRES_PASSWORD
+# when it initializes an empty data directory; changing .env later does not
+# rotate the password stored in an existing database.
+if has_existing_postgres_volume; then
+  existing_env_postgres_password=$(get_env_var "POSTGRES_PASSWORD" "")
+  if [ ! -f .env ] || [ -z "$existing_env_postgres_password" ]; then
+    echo -e "${RED}❌ Existing PostgreSQL data was found, but .env is missing POSTGRES_PASSWORD.${NC}" >&2
+    echo "Restore the original .env or recover the database role password before running install.sh." >&2
+    echo "Do not remove the postgres_data volume; it contains your database." >&2
+    exit 1
+  fi
+fi
+
 # 1. Environment File & Cryptographic Secret Generation
 if [ ! -f .env ]; then
   echo -e "${CYAN}⚙️  Creating .env from .env.example...${NC}"
@@ -100,7 +118,6 @@ ensure_secret() {
   current=$(get_env_var "$key" "")
   case "$key" in
     JWT_SECRET|UPDATER_SECRET) [ "${#current}" -lt 32 ] && invalid=1 ;;
-    INITIAL_ADMIN_PASSWORD) [ "${#current}" -lt 16 ] && invalid=1 ;;
     ENCRYPTION_KEY) [[ ! "$current" =~ ^[a-fA-F0-9]{64}$ ]] && invalid=1 ;;
   esac
   if [ -z "$current" ] || [ "$current" = "changeme" ] || [ "$current" = "your-secret-here" ] || [ "$invalid" -eq 1 ]; then
@@ -113,7 +130,6 @@ ensure_secret "POSTGRES_PASSWORD" 24
 ensure_secret "JWT_SECRET" 32
 ensure_secret "ENCRYPTION_KEY" 32
 ensure_secret "UPDATER_SECRET" 32
-ensure_secret "INITIAL_ADMIN_PASSWORD" 24
 
 # 2. Public Dashboard & API URL Configuration
 CURRENT_APP_URL=$(get_env_var "APP_URL" "http://localhost:3000")
@@ -249,10 +265,11 @@ echo "└───────────────────────�
 
 echo -e "\n${BOLD}Next Steps:${NC}"
 echo "1. Reverse Proxy: Put Nginx, Caddy, or Cloudflare Tunnel in front of 127.0.0.1:${FINAL_DASHBOARD_PORT}"
-echo "2. Initial Login: Open the Dashboard at ${USER_APP_URL} and sign in with the generated admin account"
+echo "2. Initial Login: Open the Dashboard at ${USER_APP_URL} and sign in with the default admin account"
 echo "   Username: admin"
-echo "   One-time password: $(get_env_var "INITIAL_ADMIN_PASSWORD" "")"
-echo "   Change this password immediately after signing in."
+echo "   Temporary password: emitmail"
+echo "   Change this password in Settings before using other protected features."
+echo "   Warning: keep the dashboard private until you change this shared password."
 echo "3. DNS Records: Follow the in-dashboard guides to configure SPF, DKIM, and DMARC"
 echo "4. Upgrades: Click 'Update Now' in the Dashboard or run ./update.sh anytime"
 echo ""

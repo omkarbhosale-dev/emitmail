@@ -68,11 +68,11 @@ pnpm db:generate
 # Push relational schema to PostgreSQL
 pnpm db:push
 
-# Set INITIAL_ADMIN_PASSWORD in the root .env, then seed the administrator
+# Seed the administrator (temporary password: emitmail)
 pnpm db:seed
 ```
 
-Set a unique `INITIAL_ADMIN_PASSWORD` of at least 16 characters in the root `.env` before seeding. No shared default account password is used.
+Sign in as `admin` with temporary password `emitmail`, then change it in dashboard Settings before using protected endpoints.
 
 ---
 

@@ -49,7 +49,6 @@ services:
       APP_VERSION: ${APP_VERSION:-latest}
       GITHUB_REPO: ${GITHUB_REPO:-omkarbhosale-dev/emitmail}
       UPDATER_SECRET: ${UPDATER_SECRET:?Set UPDATER_SECRET in .env}
-      INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD:?Set INITIAL_ADMIN_PASSWORD in .env}
       CORS_ORIGINS: ${CORS_ORIGINS:-${APP_URL:-http://localhost:3000}}
       UPDATER_URL: http://updater:9999/trigger-update
       DATABASE_URL: postgresql://${POSTGRES_USER:-mailuser}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-maildb}?schema=public

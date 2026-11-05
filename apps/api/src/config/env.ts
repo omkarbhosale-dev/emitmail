@@ -54,7 +54,6 @@ const envSchema = z.object({
   GITHUB_REPO: z.string().default('omkarbhosale-dev/emitmail'),
   GITHUB_TOKEN: z.string().optional(),
   UPDATER_SECRET: z.string().default(''),
-  INITIAL_ADMIN_PASSWORD: z.preprocess((value) => value === '' ? undefined : value, z.string().min(16).optional()),
   CORS_ORIGINS: z.string().default(''),
   UPDATER_URL: z.string().default('http://updater:9999/trigger-update'),
   ALLOW_PENDING_DOMAIN_API_KEYS: z
@@ -137,7 +136,6 @@ const parseEnv = () => {
     CURRENT_VERSION: resolvedCurrentVersion,
     GITHUB_REPO: process.env.GITHUB_REPO || OFFICIAL_GITHUB_REPO,
     UPDATER_SECRET: process.env.UPDATER_SECRET || '',
-    INITIAL_ADMIN_PASSWORD: process.env.INITIAL_ADMIN_PASSWORD,
     CORS_ORIGINS: process.env.CORS_ORIGINS || '',
     UPDATER_URL: process.env.UPDATER_URL || 'http://updater:9999/trigger-update',
     SMTP_EHLO_HOSTNAME:

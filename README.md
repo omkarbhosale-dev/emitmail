@@ -88,7 +88,7 @@ chmod +x install.sh
 ./install.sh
 ```
 
-Once installation completes, access the dashboard through the configured reverse proxy or an SSH tunnel. Sign in as `admin` with the one-time password printed by the installer and change it at first login. Add your domain in the dashboard, copy the generated DNS values, and publish them with your DNS provider. EmitMail does not change your DNS records automatically. Configure the server IP and reverse DNS with your hosting provider as described in the deployment docs.
+Once installation completes, access the dashboard through the configured reverse proxy or an SSH tunnel. Sign in as `admin` with the temporary password `emitmail`. Keep the dashboard restricted to a trusted network until you change this shared password in Settings; EmitMail blocks protected API actions until you do. Add your domain in the dashboard, copy the generated DNS values, and publish them with your DNS provider. EmitMail does not change your DNS records automatically. Configure the server IP and reverse DNS with your hosting provider as described in the deployment docs.
 
 ---
 
@@ -118,7 +118,7 @@ Copy the root `.env.example` file to `.env`:
 ```bash
 cp .env.example .env
 ```
-Before running `pnpm db:seed`, set `INITIAL_ADMIN_PASSWORD` to a unique value of at least 16 characters in `.env`.
+The initial admin account uses username `admin` and temporary password `emitmail`. Change it in dashboard Settings before using protected features.
 
 ### 5. Start Local PostgreSQL & Redis
 Launch the containerized development database and Redis instances:
@@ -139,7 +139,7 @@ pnpm db:generate
 # Push relational schema to PostgreSQL
 pnpm db:push
 
-# Set a unique initial admin password in .env before seeding, then seed the administrator
+# Seed the administrator (temporary password: emitmail)
 pnpm db:seed
 ```
 
@@ -163,7 +163,7 @@ pnpm dev:docs
 ### 8. Access the Applications
 | App | Local URL | Default Credentials / Notes |
 | :--- | :--- | :--- |
-| **Dashboard** | [http://localhost:3000](http://localhost:3000) | Username: `admin` \| Password: set `INITIAL_ADMIN_PASSWORD` in `.env` |
+| **Dashboard** | [http://localhost:3000](http://localhost:3000) | Username: `admin` \| Temporary password: `emitmail` (change it in Settings) |
 | **Backend API** | [http://localhost:4000](http://localhost:4000) | Healthcheck: `http://localhost:4000/api/v1/health` |
 | **Inbound SMTP** | `localhost:2525` | Accepts incoming SMTP mail traffic |
 | **Documentation** | [http://localhost:3001](http://localhost:3001) | Complete interactive guide |
