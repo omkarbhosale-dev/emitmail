@@ -1,8 +1,9 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, Suspense } from "react";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Header } from "@/components/layout/Header";
+import { List, MagnifyingGlass, PaperPlaneTilt } from "@phosphor-icons/react";
 import { SystemUpdateBanner } from "@/components/layout/SystemUpdateBanner";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { CommandPalette } from "@/components/layout/CommandPalette";
@@ -29,7 +30,11 @@ const ModalContext = createContext<ModalContextType>({
 
 export const useModals = () => useContext(ModalContext);
 
-function AppShellInner({ children }: { children: React.ReactNode }) {
+function AppShellInner({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -38,6 +43,28 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isSendTestEmailOpen, setIsSendTestEmailOpen] = useState(false);
   const { isUpgradeModalOpen, setIsUpgradeModalOpen } = useSystemVersion();
+
+  // Load and persist sidebar collapsed preference
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("emitmail-sidebar-collapsed");
+      if (saved !== null) {
+        queueMicrotask(() => {
+          setIsSidebarCollapsed(saved === "true");
+        });
+      }
+    } catch {}
+  }, []);
+
+  const handleToggleSidebar = () => {
+    setIsSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("emitmail-sidebar-collapsed", String(next));
+      } catch {}
+      return next;
+    });
+  };
 
   useEffect(() => {
     const handleOpenPalette = () => setIsCommandPaletteOpen(true);
@@ -89,7 +116,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
           if (pathname !== "/onboarding" && !pathname.startsWith("/settings") && pathname !== "/login") {
             router.replace("/onboarding");
           }
-        } else if (pathname === "/onboarding") {
+        } else if (pathname === "/onboarding" && isSetupComplete) {
           // If setup is complete and user visits /onboarding, redirect to overview
           router.replace("/");
         }
@@ -116,11 +143,39 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
       }}
     >
       <div className="isolate h-screen w-screen overflow-hidden bg-kumo-canvas text-kumo-default flex flex-col selection:bg-cf-orange/20 selection:text-cf-orange">
-        {/* Top Global Header Bar */}
-        <Header
-          onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
-          onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
-        />
+        {/* Mobile Header Bar (Visible on mobile/tablet screens only; global desktop header removed) */}
+        <div className="lg:hidden h-12 w-full border-b border-kumo-hairline bg-kumo-base/90 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between shrink-0 select-none z-30">
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="p-1.5 rounded-md hover:bg-kumo-elevated text-kumo-muted hover:text-kumo-strong cursor-pointer"
+              aria-label="Open navigation menu"
+            >
+              <List size={20} weight="bold" />
+            </button>
+            <Link href="/" className="flex items-center gap-2 group cursor-pointer">
+              <div className="w-6 h-6 rounded-md bg-cf-orange flex items-center justify-center text-white shrink-0 shadow-xs">
+                <PaperPlaneTilt size={14} weight="fill" />
+              </div>
+              <span className="font-logo font-extrabold tracking-tight text-lg text-cf-orange leading-none">
+                emitmail
+              </span>
+            </Link>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setIsCommandPaletteOpen(true)}
+              className="p-1.5 rounded-md hover:bg-kumo-elevated text-kumo-muted hover:text-kumo-strong cursor-pointer"
+              aria-label="Quick search"
+              title="Quick search (Ctrl + K)"
+            >
+              <MagnifyingGlass size={18} weight="bold" />
+            </button>
+          </div>
+        </div>
 
         {/* Global System Update Notification Banner */}
         <SystemUpdateBanner />
@@ -128,10 +183,10 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         {/* Global App Layout: Fixed Full-Height Sidebar + Independent Scroll Content */}
         <div className="flex-1 flex min-h-0 overflow-hidden">
           {/* Left Navigation Sidebar */}
-          <Suspense fallback={<div className="hidden lg:block w-60 shrink-0 h-full bg-kumo-canvas border-r border-kumo-hairline" />}>
+          <Suspense fallback={<div className="hidden lg:block w-64 shrink-0 h-full bg-kumo-canvas border-r border-kumo-hairline" />}>
             <Sidebar
               isCollapsed={isSidebarCollapsed}
-              onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              onToggleCollapse={handleToggleSidebar}
               isMobileOpen={isMobileMenuOpen}
               onCloseMobile={() => setIsMobileMenuOpen(false)}
               onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
@@ -167,7 +222,11 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+interface AppShellProps {
+  children: React.ReactNode;
+}
+
+export function AppShell({ children }: AppShellProps) {
   return (
     <ToastProvider>
       <VersionProvider>

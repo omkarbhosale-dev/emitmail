@@ -175,7 +175,11 @@ Used for the EmitMail brand logo, primary feature CTAs (e.g., *"Send Test Email"
     - **API Keys & SMTP** (`<Key />`)
     - **Webhooks** (`<PlugsConnected />`)
     - **Suppressed List** (`<Prohibit />`)
-  - *Footer:* **Manage account** (`<Gear />`) + Bottom collapse sidebar toggle bar (`<SidebarSimple />`).
+  - *Bottom Navigation (in order):*
+    1. **Update** (`<RefreshCw />` - Lucide `refresh-cw`): Triggers EmitMail Upgrade & Version Manager modal / route.
+    2. **Settings** (`<Gear />`): Navigates to `/settings`.
+    3. **User Profile**: Administrator account card with Facehash avatar and account popover menu.
+    4. **Collapse Toggle**: Bottom collapse sidebar toggle bar (`<PanelLeftClose />` / `<PanelLeftOpen />`).
 
 ### 5.3 Hero Command Section ("Account Home" Pattern)
 When landing on the main overview dashboard, replicate Cloudflare's centered command layout:
@@ -223,8 +227,120 @@ Matches the bottom `"Analytics"` row in the screenshots:
 ## 6. Technical Data & Typography Rules
 
 - **Primary UI Font:** `Inter`, `-apple-system`, `BlinkMacSystemFont`, `"Segoe UI"`, `sans-serif`.
-- **Monospace Font:** `JetBrains Mono`, `Fira Code`, `monospace`.
+- **Monospace Font:** `JetBrains Mono`, `Fira Code`, `ui-monospace`, `monospace`.
 - **Strict Monospace Rule:** All Message IDs (`msg_...`), API Key prefixes (`em_live_...`), DKIM TXT records, Webhook secrets (`whsec_...`), SMTP status codes (`250 2.0.0 OK`), and keyboard shortcuts (`Ctrl K`) must use `font-mono` and Kumo's `InlineCopyText` where copyable.
+
+### 6.1 Standardized Dashboard Typography Scale
+
+To ensure application-wide readability and consistent visual hierarchy, all views adhere to the following scale:
+
+| Element Role | Target Size | Font Weight | Semantic Token | Example Context |
+| :--- | :--- | :--- | :--- | :--- |
+| **Page Title** | `22px–24px` (`text-[22px] sm:text-[24px]`) | 600 (`font-semibold`) | `text-kumo-strong` | Top page header (`h1`), tracking-tight |
+| **Page Description** | `13px–14px` (`text-[13px] sm:text-[14px]`) | 400 (`font-normal`) | `text-kumo-subtle` | Subtitle under page header |
+| **Section Heading** | `15px–16px` (`text-[15px] sm:text-[16px]`) | 500 (`font-medium`) | `text-kumo-strong` | Status Distribution, Domain Performance |
+| **Card / KPI Title** | `14px–15px` (`text-[13px] sm:text-[14px]`) | 500 (`font-medium`) | `text-kumo-subtle` | Upper card labels |
+| **Primary Metric (KPI)** | `24px–26px` (`text-[22px] sm:text-[24px]`) | 600 (`font-semibold`) | `text-kumo-strong font-mono` | Prominent metric values |
+| **KPI Supporting Text** | `12px–13px` (`text-[12px] sm:text-[13px]`) | 400 (`font-normal`) | `text-kumo-subtle` | Description under KPI metric value |
+| **Chart Heading** | `15px` (`text-[14px] sm:text-[15px]`) | 500 (`font-medium`) | `text-kumo-strong` | Outbound dispatches / Inbound volume |
+| **Chart Axis Labels** | `11px–12px` (`text-[11px] sm:text-[12px]`) | 400 (`font-mono`) | `text-kumo-subtle` | X-axis dates & Y-axis grid numbers |
+| **Table Column Headers** | `13px` (`text-[13px]`) | 500 (`font-medium`) | `text-kumo-subtle` | Data table header row (`th`) |
+| **Table Primary Content** | `13px–14px` (`text-[13px] sm:text-[14px]`) | 500 (`font-medium`) | `text-kumo-strong` | Domain names, recipient emails |
+| **Table Numeric / Monospace** | `13px–14px` (`text-[13px] sm:text-[14px]`) | 400–600 (`font-mono`) | `text-kumo-default` / `strong` | Sent, Delivered, Bounces, Rates |
+| **Status Labels & Badges** | `11px–12px` (`text-[11px] sm:text-[12px]`) | 500 (`font-medium`) | Semantic variants | Active, Verified, Optimal, Suppressed |
+| **Security Banner Heading** | `14px–15px` (`text-[14px] sm:text-[15px]`) | 500 (`font-medium`) | `text-kumo-strong` | Security & Cryptographic Auth callouts |
+| **Security Banner Copy** | `13px–14px` (`text-[13px] sm:text-[14px]`) | 400 (`font-normal`) | `text-kumo-subtle` | Explanatory security banner body |
+| **Empty-State Heading** | `15px–16px` (`text-[15px] sm:text-[16px]`) | 600 (`font-semibold`) | `text-kumo-strong` | Empty state primary title |
+| **Empty-State Copy** | `13px–14px` (`text-[13px] sm:text-[14px]`) | 400 (`font-normal`) | `text-kumo-subtle` | Empty state instructions & descriptions |
+| **Action Buttons (Normal)** | `13px` (`text-[13px]`) | 500 (`font-medium`) | `btn-cf-primary` / `btn-cf-secondary` | Primary & secondary toolbars (`h-8`) |
+| **System Indicators** | `12px–13px` (`text-[12px] sm:text-[13px]`) | 500 (`font-medium font-mono`)| `text-kumo-default` | DB, Redis, Worker status pills |
+| **Micro-Metadata / Footers** | `12px` (`text-[12px]`) | 400 (`font-normal`) | `text-kumo-subtle` | Aggregated domain footnote |
+
+### 6.2 Onboarding Wizard & Form Standards
+
+To ensure a first-class SaaS onboarding experience for email infrastructure configuration:
+
+- **Layout & Composition:** Centered, focused card container (`max-w-3xl w-full bg-kumo-base border border-kumo-line rounded-2xl shadow-xl overflow-hidden`) centered in a full-height canvas (`min-h-screen bg-kumo-canvas`).
+- **Progress Stepper:** Compact horizontal indicator placed in the card header (`bg-kumo-recessed/40 px-5 sm:px-8 py-3.5 border-b border-kumo-hairline`) featuring numbered circle badges (`w-6 h-6 rounded-full`), distinct orange active state (`bg-cf-orange text-white`), green completion checkmark (`bg-cf-success/20 text-cf-success`), and a subtle divider connector.
+- **Form Typography:**
+  - Main Step Heading: `20px–22px` (`text-[20px] sm:text-[22px] font-semibold text-kumo-strong tracking-tight`).
+  - Supporting Description: `13px–14px` (`text-[13px] sm:text-[14px] text-kumo-subtle leading-relaxed`).
+  - Field Labels: `13px–14px` (`text-[13px] sm:text-[14px] font-medium text-kumo-strong`).
+  - Helper Descriptions: `12px–13px` (`text-[12px] sm:text-[13px] text-kumo-subtle leading-normal`).
+- **Input Dimensions:** `h-11` (~44px) with rounded corners (`rounded-xl`), leading icon offset (`pl-10 pr-4`), monospace input font (`font-mono text-[14px] sm:text-[15px]`), and focus ring border in Cloudflare Orange (`focus:border-cf-orange`).
+- **Information Banner:** Orange deliverability callout with double-tint treatment (`bg-cf-orange-tint/70 border border-cf-orange-border p-4 sm:p-4.5 rounded-xl`), `Sparkle` icon, bold orange title (`14px–15px`), and inline monospace code snippet.
+- **DNS Records Preview:** Dynamic 3-card grid (`grid-cols-1 sm:grid-cols-3 gap-2.5`) with uppercase category labels (`11px font-medium text-kumo-subtle uppercase`) and distinct color-coded monospace hosts (Orange for EHLO, Blue for Return-Path, Strong for SPF).
+- **Simplified 3-Column DNS Records Table with Click-to-Copy (Step 2):**
+  - **Main Heading & Status:** `20px–22px font-semibold text-kumo-strong tracking-tight` with neutral icon container (`w-7 h-7 bg-kumo-control border border-kumo-line/80 text-kumo-muted`), paired with a compact domain status card featuring lightweight status indicator (`1.5px` dot, soft amber/green text, no heavy borders/pills), monospace domain name, and `btn-cf-secondary` propagation trigger.
+  - **Streamlined 3-Column Layout (Zero Button Clutter, Full Content Focus):**
+    - The table utilizes `table-fixed w-full` with 3 columns summing to 100%:
+      - `Type`: `20%` clean neutral text labels (`text-[12px] sm:text-[13px] font-mono font-medium text-kumo-strong truncate block`).
+      - `Host / Name`: `26%` exact hostname (`text-[13px] font-mono font-medium text-kumo-strong truncate block`).
+      - `Value / Content`: `54%` generous width for clean inline monospace DNS value (`text-[12px] sm:text-[13px] font-mono text-kumo-default truncate block`).
+  - **Click-to-Copy Cell Interaction:**
+    - Every table cell is interactive and clickable (`cursor-pointer hover:bg-kumo-control/50 transition-colors`).
+    - **Hover Cue:** Contextual copy icon (`opacity-0 group-hover/cell:opacity-100 transition-opacity`) appears smoothly on hover with a native tooltip.
+    - **Click Feedback:** Clicking any cell copies the complete, unclipped value (Type, Hostname, or complete DNS Value) and immediately triggers a subtle green `Copied` badge (`bg-cf-success/10 text-cf-success`) alongside toast confirmation.
+  - **Handling of Long DNS Values:** Zero silent truncation or key modification; values truncate visually with ellipsis inside bounded cells to prevent table blowout, while preserving 100% exact full-value clipboard copies.
+  - **Row Styling:** `py-3 px-4` comfortable row heights with subtle horizontal row separators (`divide-y divide-kumo-hairline`).
+  - **Responsive Behavior:** Wizard card container dynamically expands to `max-w-4xl` for Step 2 while remaining `max-w-[680px]` for Step 1. All 3 columns fit comfortably on desktop without horizontal scrolling.
+  - **Reverse DNS (PTR) Callout:** Secondary blue-tinted notice card (`bg-cf-blue-tint/15 border border-cf-blue-border/30 p-3 sm:p-3.5 rounded-xl`) placed directly beneath the table with inline code highlights.
+
+### 6.3 Settings Page Layout & Lightweight Semantic Badges
+
+To deliver a readable, balanced administrative experience for workspace and security configuration:
+
+- **Layout & Centering:** Centered canvas container (`max-w-5xl mx-auto w-full space-y-6`) positioned cleanly within the scrollable content area.
+- **Page Header:**
+  - Standardized title (`text-[22px] sm:text-[24px] font-semibold text-kumo-strong tracking-tight`).
+  - Clear subtitle (`text-[13px] sm:text-[14px] text-kumo-subtle mt-1 leading-normal`).
+  - Co-aligned tab switcher (`flex items-center gap-1.5 p-1 bg-kumo-elevated rounded-xl border border-kumo-hairline`) using `text-[13px] font-medium` pill buttons.
+- **Section Cards:**
+  - Card containers use consistent sizing (`bg-kumo-base border border-kumo-hairline rounded-xl p-5 sm:p-6 space-y-5 shadow-2xs`).
+  - Card Header: `w-9 h-9` icon container paired with `text-[15px] sm:text-[16px] font-semibold` titles and `text-[12px] sm:text-[13px]` subtitles.
+  - Section actions (Setup Wizard, Refresh Diagnostics, Add Member) align horizontally with section headers.
+- **Form Controls & Password Inputs:**
+  - Form labels: `text-[13px] font-medium text-kumo-strong mb-1.5 block`.
+  - Inputs: `h-10 text-[13px] sm:text-[14px] font-mono px-3.5 pr-10 rounded-lg bg-kumo-control border border-kumo-line`.
+  - Password toggle icons: centered right-aligned buttons (`right-3 top-1/2 -translate-y-1/2`).
+  - Primary button: `btn-cf-primary px-4 py-2 text-[13px] font-medium shadow-xs disabled:opacity-40`.
+- **Infrastructure Diagnostics Grid:**
+  - 6-tile grid (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5`).
+  - Balanced tiles with equal heights and padding (`p-4 rounded-xl bg-kumo-recessed border border-kumo-hairline flex flex-col justify-between space-y-2`).
+  - Category labels: `text-[11px] sm:text-[12px] text-kumo-subtle uppercase tracking-wider font-semibold font-mono`.
+  - Technical values: `text-[13px] sm:text-[14px] font-mono font-semibold text-kumo-strong truncate`.
+- **Lightweight Semantic Badge System:**
+  All badges use restrained, low-opacity fills and soft borders to avoid competing with data:
+  - **Success / Connected / Active:** `bg-cf-success/10 text-cf-success border border-cf-success/20 text-[11px] font-mono font-medium px-2 py-0.5 rounded-full`.
+  - **Warning / Pending / Action Required:** `bg-cf-amber/10 text-cf-amber border border-cf-amber/20 text-[11px] font-mono font-medium px-2 py-0.5 rounded-full`.
+  - **Error / Failed:** `bg-kumo-danger-tint text-kumo-danger border border-kumo-danger/20 text-[11px] font-mono font-medium px-2 py-0.5 rounded-full`.
+  - **Informational / Network Ports:** `bg-cf-blue-tint/60 text-cf-blue border border-cf-blue-border/40 text-[11px] font-mono font-medium px-2 py-0.5 rounded-full`.
+  - **Neutral / Path:** `bg-kumo-elevated text-kumo-subtle border border-kumo-hairline text-[11px] font-mono font-medium px-2 py-0.5 rounded-full`.
+  - **Accent / Admin Roles:** `bg-cf-orange/10 text-cf-orange border border-cf-orange/20 text-[11px] font-mono font-medium px-2 py-0.5 rounded-full`.
+
+### 6.4 Settings → Team & Roles Standards
+
+To establish an authoritative, clean role-based access control and member directory:
+
+- **Introductory Card (Team Members & Role Access):**
+  - Section title: `text-[15px] sm:text-[16px] font-semibold text-kumo-strong`.
+  - RBAC Active status indicator: Lightweight badge with amber/orange status dot (`<span className="w-1.5 h-1.5 rounded-full bg-cf-orange" /> RBAC Active`).
+  - Description: Readable body copy (`text-[13px] text-kumo-subtle max-w-xl leading-relaxed mt-1`).
+  - Action button: Vertically aligned `btn-cf-primary` with `UserPlus` icon (`px-4 py-2 text-[13px] font-medium`).
+- **Role Permission Cards (Admin, Member, Viewer):**
+  - Equal-height 3-column grid (`grid-cols-1 md:grid-cols-3 gap-3.5`).
+  - Card container: `p-4 sm:p-4.5 rounded-xl bg-kumo-base border border-kumo-hairline flex flex-col justify-between space-y-2.5 h-full shadow-2xs`.
+  - Icon container: `w-7 h-7 rounded-lg border` with semantic role coloring (Orange for Admin, Blue for Member, Muted/Neutral for Viewer).
+  - Role title: `text-[14px] sm:text-[15px] font-semibold text-kumo-strong font-mono`.
+  - Capability badge: Lightweight badge aligned to top-right (`Full Access`, `Standard Ops`, `Read-Only`).
+  - Role description: Balanced `text-[13px] text-kumo-subtle leading-relaxed`.
+- **Active Team Members Section:**
+  - Card Header: `text-[12px] sm:text-[13px] font-semibold text-kumo-strong uppercase tracking-wider font-mono` with dynamic member count and right-aligned `Refresh` button.
+  - Member Rows: Balanced padding (`p-4 sm:p-4.5`), dividing lines (`divide-y divide-kumo-hairline`), and subtle row hover (`hover:bg-kumo-tint/30`).
+  - Identity & Avatar: `w-10 h-10` Facehash avatar, `text-[13px] sm:text-[14px] font-semibold text-kumo-strong` name, lightweight `You` pill (`bg-cf-orange/10 text-cf-orange border border-cf-orange/20 text-[10px]`), and uppercase role badge.
+  - Metadata Line: Monospace line with email, dot separator, and `@{username}` (`text-[12px] text-kumo-subtle mt-1 font-mono flex items-center gap-2.5`).
+  - Security Status Indicator: Lightweight semantic badge with color status dot (`<span className="w-1.5 h-1.5 rounded-full bg-cf-success" /> Active` or amber dot for `Initial Password`).
+  - Row Actions: `Role` toggle, `Reset` credential button (`bg-kumo-elevated text-kumo-default hover:text-cf-orange border border-kumo-hairline shadow-2xs` with `Key` icon), and `Trash` button with danger hover.
 
 ---
 

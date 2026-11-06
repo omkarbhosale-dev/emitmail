@@ -1,4 +1,4 @@
-export type NavTab = "emails" | "inbox" | "analytics" | "domains" | "api-keys" | "webhooks" | "settings" | "home";
+export type NavTab = "emails" | "inbox" | "analytics" | "domains" | "api-keys" | "webhooks" | "settings" | "home" | "update";
 
 export type UserRole = "ADMIN" | "MEMBER" | "VIEWER";
 

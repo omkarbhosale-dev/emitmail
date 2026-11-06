@@ -86,8 +86,37 @@ export function WebhooksView() {
   }, [toast]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    let isMounted = true;
+    Promise.allSettled([
+      api.webhooks.list(),
+      api.webhooks.listDeliveries(),
+    ])
+      .then(([endpointsData, deliveriesData]) => {
+        if (!isMounted) return;
+        if (endpointsData.status === "fulfilled") {
+          setEndpoints(endpointsData.value || []);
+        }
+        if (deliveriesData.status === "fulfilled") {
+          setDeliveries(deliveriesData.value || []);
+        }
+      })
+      .catch((err: unknown) => {
+        if (!isMounted) return;
+        const msg = err instanceof Error ? err.message : "Failed to load webhook configuration";
+        toast({
+          title: "Load Failed",
+          description: msg,
+          type: "error",
+        });
+      })
+      .finally(() => {
+        if (isMounted) setIsLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [toast]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -305,10 +334,10 @@ export function WebhooksView() {
       {/* 1. Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-kumo-strong">
+          <h1 className="text-[22px] sm:text-[24px] font-semibold tracking-tight text-kumo-strong leading-tight">
             Webhooks
           </h1>
-          <p className="text-xs text-kumo-subtle mt-1">
+          <p className="text-[13px] sm:text-[14px] text-kumo-subtle mt-0.5 sm:mt-1 font-normal leading-relaxed">
             Receive real-time HTTP POST payloads with HMAC-SHA256 signatures for email delivery, bounces, and complaints.
           </p>
         </div>
@@ -319,11 +348,11 @@ export function WebhooksView() {
             type="button"
             onClick={handleRefresh}
             disabled={isRefreshing || isLoading}
-            className="btn-cf-secondary text-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            className="btn-cf-secondary h-8 px-3 text-[13px] font-medium flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             title="Refresh webhooks and deliveries"
           >
             <ArrowsClockwise
-              size={13}
+              size={14}
               className={isRefreshing ? "animate-spin text-cf-blue" : ""}
             />
             <span>Refresh</span>
@@ -333,9 +362,9 @@ export function WebhooksView() {
             <button
               type="button"
               onClick={() => setIsAddModalOpen(true)}
-              className="btn-cf-primary flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
+              className="btn-cf-primary h-8 px-3.5 flex items-center gap-1.5 text-[13px] font-medium cursor-pointer"
             >
-              <Plus size={14} weight="bold" />
+              <Plus size={15} weight="bold" />
               <span>Add Endpoint</span>
             </button>
           )}
@@ -347,17 +376,17 @@ export function WebhooksView() {
       )}
 
       {/* 2. Security & Signing Banner */}
-      <div className="p-4 rounded-xl bg-kumo-base border border-kumo-hairline flex items-start gap-3 shadow-2xs">
-        <div className="p-2 rounded-lg bg-cf-blue/10 text-cf-blue shrink-0">
+      <div className="p-4 rounded-xl bg-kumo-base border border-kumo-hairline flex items-start gap-3.5 shadow-2xs">
+        <div className="p-2 rounded-lg bg-cf-blue/10 text-cf-blue shrink-0 mt-0.5">
           <ShieldCheck size={20} weight="fill" />
         </div>
-        <div className="text-xs leading-relaxed">
-          <span className="font-semibold text-kumo-strong block">
+        <div className="text-[13px] sm:text-[14px] leading-relaxed">
+          <span className="text-[14px] sm:text-[15px] font-medium text-kumo-strong block mb-0.5">
             Cryptographic Payload Verification
           </span>
           <span className="text-kumo-subtle">
             All outbound webhook requests include a computed{" "}
-            <code className="font-mono text-cf-blue font-semibold">
+            <code className="font-mono text-[12px] sm:text-[13px] font-medium text-cf-blue bg-cf-blue/10 px-1.5 py-0.5 rounded border border-cf-blue/20 break-all sm:break-normal inline-block align-middle">
               X-EmitMail-Signature: sha256=...
             </code>{" "}
             header signed with the endpoint&apos;s HMAC secret. Verify this signature in your backend to ensure requests originate directly from EmitMail.
@@ -368,7 +397,7 @@ export function WebhooksView() {
       {/* 3. Endpoints Section */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-kumo-strong uppercase tracking-wider font-mono">
+          <h2 className="text-[15px] sm:text-[16px] font-semibold text-kumo-strong uppercase tracking-wider font-mono">
             Configured Endpoints ({endpoints.length})
           </h2>
         </div>
@@ -377,22 +406,22 @@ export function WebhooksView() {
           <TableSkeleton rows={2} cols={4} />
         ) : endpoints.length === 0 ? (
           <div className="p-10 md:p-14 text-center flex flex-col items-center justify-center max-w-md mx-auto bg-kumo-base border border-kumo-hairline rounded-xl">
-            <div className="w-12 h-12 rounded-2xl bg-cf-blue/10 border border-cf-blue/20 flex items-center justify-center text-cf-blue mb-3">
-              <Broadcast size={24} weight="duotone" />
+            <div className="w-12 h-12 rounded-2xl bg-cf-blue/10 border border-cf-blue/20 flex items-center justify-center text-cf-blue mb-3.5">
+              <Broadcast size={24} weight="duotone" className="text-cf-blue" />
             </div>
-            <h3 className="text-sm font-semibold text-kumo-strong mb-1">
+            <h3 className="text-[15px] sm:text-[16px] font-semibold text-kumo-strong mb-1.5">
               No webhook endpoints configured
             </h3>
-            <p className="text-xs text-kumo-subtle mb-5 leading-relaxed">
+            <p className="text-[13px] sm:text-[14px] text-kumo-subtle mb-5 leading-relaxed max-w-sm">
               Register a target URL to receive instantaneous notifications when emails are delivered, opened, or bounced.
             </p>
             {!isViewer && (
               <button
                 type="button"
                 onClick={() => setIsAddModalOpen(true)}
-                className="btn-cf-primary flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
+                className="btn-cf-primary h-8 px-3.5 flex items-center gap-1.5 text-[13px] font-medium cursor-pointer"
               >
-                <Plus size={14} weight="bold" />
+                <Plus size={15} weight="bold" />
                 <span>Add your first endpoint</span>
               </button>
             )}
@@ -415,20 +444,20 @@ export function WebhooksView() {
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-mono text-xs font-semibold text-kumo-strong break-all">
+                        <span className="font-mono text-[13px] sm:text-[14px] font-medium text-kumo-strong break-all">
                           {ep.url}
                         </span>
-                        <StatusBadge variant={ep.isActive !== false ? "success" : "neutral"}>
+                        <StatusBadge variant={ep.isActive !== false ? "success" : "neutral"} className="text-[11px] sm:text-[12px]">
                           {ep.isActive !== false ? "Active" : "Disabled"}
                         </StatusBadge>
                         {ep.domain && (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded bg-kumo-recessed text-kumo-subtle border border-kumo-hairline">
-                            <Globe size={11} />
+                          <span className="inline-flex items-center gap-1 text-[11px] sm:text-[12px] font-mono px-2 py-0.5 rounded bg-kumo-recessed text-kumo-subtle border border-kumo-hairline">
+                            <Globe size={12} />
                             <span>{ep.domain.domainName}</span>
                           </span>
                         )}
                       </div>
-                      <span className="text-[11px] text-kumo-subtle block mt-0.5">
+                      <span className="text-[12px] text-kumo-subtle block mt-0.5 font-normal">
                         Added {new Date(ep.createdAt).toLocaleDateString()}
                       </span>
                     </div>
@@ -441,7 +470,7 @@ export function WebhooksView() {
                         type="button"
                         onClick={() => handleSendTestWebhook(ep)}
                         disabled={isTestingThis || isDeletingThis}
-                        className="px-3 py-1.5 rounded-lg bg-kumo-elevated hover:bg-kumo-interact border border-kumo-line text-xs font-semibold text-kumo-strong flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                        className="h-8 px-3 rounded-lg bg-kumo-elevated hover:bg-kumo-interact border border-kumo-line text-[13px] font-medium text-kumo-strong flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
                       >
                         <PaperPlaneTilt
                           size={14}
@@ -465,11 +494,11 @@ export function WebhooksView() {
                 </div>
 
                 {/* Middle row: HMAC Signing Secret */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg bg-kumo-recessed border border-kumo-hairline text-xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg bg-kumo-recessed border border-kumo-hairline text-[13px]">
                   <div className="flex items-center gap-2 min-w-0">
                     <ShieldCheck size={16} className="text-cf-blue shrink-0" />
-                    <span className="text-kumo-subtle font-medium shrink-0">HMAC Signing Secret:</span>
-                    <span className="font-mono text-kumo-strong truncate">
+                    <span className="text-kumo-subtle font-medium shrink-0 text-[13px]">HMAC Signing Secret:</span>
+                    <span className="font-mono text-kumo-strong truncate text-[12px] sm:text-[13px]">
                       {showSecret[ep.id] ? ep.secret : `${ep.secret.substring(0, 10)}••••••••••••••••••••••••`}
                     </span>
                   </div>
@@ -496,10 +525,10 @@ export function WebhooksView() {
                 {/* Event Subscriptions Matrix */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-semibold text-kumo-strong block">
+                    <span className="text-[13px] sm:text-[14px] font-medium text-kumo-strong block">
                       Subscribed Event Types ({ep.events.length})
                     </span>
-                    <span className="text-[11px] text-kumo-subtle">
+                    <span className="text-[12px] text-kumo-subtle font-normal">
                       Click to toggle triggers
                     </span>
                   </div>
@@ -528,7 +557,7 @@ export function WebhooksView() {
                             className="mt-0.5 accent-cf-blue cursor-pointer"
                           />
                           <div className="min-w-0">
-                            <span className="font-mono font-medium block truncate text-[11px]">
+                            <span className="font-mono font-medium block truncate text-[12px]">
                               {ev.label}
                             </span>
                           </div>
@@ -546,10 +575,10 @@ export function WebhooksView() {
       {/* 4. Recent Deliveries Log Table */}
       <div className="space-y-3 pt-2">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-kumo-strong">
+          <h2 className="text-[15px] sm:text-[16px] font-semibold text-kumo-strong">
             Recent Webhook Deliveries
           </h2>
-          <span className="text-xs text-kumo-subtle">
+          <span className="text-[12px] sm:text-[13px] text-kumo-subtle font-medium">
             {deliveries.length} {deliveries.length === 1 ? "record" : "records"} logged
           </span>
         </div>
@@ -558,20 +587,20 @@ export function WebhooksView() {
           {isLoading ? (
             <TableSkeleton rows={3} cols={6} />
           ) : deliveries.length === 0 ? (
-            <div className="p-8 text-center text-xs text-kumo-subtle">
+            <div className="p-8 text-center text-[13px] sm:text-[14px] text-kumo-subtle leading-relaxed">
               No webhook deliveries recorded yet. Trigger a &quot;Send Test Webhook&quot; above or dispatch transactional emails to see live delivery logs.
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
+              <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-kumo-hairline bg-kumo-recessed/50 text-kumo-subtle font-medium">
-                    <th className="py-3 px-4">Event</th>
-                    <th className="py-3 px-4">HTTP Status</th>
-                    <th className="py-3 px-4 hidden sm:table-cell">Target Endpoint</th>
-                    <th className="py-3 px-4 hidden md:table-cell">Latency</th>
-                    <th className="py-3 px-4">Timestamp</th>
-                    <th className="py-3 px-4 text-right">Payload</th>
+                  <tr className="border-b border-kumo-hairline bg-kumo-recessed/50 text-kumo-subtle text-[13px] font-medium">
+                    <th className="py-3 px-4 font-medium">Event</th>
+                    <th className="py-3 px-4 font-medium">HTTP Status</th>
+                    <th className="py-3 px-4 font-medium hidden sm:table-cell">Target Endpoint</th>
+                    <th className="py-3 px-4 font-medium hidden md:table-cell">Latency</th>
+                    <th className="py-3 px-4 font-medium">Timestamp</th>
+                    <th className="py-3 px-4 font-medium text-right">Payload</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-kumo-hairline">
@@ -585,29 +614,29 @@ export function WebhooksView() {
                     return (
                       <tr key={log.id} className="hover:bg-kumo-tint/60 transition-colors">
                         {/* Event Type */}
-                        <td className="py-3 px-4 font-mono text-[11px] font-semibold text-kumo-strong">
+                        <td className="py-3 px-4 font-mono text-[12px] sm:text-[13px] font-medium text-kumo-strong">
                           {log.event}
                         </td>
 
                         {/* Status Badge */}
                         <td className="py-3 px-4">
-                          <StatusBadge variant={isSuccess ? "success" : "danger"}>
+                          <StatusBadge variant={isSuccess ? "success" : "danger"} className="text-[11px] sm:text-[12px]">
                             {log.statusCode ? `${log.statusCode} ${log.statusText || (isSuccess ? "OK" : "Failed")}` : "Connection Failed"}
                           </StatusBadge>
                         </td>
 
                         {/* URL */}
-                        <td className="py-3 px-4 text-kumo-subtle font-mono text-[11px] truncate max-w-[220px] hidden sm:table-cell">
+                        <td className="py-3 px-4 text-kumo-subtle font-mono text-[12px] sm:text-[13px] truncate max-w-[220px] hidden sm:table-cell">
                           {targetUrl}
                         </td>
 
                         {/* Latency */}
-                        <td className="py-3 px-4 font-mono text-kumo-subtle hidden md:table-cell">
+                        <td className="py-3 px-4 font-mono text-kumo-subtle text-[12px] sm:text-[13px] hidden md:table-cell">
                           {typeof log.latencyMs === "number" ? `${log.latencyMs}ms` : "—"}
                         </td>
 
                         {/* Timestamp */}
-                        <td className="py-3 px-4 text-kumo-subtle font-mono text-[11px]">
+                        <td className="py-3 px-4 text-kumo-subtle font-mono text-[12px] sm:text-[13px]">
                           {formattedDate}
                         </td>
 
@@ -616,7 +645,7 @@ export function WebhooksView() {
                           <button
                             type="button"
                             onClick={() => setSelectedPayloadLog(log)}
-                            className="px-2 py-1 rounded bg-kumo-elevated hover:bg-kumo-interact border border-kumo-line text-[11px] font-medium text-kumo-strong transition-colors inline-flex items-center gap-1 cursor-pointer"
+                            className="px-2.5 py-1 rounded bg-kumo-elevated hover:bg-kumo-interact border border-kumo-line text-[12px] font-medium text-kumo-strong transition-colors inline-flex items-center gap-1 cursor-pointer"
                           >
                             <Code size={13} />
                             <span>Inspect</span>
@@ -643,7 +672,7 @@ export function WebhooksView() {
             <div className="flex items-center justify-between px-5 py-4 border-b border-kumo-hairline">
               <div className="flex items-center gap-2">
                 <Code size={18} className="text-cf-blue" />
-                <h3 className="text-sm font-semibold text-kumo-strong font-mono">
+                <h3 className="text-[14px] sm:text-[15px] font-medium text-kumo-strong font-mono">
                   {selectedPayloadLog.event} Payload
                 </h3>
               </div>
@@ -656,18 +685,18 @@ export function WebhooksView() {
               </button>
             </div>
             <div className="p-4 bg-kumo-recessed space-y-3">
-              <div className="text-xs space-y-1">
+              <div className="text-[12px] sm:text-[13px] space-y-1">
                 <span className="text-kumo-subtle block">Target Endpoint:</span>
-                <span className="font-mono text-kumo-strong block break-all text-[11px]">
+                <span className="font-mono text-kumo-strong block break-all text-[12px]">
                   {selectedPayloadLog.url || selectedPayloadLog.subscription?.url || "Endpoint"}
                 </span>
               </div>
-              <pre className="font-mono text-xs text-kumo-strong bg-kumo-base p-4 rounded-xl border border-kumo-hairline overflow-x-auto max-h-80">
+              <pre className="font-mono text-[12px] sm:text-[13px] text-kumo-strong bg-kumo-base p-4 rounded-xl border border-kumo-hairline overflow-x-auto max-h-80 leading-relaxed">
                 {JSON.stringify(selectedPayloadLog.payload, null, 2)}
               </pre>
             </div>
             <div className="px-5 py-3 bg-kumo-recessed border-t border-kumo-hairline flex items-center justify-between">
-              <span className="text-[11px] text-kumo-subtle">
+              <span className="text-[12px] text-kumo-subtle">
                 RFC JSON payload format
               </span>
               <button
@@ -678,7 +707,7 @@ export function WebhooksView() {
                     "Payload JSON"
                   );
                 }}
-                className="btn-cf-primary flex items-center gap-1.5"
+                className="btn-cf-primary h-8 px-3 text-[13px] font-medium flex items-center gap-1.5"
               >
                 <Copy size={13} />
                 <span>Copy JSON</span>
@@ -702,7 +731,7 @@ export function WebhooksView() {
                   <div className="w-8 h-8 rounded-lg bg-cf-blue/10 border border-cf-blue/20 flex items-center justify-center text-cf-blue">
                     <PlugsConnected size={18} weight="bold" />
                   </div>
-                  <h3 className="text-sm font-semibold text-kumo-strong">
+                  <h3 className="text-[15px] font-semibold text-kumo-strong">
                     Add Webhook Endpoint
                   </h3>
                 </div>
@@ -718,7 +747,7 @@ export function WebhooksView() {
 
               <div className="p-5 space-y-4">
                 <div>
-                  <label className="block text-xs font-medium text-kumo-subtle mb-1.5">
+                  <label className="block text-[13px] font-medium text-kumo-subtle mb-1.5">
                     Endpoint URL (HTTP or HTTPS)
                   </label>
                   <input
@@ -727,16 +756,16 @@ export function WebhooksView() {
                     value={newUrl}
                     onChange={(e) => setNewUrl(e.target.value)}
                     placeholder="https://api.yourdomain.com/webhooks/emitmail"
-                    className="w-full bg-kumo-control border border-kumo-line rounded-lg px-3 py-2 text-xs text-kumo-strong placeholder:text-kumo-muted focus:outline-none focus:border-cf-blue font-mono"
+                    className="w-full bg-kumo-control border border-kumo-line rounded-lg px-3 py-2 text-[13px] sm:text-[14px] text-kumo-strong placeholder:text-kumo-muted focus:outline-none focus:border-cf-blue font-mono"
                   />
-                  <span className="text-[11px] text-kumo-subtle mt-1 block">
+                  <span className="text-[12px] text-kumo-subtle mt-1 block">
                     Must be reachable from your EmitMail server.
                   </span>
                 </div>
 
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs font-medium text-kumo-subtle">
+                    <label className="block text-[13px] font-medium text-kumo-subtle">
                       Select Events to Subscribe
                     </label>
                     <button
@@ -748,7 +777,7 @@ export function WebhooksView() {
                             : AVAILABLE_EVENTS.map((e) => e.id)
                         )
                       }
-                      className="text-[11px] text-cf-blue hover:underline cursor-pointer"
+                      className="text-[12px] text-cf-blue hover:underline cursor-pointer font-medium"
                     >
                       {selectedEvents.length === AVAILABLE_EVENTS.length ? "Deselect All" : "Select All"}
                     </button>
@@ -760,7 +789,7 @@ export function WebhooksView() {
                       return (
                         <label
                           key={ev.id}
-                          className="flex items-center gap-2 p-2 rounded-lg bg-kumo-recessed border border-kumo-hairline cursor-pointer text-xs hover:border-kumo-line transition-colors"
+                          className="flex items-center gap-2.5 p-2 rounded-lg bg-kumo-recessed border border-kumo-hairline cursor-pointer text-xs hover:border-kumo-line transition-colors"
                         >
                           <input
                             type="checkbox"
@@ -772,13 +801,13 @@ export function WebhooksView() {
                                   : [...prev, ev.id]
                               );
                             }}
-                            className="accent-cf-blue"
+                            className="accent-cf-blue cursor-pointer"
                           />
                           <div className="min-w-0">
-                            <span className="font-mono text-kumo-strong font-medium block">
+                            <span className="font-mono text-kumo-strong font-medium block text-[12px] sm:text-[13px]">
                               {ev.label}
                             </span>
-                            <span className="text-[10px] text-kumo-subtle block truncate">
+                            <span className="text-[11px] sm:text-[12px] text-kumo-subtle block truncate">
                               {ev.desc}
                             </span>
                           </div>
@@ -794,14 +823,14 @@ export function WebhooksView() {
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
                   disabled={isSubmitting}
-                  className="btn-cf-secondary cursor-pointer disabled:opacity-50"
+                  className="btn-cf-secondary h-8 px-3 text-[13px] font-medium cursor-pointer disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting || !newUrl.trim() || selectedEvents.length === 0}
-                  className="btn-cf-primary flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  className="btn-cf-primary h-8 px-3.5 text-[13px] font-medium flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                 >
                   {isSubmitting ? (
                     <>

@@ -8,7 +8,6 @@ import {
   Trash,
   ArrowsClockwise,
   X,
-  Star,
   CaretUpDown,
   Info,
   Gear,
@@ -46,8 +45,6 @@ export function DomainsView() {
   const [newReturnPathSub, setNewReturnPathSub] = useState("send");
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [starredDomainIds, setStarredDomainIds] = useState<Set<string>>(new Set());
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   // Close floating dropdown on window scroll or resize
@@ -87,9 +84,9 @@ export function DomainsView() {
       const enriched: DisplayDomainItem[] = (data || []).map((dom, idx) => ({
         ...dom,
         insightsCount: dom.status === "VERIFIED" ? 5 : 1,
-        uniqueVisitors: dom.status === "VERIFIED" ? 230 + (idx * 140) : 0,
+        uniqueVisitors: dom.status === "VERIFIED" ? 230 + idx * 140 : 0,
         plan: "Free",
-        isStarred: starredDomainIds.has(dom.id),
+        isStarred: false,
       }));
       setDomains(enriched);
     } catch (err: unknown) {
@@ -103,11 +100,36 @@ export function DomainsView() {
     } finally {
       setIsLoading(false);
     }
-  }, [starredDomainIds, toast]);
+  }, [toast]);
 
   useEffect(() => {
-    fetchDomains();
-  }, [fetchDomains]);
+    let isMounted = true;
+    api.domains
+      .list()
+      .then((data) => {
+        if (!isMounted) return;
+        const enriched: DisplayDomainItem[] = (data || []).map((dom, idx) => ({
+          ...dom,
+          insightsCount: dom.status === "VERIFIED" ? 5 : 1,
+          uniqueVisitors: dom.status === "VERIFIED" ? 230 + idx * 140 : 0,
+          plan: "Free",
+          isStarred: false,
+        }));
+        setDomains(enriched);
+      })
+      .catch((err: unknown) => {
+        if (!isMounted) return;
+        const msg = err instanceof Error ? err.message : "Failed to load domains from API";
+        setFetchError(msg);
+      })
+      .finally(() => {
+        if (isMounted) setIsLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleAddDomain = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -202,7 +224,6 @@ export function DomainsView() {
       });
       return;
     }
-    setIsVerifying(true);
     toast({
       title: "Verifying DNS Propagation",
       description: `Querying DKIM, SPF, MX, and DMARC records for ${domain.domainName}...`,
@@ -244,8 +265,6 @@ export function DomainsView() {
         description: msg,
         type: "error",
       });
-    } finally {
-      setIsVerifying(false);
     }
   };
 
@@ -293,22 +312,6 @@ export function DomainsView() {
     }
   };
 
-  const toggleStar = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setStarredDomainIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-    setDomains((prev) =>
-      prev.map((d) => (d.id === id ? { ...d, isStarred: !d.isStarred } : d))
-    );
-  };
-
   const filteredDomains = domains.filter((d) =>
     d.domainName.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -323,11 +326,11 @@ export function DomainsView() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-kumo-strong">
+            <h1 className="text-[22px] sm:text-[24px] font-semibold tracking-tight text-kumo-strong leading-tight">
               Domains
             </h1>
           </div>
-          <p className="text-xs text-kumo-subtle mt-1.5">
+          <p className="text-[13px] sm:text-[14px] text-kumo-subtle mt-0.5 font-normal leading-relaxed">
             Manage authenticated sending domains, DKIM keys, SPF return-paths, and DMARC compliance
           </p>
         </div>
@@ -338,16 +341,17 @@ export function DomainsView() {
             type="button"
             onClick={fetchDomains}
             disabled={isLoading}
-            className="btn-cf-secondary flex items-center gap-1.5"
+            className="btn-cf-secondary flex items-center gap-1.5 shadow-2xs text-[13px]"
             title="Refresh domains list"
+            aria-label="Refresh domains list"
           >
-            <ArrowsClockwise size={14} className={isLoading ? "animate-spin" : ""} />
+            <ArrowsClockwise size={14} className={isLoading ? "animate-spin text-cf-blue" : ""} />
             <span>Refresh</span>
           </button>
           {!isViewer && (
             <Link
               href="/domains/add"
-              className="btn-cf-primary flex items-center gap-1.5"
+              className="btn-cf-primary flex items-center gap-1.5 shadow-2xs text-[13px]"
             >
               <Plus size={14} weight="bold" />
               <span>Add domain</span>
@@ -358,7 +362,7 @@ export function DomainsView() {
 
       {/* Connection Error Banner if backend fails */}
       {fetchError && (
-        <div className="p-3.5 rounded-lg bg-kumo-danger-tint border border-kumo-danger/30 text-kumo-danger text-xs flex items-center justify-between">
+        <div className="p-3.5 rounded-lg bg-kumo-danger-tint border border-kumo-danger/30 text-kumo-danger text-[13px] flex items-center justify-between shadow-2xs">
           <div className="flex items-center gap-2">
             <WarningCircle size={16} weight="bold" />
             <span>Failed to reach API server: {fetchError}</span>
@@ -380,28 +384,28 @@ export function DomainsView() {
         </div>
       ) : domains.length === 0 ? (
         /* 3. Empty State / No Data (Replaces empty table when no domains are available) */
-        <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-10 md:p-14 text-center flex flex-col items-center justify-center max-w-xl mx-auto my-6 shadow-2xs">
-          <div className="w-14 h-14 rounded-2xl bg-[#141414] border border-[#2B2B2B] flex items-center justify-center text-cf-blue mb-4 shadow-inner">
-            <Globe size={30} weight="duotone" className="text-cf-blue" />
+        <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-8 sm:p-12 text-center flex flex-col items-center justify-center max-w-lg mx-auto my-6 shadow-2xs">
+          <div className="w-12 h-12 rounded-2xl bg-cf-blue/10 border border-cf-blue/20 flex items-center justify-center text-cf-blue mb-3.5 shadow-2xs">
+            <Globe size={24} weight="bold" className="text-cf-blue" />
           </div>
-          <h3 className="text-base font-semibold text-kumo-strong mb-1.5">
+          <h3 className="text-[15px] sm:text-[16px] font-medium text-kumo-strong mb-1">
             No domains registered
           </h3>
-          <p className="text-xs text-kumo-subtle max-w-md mb-6 leading-relaxed">
-            You haven't configured any sending domains yet. Register your domain to generate 2048-bit DKIM keys, SPF return-paths, and start dispatching emails with 10/10 deliverability.
+          <p className="text-[12px] sm:text-[13px] text-kumo-subtle max-w-md mb-5 leading-relaxed font-normal">
+            You haven&apos;t configured any sending domains yet. Register your domain to generate 2048-bit DKIM keys, SPF return-paths, and start dispatching emails with 10/10 deliverability.
           </p>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <Link
               href="/domains/add"
-              className="btn-cf-primary flex items-center gap-2 px-4 py-2 text-xs"
+              className="btn-cf-primary flex items-center gap-1.5 px-3.5 py-2 text-[13px] shadow-2xs"
             >
-              <Plus size={15} weight="bold" />
+              <Plus size={14} weight="bold" />
               <span>Add sending domain</span>
             </Link>
             <button
               type="button"
               onClick={fetchDomains}
-              className="btn-cf-secondary flex items-center gap-1.5 px-3 py-2 text-xs"
+              className="btn-cf-secondary flex items-center gap-1.5 px-3 py-2 text-[13px] shadow-2xs"
             >
               <ArrowsClockwise size={14} />
               <span>Refresh</span>
@@ -413,26 +417,27 @@ export function DomainsView() {
         <>
           {/* Full-Width Search Bar */}
           <div className="relative w-full">
-            <div className="flex items-center bg-kumo-control border border-kumo-line rounded-lg px-3 py-2 text-xs text-kumo-strong focus-within:border-cf-blue transition-colors">
+            <div className="flex items-center bg-kumo-control hover:bg-kumo-elevated/50 border border-kumo-line rounded-lg px-3 h-9 text-[13px] sm:text-[14px] text-kumo-strong focus-within:border-cf-blue/80 focus-within:ring-1 focus-within:ring-cf-blue/30 transition-colors shadow-2xs">
               <MagnifyingGlass
                 size={15}
-                className="text-[#6E6E6E] shrink-0"
+                className="text-kumo-muted shrink-0 pointer-events-none"
               />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by domain name..."
-                className="w-full bg-transparent border-0 outline-none pl-2.5 pr-6 text-xs text-kumo-strong placeholder:text-[#6E6E6E]"
+                className="w-full bg-transparent border-0 outline-none pl-2.5 pr-6 text-[13px] sm:text-[14px] text-kumo-strong placeholder:text-kumo-muted"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery("")}
-                  className="text-[#6E6E6E] hover:text-white mr-2 cursor-pointer"
+                  className="text-kumo-muted hover:text-kumo-strong mr-1 cursor-pointer p-0.5 rounded transition-colors"
                   title="Clear search"
+                  aria-label="Clear search"
                 >
-                  <X size={14} />
+                  <X size={13} />
                 </button>
               )}
             </div>
@@ -441,45 +446,45 @@ export function DomainsView() {
           {/* Authentic Cloudflare Domains Table */}
           <div className="bg-kumo-base border border-kumo-hairline rounded-xl overflow-hidden shadow-2xs">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
+              <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-kumo-hairline bg-kumo-recessed/50 text-kumo-subtle font-medium select-none">
+                  <tr className="border-b border-kumo-hairline bg-kumo-recessed/40 text-kumo-subtle font-medium text-[13px] select-none">
                     {/* Domain */}
-                    <th className="py-2.5 px-4 font-normal">
+                    <th className="py-2.5 px-4 font-medium">
                       <div className="flex items-center gap-1 cursor-pointer hover:text-kumo-strong transition-colors">
                         <span>Domain</span>
-                        <CaretUpDown size={13} className="text-[#6E6E6E]" />
+                        <CaretUpDown size={13} className="text-kumo-muted" />
                       </div>
                     </th>
 
                     {/* Status */}
-                    <th className="py-2.5 px-4 font-normal">
+                    <th className="py-2.5 px-4 font-medium">
                       <div className="flex items-center gap-1 cursor-pointer hover:text-kumo-strong transition-colors">
                         <span>Status</span>
-                        <Info size={13} className="text-[#6E6E6E]" />
+                        <Info size={13} className="text-kumo-muted" />
                       </div>
                     </th>
 
                     {/* Date Created */}
-                    <th className="py-2.5 px-4 font-normal">
+                    <th className="py-2.5 px-4 font-medium">
                       <span>Created</span>
                     </th>
 
                     {/* Actions */}
-                    <th className="py-2.5 px-4 text-right font-normal">
-                      <Gear size={15} className="text-[#6E6E6E] inline-block" />
+                    <th className="py-2.5 px-4 text-right font-medium">
+                      <Gear size={15} className="text-kumo-muted inline-block" />
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-kumo-hairline">
+                <tbody className="divide-y divide-kumo-hairline text-[13px]">
                   {filteredDomains.length === 0 ? (
                     <tr>
                       <td colSpan={4} className="py-12 text-center text-kumo-subtle">
-                        <p className="mb-2">No domains found matching "{searchQuery}".</p>
+                        <p className="mb-2 text-[13px]">No domains found matching &ldquo;{searchQuery}&rdquo;.</p>
                         <button
                           type="button"
                           onClick={() => setSearchQuery("")}
-                          className="btn-cf-secondary text-xs py-1 px-2.5"
+                          className="btn-cf-secondary text-xs py-1 px-2.5 shadow-2xs"
                         >
                           Clear search filter
                         </button>
@@ -489,17 +494,17 @@ export function DomainsView() {
                     filteredDomains.map((dom) => (
                       <tr
                         key={dom.id}
-                        className="hover:bg-kumo-tint/60 transition-colors group"
+                        className="hover:bg-kumo-elevated/40 transition-colors group"
                       >
                         {/* Domain Name */}
-                        <td className="py-3.5 px-4 font-semibold text-kumo-strong">
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-7 h-7 rounded-lg bg-cf-blue/10 border border-cf-blue/20 flex items-center justify-center text-cf-blue shrink-0">
+                        <td className="py-3 px-4 align-middle">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-7 h-7 rounded-lg bg-cf-blue/10 border border-cf-blue/20 flex items-center justify-center text-cf-blue shrink-0 shadow-2xs group-hover:bg-cf-blue group-hover:text-white transition-colors duration-150">
                               <Globe size={14} weight="bold" />
                             </div>
                             <Link
                               href={`/domains/${dom.id}`}
-                              className="font-mono text-xs font-semibold text-kumo-strong group-hover:text-cf-blue transition-colors truncate"
+                              className="font-mono text-[13px] sm:text-[14px] font-medium text-kumo-strong group-hover:text-cf-blue transition-colors truncate"
                             >
                               {dom.domainName}
                             </Link>
@@ -507,7 +512,7 @@ export function DomainsView() {
                         </td>
 
                         {/* Status: Active, Partially Failed, Failed, or Pending DNS */}
-                        <td className="py-3 px-4">
+                        <td className="py-3 px-4 align-middle whitespace-nowrap">
                           {(() => {
                             const records = dom.dnsRecords || [];
                             const verifiedCount = records.filter((r) => r.status === "VERIFIED").length;
@@ -533,7 +538,7 @@ export function DomainsView() {
 
                             if (statusType === "active") {
                               return (
-                                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] sm:text-[12px] font-medium bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
                                   <Check size={12} weight="bold" />
                                   <span>Active</span>
                                 </div>
@@ -542,7 +547,7 @@ export function DomainsView() {
 
                             if (statusType === "partially_failed") {
                               return (
-                                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] sm:text-[12px] font-medium bg-amber-500/10 border border-amber-500/20 text-amber-400">
                                   <WarningCircle size={12} weight="bold" />
                                   <span>Partially Failed</span>
                                 </div>
@@ -551,7 +556,7 @@ export function DomainsView() {
 
                             if (statusType === "failed") {
                               return (
-                                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-rose-500/10 border border-rose-500/20 text-rose-400">
+                                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] sm:text-[12px] font-medium bg-rose-500/10 border border-rose-500/20 text-rose-400">
                                   <X size={12} weight="bold" />
                                   <span>Failed</span>
                                 </div>
@@ -559,7 +564,7 @@ export function DomainsView() {
                             }
 
                             return (
-                              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-zinc-500/10 border border-zinc-500/20 text-zinc-400">
+                              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] sm:text-[12px] font-medium bg-zinc-500/10 border border-zinc-500/20 text-zinc-400">
                                 <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 animate-pulse" />
                                 <span>Pending DNS</span>
                               </div>
@@ -568,7 +573,7 @@ export function DomainsView() {
                         </td>
 
                         {/* Created Date */}
-                        <td className="py-3.5 px-4 text-kumo-subtle font-mono text-[11px]">
+                        <td className="py-3 px-4 text-kumo-subtle font-mono text-[12px] sm:text-[13px] align-middle whitespace-nowrap">
                           {new Date(dom.createdAt).toLocaleDateString("en-US", {
                             month: "short",
                             day: "numeric",
@@ -577,15 +582,16 @@ export function DomainsView() {
                         </td>
 
                         {/* Actions Menu */}
-                        <td className="py-3.5 px-4 text-right">
+                        <td className="py-3 px-4 text-right align-middle whitespace-nowrap">
                           <button
                             type="button"
                             onClick={(e) => handleToggleMenu(e, dom)}
                             className={cn(
-                              "p-1 rounded text-[#8E8E93] hover:text-white hover:bg-[#1E1E22] transition-colors cursor-pointer",
-                              activeMenuDomain?.id === dom.id && "bg-[#1E1E22] text-white"
+                              "p-1.5 rounded-md text-kumo-subtle hover:text-kumo-strong hover:bg-kumo-elevated transition-colors cursor-pointer",
+                              activeMenuDomain?.id === dom.id && "bg-kumo-elevated text-kumo-strong"
                             )}
                             title="Domain Actions"
+                            aria-label={`Actions for domain ${dom.domainName}`}
                           >
                             <DotsThree size={18} weight="bold" />
                           </button>
@@ -599,8 +605,10 @@ export function DomainsView() {
           </div>
 
           {/* Footnote Count */}
-          <div className="text-xs text-[#8E8E93]">
-            Showing 1-{filteredDomains.length} of {domains.length} {domains.length === 1 ? "domain" : "domains"}
+          <div className="text-[12px] sm:text-[13px] text-kumo-subtle select-none">
+            Showing <span className="font-mono font-medium text-kumo-strong">1</span>–<span className="font-mono font-medium text-kumo-strong">{filteredDomains.length}</span> of{" "}
+            <span className="font-mono font-medium text-kumo-strong">{domains.length}</span>{" "}
+            {domains.length === 1 ? "domain" : "domains"}
           </div>
         </>
       )}
@@ -622,7 +630,7 @@ export function DomainsView() {
               top: `${menuCoords.top}px`,
               right: `${menuCoords.right}px`,
             }}
-            className="w-48 bg-kumo-base border border-kumo-line rounded-xl shadow-2xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 text-left"
+            className="w-52 bg-kumo-base border border-kumo-line rounded-xl shadow-2xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 text-left"
           >
             <Link
               href={`/domains/${activeMenuDomain.id}`}
@@ -630,9 +638,9 @@ export function DomainsView() {
                 setActiveMenuDomain(null);
                 setMenuCoords(null);
               }}
-              className="w-full px-3 py-1.5 text-xs text-left text-kumo-default hover:bg-kumo-tint hover:text-kumo-strong flex items-center gap-2 transition-colors"
+              className="w-full px-3.5 py-2 text-[13px] text-left text-kumo-default hover:bg-kumo-tint hover:text-kumo-strong flex items-center gap-2 transition-colors"
             >
-              <Gear size={14} />
+              <Gear size={14} className="text-kumo-muted" />
               <span>Domain Configuration</span>
             </Link>
             {!isViewer && (
@@ -644,9 +652,9 @@ export function DomainsView() {
                     setActiveMenuDomain(null);
                     setMenuCoords(null);
                   }}
-                  className="w-full px-3 py-1.5 text-xs text-left text-kumo-default hover:bg-kumo-tint hover:text-kumo-strong flex items-center gap-2 transition-colors cursor-pointer"
+                  className="w-full px-3.5 py-2 text-[13px] text-left text-kumo-default hover:bg-kumo-tint hover:text-kumo-strong flex items-center gap-2 transition-colors cursor-pointer"
                 >
-                  <ArrowsClockwise size={14} />
+                  <ArrowsClockwise size={14} className="text-kumo-muted" />
                   <span>Verify DNS Now</span>
                 </button>
                 <button
@@ -656,7 +664,7 @@ export function DomainsView() {
                     setActiveMenuDomain(null);
                     setMenuCoords(null);
                   }}
-                  className="w-full px-3 py-1.5 text-xs text-left text-kumo-default hover:bg-kumo-tint hover:text-kumo-strong flex items-center gap-2 transition-colors cursor-pointer"
+                  className="w-full px-3.5 py-2 text-[13px] text-left text-kumo-default hover:bg-kumo-tint hover:text-kumo-strong flex items-center gap-2 transition-colors cursor-pointer"
                 >
                   <ArrowsClockwise size={14} className="text-cf-orange" />
                   <span>Rotate DKIM (2048-bit)</span>
@@ -669,7 +677,7 @@ export function DomainsView() {
                     setActiveMenuDomain(null);
                     setMenuCoords(null);
                   }}
-                  className="w-full px-3 py-1.5 text-xs text-left text-red-500 hover:bg-red-500/10 flex items-center gap-2 transition-colors cursor-pointer"
+                  className="w-full px-3.5 py-2 text-[13px] text-left text-red-500 hover:bg-red-500/10 flex items-center gap-2 transition-colors cursor-pointer"
                 >
                   <Trash size={14} />
                   <span>Delete Domain</span>
@@ -679,8 +687,6 @@ export function DomainsView() {
           </div>
         </>
       )}
-
-
 
       {/* 6. Add Domain Modal */}
       {isAddModalOpen && (
@@ -693,10 +699,10 @@ export function DomainsView() {
             <form onSubmit={handleAddDomain}>
               <div className="flex items-center justify-between px-5 py-4 border-b border-kumo-hairline">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-cf-blue/10 border border-cf-blue/20 flex items-center justify-center text-cf-blue">
+                  <div className="w-8 h-8 rounded-lg bg-cf-blue/10 border border-cf-blue/20 flex items-center justify-center text-cf-blue shadow-2xs">
                     <Globe size={18} weight="bold" />
                   </div>
-                  <h3 className="text-sm font-semibold text-kumo-strong">
+                  <h3 className="text-[15px] sm:text-[16px] font-medium text-kumo-strong">
                     Add Sending Domain
                   </h3>
                 </div>
@@ -704,7 +710,8 @@ export function DomainsView() {
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
                   disabled={isSubmitting}
-                  className="p-1 rounded-md text-kumo-muted hover:text-kumo-strong hover:bg-kumo-tint cursor-pointer"
+                  className="p-1 rounded-md text-kumo-muted hover:text-kumo-strong hover:bg-kumo-tint cursor-pointer transition-colors"
+                  aria-label="Close modal"
                 >
                   <X size={16} />
                 </button>
@@ -712,7 +719,7 @@ export function DomainsView() {
 
               <div className="p-5 space-y-4">
                 <div>
-                  <label className="block text-xs font-medium text-kumo-subtle mb-1.5">
+                  <label className="block text-[13px] font-medium text-kumo-subtle mb-1.5">
                     Domain Name
                   </label>
                   <input
@@ -721,16 +728,16 @@ export function DomainsView() {
                     value={newDomainName}
                     onChange={(e) => setNewDomainName(e.target.value)}
                     placeholder="example.com or mail.example.com"
-                    className="w-full bg-kumo-control border border-kumo-line rounded-lg px-3 py-2 text-xs text-kumo-strong placeholder:text-kumo-muted focus:outline-none focus:border-cf-blue"
+                    className="w-full bg-kumo-control border border-kumo-line rounded-lg px-3 py-2 text-[13px] text-kumo-strong placeholder:text-kumo-muted focus:outline-none focus:border-cf-blue shadow-2xs"
                   />
-                  <p className="text-[11px] text-kumo-subtle mt-1">
+                  <p className="text-[12px] text-kumo-subtle mt-1 font-normal">
                     Enter the apex domain (e.g. <code>example.com</code>) or subdomain (e.g. <code>mail.example.com</code>).
                   </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-kumo-subtle mb-1.5">
+                    <label className="block text-[13px] font-medium text-kumo-subtle mb-1.5">
                       DKIM Selector
                     </label>
                     <input
@@ -738,12 +745,12 @@ export function DomainsView() {
                       value={newKeySelector}
                       onChange={(e) => setNewKeySelector(e.target.value)}
                       placeholder="esp"
-                      className="w-full bg-kumo-control border border-kumo-line rounded-lg px-3 py-2 text-xs text-kumo-strong focus:outline-none focus:border-cf-blue"
+                      className="w-full bg-kumo-control border border-kumo-line rounded-lg px-3 py-2 text-[13px] text-kumo-strong focus:outline-none focus:border-cf-blue shadow-2xs"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-kumo-subtle mb-1.5">
+                    <label className="block text-[13px] font-medium text-kumo-subtle mb-1.5">
                       Return-Path Subdomain
                     </label>
                     <input
@@ -751,14 +758,14 @@ export function DomainsView() {
                       value={newReturnPathSub}
                       onChange={(e) => setNewReturnPathSub(e.target.value)}
                       placeholder="send"
-                      className="w-full bg-kumo-control border border-kumo-line rounded-lg px-3 py-2 text-xs text-kumo-strong focus:outline-none focus:border-cf-blue"
+                      className="w-full bg-kumo-control border border-kumo-line rounded-lg px-3 py-2 text-[13px] text-kumo-strong focus:outline-none focus:border-cf-blue shadow-2xs"
                     />
                   </div>
                 </div>
 
                 <div className="p-3 rounded-lg bg-kumo-recessed border border-kumo-hairline flex items-start gap-2.5">
                   <ShieldCheck size={18} className="text-cf-blue shrink-0 mt-0.5" />
-                  <p className="text-[11px] text-kumo-subtle leading-relaxed">
+                  <p className="text-[12px] text-kumo-subtle leading-relaxed font-normal">
                     EmitMail will generate an RSA-2048 DKIM keypair and custom SPF alignment records automatically upon creation.
                   </p>
                 </div>
@@ -769,14 +776,14 @@ export function DomainsView() {
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
                   disabled={isSubmitting}
-                  className="btn-cf-secondary text-xs"
+                  className="btn-cf-secondary text-[13px] shadow-2xs"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting || !newDomainName.trim()}
-                  className="btn-cf-primary text-xs flex items-center gap-1.5"
+                  className="btn-cf-primary text-[13px] flex items-center gap-1.5 shadow-2xs"
                 >
                   {isSubmitting ? (
                     <>

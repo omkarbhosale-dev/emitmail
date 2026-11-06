@@ -11,7 +11,6 @@ import {
   Moon,
   MagnifyingGlass,
   Sparkle,
-  User,
   SignOut,
   Gear,
 } from "@phosphor-icons/react";
@@ -35,12 +34,14 @@ export function Header({
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setMounted(true);
-    const currentMode =
-      (document.documentElement.getAttribute("data-mode") as
-        | "dark"
-        | "light") || "dark";
-    setThemeMode(currentMode);
+    queueMicrotask(() => {
+      setMounted(true);
+      const currentMode =
+        (document.documentElement.getAttribute("data-mode") as
+          | "dark"
+          | "light") || "dark";
+      setThemeMode(currentMode);
+    });
 
     const handleThemeChange = (e: Event) => {
       const customEvent = e as CustomEvent<"dark" | "light">;
@@ -208,14 +209,6 @@ export function Header({
                 >
                   <Gear size={14} />
                   <span>Workspace Settings</span>
-                </Link>
-                <Link
-                  href="/settings"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="w-full flex items-center gap-2 px-3 py-1.5 text-kumo-default hover:bg-kumo-tint hover:text-kumo-strong transition-colors cursor-pointer"
-                >
-                  <User size={14} />
-                  <span>Profile & Security</span>
                 </Link>
               </div>
 
