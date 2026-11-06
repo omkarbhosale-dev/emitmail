@@ -9,7 +9,6 @@ import {
   Globe,
   CaretRight,
   DotsThree,
-  CheckCircle,
   Key,
   Tray,
   CalendarBlank,
@@ -76,6 +75,7 @@ function InteractiveTimeseriesChart({
 }: InteractiveTimeseriesChartProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
+  const hasActivity = data.some((d) => d.val > 0);
   const chartWidth = 500;
   const chartHeight = 120;
   const maxVal = Math.max(...data.map((d) => d.val), 5);
@@ -123,43 +123,60 @@ function InteractiveTimeseriesChart({
   }
 
   return (
-    <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-4 sm:p-5 flex flex-col justify-between min-h-[260px] relative overflow-hidden group">
+    <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-4 sm:p-4.5 flex flex-col justify-between min-h-[240px] relative overflow-hidden group hover:border-kumo-line/80 transition-colors">
       <div>
         <div className="flex items-center justify-between">
-          <span className="text-xs font-medium text-kumo-subtle">{title}</span>
-          <span className="text-[11px] text-kumo-muted font-mono flex items-center gap-1">
+          <span className="text-[13px] sm:text-[14px] font-medium text-kumo-subtle">{title}</span>
+          <span className="text-[12px] text-kumo-muted font-mono flex items-center gap-1.5">
             {badgeIcon}
             <span>30-day view</span>
           </span>
         </div>
-        <div className="flex items-baseline gap-2 mt-1">
+        <div className="flex items-baseline gap-2 mt-2">
           {isLoading ? (
-            <Skeleton className="h-8 w-20" />
+            <Skeleton className="h-7 w-20" />
           ) : (
-            <span className="text-2xl font-bold text-kumo-strong tracking-tight font-mono">
+            <span className="text-[26px] sm:text-[28px] font-semibold text-kumo-strong tracking-tight font-mono leading-none">
               {totalText}
             </span>
           )}
-          <span className="text-xs font-semibold text-cf-success">{subBadge}</span>
+          <span
+            className={`text-[13px] ${
+              hasActivity ? "text-cf-success font-medium" : "text-kumo-muted font-normal"
+            }`}
+          >
+            {subBadge}
+          </span>
         </div>
       </div>
 
       {isLoading ? (
-        <Skeleton className="w-full h-28 mt-4 rounded-lg" />
+        <Skeleton className="w-full h-28 mt-3 rounded-lg" />
+      ) : !hasActivity ? (
+        /* Refined, understated empty state when no activity recorded */
+        <div className="relative mt-3 flex-1 flex flex-col justify-center items-center py-5 px-4 rounded-lg bg-kumo-recessed/25 border border-kumo-hairline/40 select-none text-center">
+          <div className="w-7 h-7 rounded-md bg-kumo-control/70 border border-kumo-hairline/60 flex items-center justify-center text-kumo-muted mb-1.5">
+            {badgeIcon || <PaperPlaneTilt size={13} className="text-kumo-muted" />}
+          </div>
+          <span className="text-[13px] font-medium text-kumo-default">No telemetry recorded yet</span>
+          <span className="text-[12px] text-kumo-subtle max-w-[260px] mt-0.5 leading-relaxed font-normal">
+            Activity over the last 30 days will be plotted here automatically once {unitLabel} are processed.
+          </span>
+        </div>
       ) : (
         <div className="relative mt-3 pt-2 select-none">
-          {/* Y-Axis Guidelines */}
-          <div className="absolute inset-0 flex flex-col justify-between pointer-events-none text-[10px] text-kumo-muted font-mono">
-            <div className="border-b border-kumo-hairline/60 w-full flex justify-between pr-1">
+          {/* Y-Axis Guidelines (Subtle, non-prominent) */}
+          <div className="absolute inset-0 flex flex-col justify-between pointer-events-none text-[10px] text-kumo-muted/80 font-mono">
+            <div className="border-b border-kumo-hairline/40 w-full flex justify-between pr-1">
               <span>{maxVal}</span>
             </div>
-            <div className="border-b border-kumo-hairline/60 w-full flex justify-between pr-1">
+            <div className="border-b border-kumo-hairline/40 w-full flex justify-between pr-1">
               <span>{Math.round(maxVal * 0.66)}</span>
             </div>
-            <div className="border-b border-kumo-hairline/60 w-full flex justify-between pr-1">
+            <div className="border-b border-kumo-hairline/40 w-full flex justify-between pr-1">
               <span>{Math.round(maxVal * 0.33)}</span>
             </div>
-            <div className="border-b border-kumo-hairline/60 w-full flex justify-between pr-1">
+            <div className="border-b border-kumo-hairline/40 w-full flex justify-between pr-1">
               <span>0</span>
             </div>
           </div>
@@ -270,7 +287,7 @@ function InteractiveTimeseriesChart({
                   transform: cardTransform,
                 }}
               >
-                <div className="bg-kumo-base/95 backdrop-blur-md border border-kumo-hairline shadow-2xl rounded-xl p-3 min-w-[170px] select-none text-left ring-1 ring-black/10">
+                <div className="bg-kumo-base/95 backdrop-blur-md border border-kumo-hairline shadow-2xl rounded-xl p-3 min-w-[170px] select-none text-left ring-1 ring-white/5">
                   {/* Card Header: Timestamp & Badge */}
                   <div className="flex items-center justify-between gap-3 pb-2 border-b border-kumo-hairline">
                     <span className="text-[11px] font-medium text-kumo-subtle font-mono flex items-center gap-1.5">
@@ -338,7 +355,6 @@ interface HomeViewProps {
 export function HomeView({
   onNavigateTab,
   onOpenCommandPalette,
-  onTriggerSendTestEmail,
 }: HomeViewProps) {
   const router = useRouter();
   const { versionData, isUpdateAvailable, setIsUpgradeModalOpen } = useSystemVersion();
@@ -391,7 +407,6 @@ export function HomeView({
       .catch(() => {});
 
     // 1. Fetch domains for Domains card
-    setIsLoadingDomains(true);
     api.domains.list()
       .then((items) => {
         if (items && items.length > 0) {
@@ -406,7 +421,6 @@ export function HomeView({
       });
 
     // 2. Fetch live system health (Database, Redis, Worker)
-    setIsLoadingHealth(true);
     api.system.getHealth()
       .then((res) => {
         const dbConnected = res.services?.database === "connected";
@@ -430,7 +444,6 @@ export function HomeView({
       });
 
     // 3. Fetch real email analytics stats (30 days)
-    setIsLoadingStats(true);
     api.emails.getStats()
       .then((stats) => {
         if (stats) setEmailStats(stats);
@@ -444,7 +457,6 @@ export function HomeView({
 
     // 4. Fetch real live recent items across inbox, emails, domains, and API keys
     async function fetchRecentActivity() {
-      setIsLoadingRecents(true);
       try {
         const [emailsRes, inboxRes, domainsRes, keysRes] = await Promise.allSettled([
           api.emails.list({ limit: 4 }),
@@ -582,6 +594,8 @@ export function HomeView({
     ? emailStats.chartInbound
     : defaultDispatches;
 
+  const hasDispatches = Boolean(emailStats && emailStats.total > 0);
+
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
       {/* Global CSS Animation Keyframes for Line Draw & Area Fade */}
@@ -607,56 +621,43 @@ export function HomeView({
       `}</style>
 
       {/* 1. Hero Command Section */}
-      <section className="pt-1 sm:pt-2 pb-1 text-center">
+      <section className="pt-2 sm:pt-3 pb-1 text-center">
         {/* Top Floating Status / Update Pill */}
         {isUpdateAvailable && versionData ? (
           <button
             onClick={() => setIsUpgradeModalOpen(true)}
-            className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-cf-orange-tint border border-cf-orange-border text-xs font-medium text-cf-orange hover:bg-cf-orange hover:text-white transition-all shadow-xs cursor-pointer group"
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cf-orange-tint border border-cf-orange-border text-xs font-medium text-cf-orange hover:bg-cf-orange hover:text-white transition-all shadow-2xs cursor-pointer group"
           >
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cf-orange opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-cf-orange" />
             </span>
             <span className="font-semibold">
-              🚀 EmitMail v{versionData.latestVersion} is available — Click to view release notes & upgrade
+              EmitMail v{versionData.latestVersion} is available — View upgrade notes
             </span>
             <ArrowSquareOut size={13} className="opacity-70 group-hover:opacity-100" />
           </button>
-        ) : (
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-kumo-base border border-kumo-line text-xs font-medium text-kumo-strong shadow-2xs hover:border-cf-blue/40 transition-colors cursor-default">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cf-success opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-cf-success" />
-            </span>
-            <span className="text-kumo-strong font-medium">
-              High-Throughput SMTP Engine & DKIM Signing
-            </span>
-            <span className="text-cf-blue font-semibold text-[11px] bg-cf-blue/10 px-2 py-0.5 rounded-full border border-cf-blue/20">
-              All Systems Operational
-            </span>
-          </div>
-        )}
+        ) : null}
 
         {/* Hero Greeting */}
-        <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-kumo-strong my-3.5">
+        <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-kumo-strong mt-3 mb-4">
           Welcome to EmitMail
         </h1>
 
         {/* Centered Global Command Search Bar */}
         <div
           onClick={handleOpenSearch}
-          className="max-w-2xl mx-auto w-full bg-kumo-control border border-kumo-line rounded-full px-4 py-2.5 flex items-center justify-between focus-within:border-cf-blue hover:border-cf-blue/50 transition-all cursor-pointer shadow-2xs group"
+          className="max-w-xl mx-auto w-full bg-kumo-control/60 hover:bg-kumo-control/90 border border-kumo-hairline hover:border-kumo-line focus-within:border-cf-blue/70 rounded-full px-4 py-2 sm:py-2.5 flex items-center justify-between transition-all duration-150 cursor-pointer shadow-2xs group"
         >
-          <div className="flex items-center gap-2.5 text-xs text-kumo-subtle group-hover:text-kumo-strong">
+          <div className="flex items-center gap-2.5 text-xs text-kumo-subtle group-hover:text-kumo-default transition-colors">
             <MagnifyingGlass size={16} className="text-kumo-muted group-hover:text-cf-blue transition-colors" />
             <span>Search messages, domains, or API keys...</span>
           </div>
           <div className="flex items-center gap-1">
-            <kbd className="px-1.5 py-0.5 text-[11px] bg-kumo-recessed border border-kumo-line rounded text-kumo-subtle font-mono">
+            <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-kumo-elevated border border-kumo-hairline rounded text-kumo-subtle">
               Ctrl
             </kbd>
-            <kbd className="px-1.5 py-0.5 text-[11px] bg-kumo-recessed border border-kumo-line rounded text-kumo-subtle font-mono">
+            <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-kumo-elevated border border-kumo-hairline rounded text-kumo-subtle">
               K
             </kbd>
           </div>
@@ -664,23 +665,23 @@ export function HomeView({
 
         {/* Onboarding Callout Banner if domain / VPS not yet configured or no domains exist */}
         {(!isServerConfigured || (!isLoadingDomains && domains.length === 0)) && (
-          <div className="max-w-4xl mx-auto w-full mt-5 rounded-xl border border-cf-orange/40 bg-cf-orange-tint p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-left shadow-2xs">
+          <div className="max-w-4xl mx-auto w-full mt-5 rounded-xl border border-cf-orange/30 bg-cf-orange-tint/80 p-4 sm:p-4.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-left shadow-2xs transition-all">
             <div className="flex items-start gap-3.5">
-              <div className="p-2.5 rounded-lg bg-cf-orange/15 text-cf-orange shrink-0 mt-0.5">
-                <Globe size={22} weight="bold" />
+              <div className="w-9 h-9 rounded-lg bg-cf-orange/15 text-cf-orange flex items-center justify-center shrink-0 mt-0.5">
+                <Globe size={20} weight="bold" />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-kumo-strong">
+                <h3 className="text-xs sm:text-sm font-semibold text-kumo-strong">
                   Action Required: Complete Mail Server & Domain Setup
                 </h3>
-                <p className="text-xs text-kumo-muted mt-1 leading-relaxed">
+                <p className="text-xs text-kumo-default/80 mt-1 leading-relaxed">
                   Connect your primary sending domain and VPS public IP to automatically generate 2048-bit RSA DKIM keys, SPF records, DMARC policies, and MX routes.
                 </p>
               </div>
             </div>
             <Link
               href="/onboarding"
-              className="shrink-0 px-4 py-2 rounded-lg bg-cf-orange hover:bg-cf-orange-hover text-white text-xs font-semibold shadow-xs transition-colors flex items-center gap-2 cursor-pointer"
+              className="shrink-0 px-3.5 py-2 rounded-lg bg-cf-orange hover:bg-cf-orange-hover text-white text-xs font-semibold shadow-xs hover:shadow-orange-500/20 transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <span>Launch Setup Wizard</span>
               <CaretRight size={14} weight="bold" />
@@ -691,51 +692,61 @@ export function HomeView({
         {/* 2. Three-Column Quick Access Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5 w-full mt-6 text-left">
           {/* Column 1: Domains */}
-          <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-4 flex flex-col justify-between">
+          <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-4 sm:p-4.5 flex flex-col justify-between hover:border-kumo-line/80 transition-colors">
             <div>
-              <div className="flex items-center justify-between text-xs font-semibold text-kumo-subtle mb-3">
-                <span className="uppercase tracking-wider text-[10px]">Domains</span>
+              <div className="flex items-center justify-between text-kumo-subtle mb-2">
+                <span className="uppercase tracking-wider text-[13px] font-medium text-kumo-subtle">Domains</span>
                 <button
                   onClick={() => handleNavigate("domains")}
-                  className="hover:text-cf-blue flex items-center gap-0.5 text-kumo-subtle transition-colors cursor-pointer"
+                  className="hover:text-cf-blue flex items-center gap-0.5 text-kumo-subtle transition-colors cursor-pointer group text-[13px] font-normal"
                 >
                   <span>View all</span>
-                  <CaretRight size={12} />
+                  <CaretRight size={11} className="group-hover:translate-x-0.5 transition-transform" />
                 </button>
               </div>
 
               {isLoadingDomains ? (
-                <div className="space-y-2 py-1">
-                  <Skeleton className="h-8 w-full rounded-lg" />
-                  <Skeleton className="h-8 w-full rounded-lg" />
-                  <Skeleton className="h-8 w-full rounded-lg" />
+                <div className="space-y-1.5 py-1">
+                  <Skeleton className="h-7 w-full rounded-lg" />
+                  <Skeleton className="h-7 w-full rounded-lg" />
+                  <Skeleton className="h-7 w-full rounded-lg" />
                 </div>
               ) : displayDomains.length === 0 ? (
-                <div className="py-5 text-center space-y-2">
-                  <div className="w-8 h-8 mx-auto rounded-full bg-cf-orange/10 text-cf-orange flex items-center justify-center">
-                    <Globe size={18} />
+                <div className="py-4 text-center space-y-1">
+                  <div className="w-7 h-7 mx-auto rounded-lg bg-cf-orange/10 text-cf-orange flex items-center justify-center mb-1">
+                    <Globe size={15} />
                   </div>
-                  <div className="text-xs font-semibold text-kumo-strong">No domains configured</div>
-                  <p className="text-[11px] text-kumo-subtle max-w-[200px] mx-auto leading-relaxed">
+                  <div className="text-[13px] font-medium text-kumo-strong">No domains configured</div>
+                  <p className="text-[12px] text-kumo-subtle max-w-[200px] mx-auto leading-relaxed">
                     Add and verify your domain to generate 2048-bit DKIM keys and start delivering.
                   </p>
                 </div>
               ) : (
-                <ul className="space-y-1.5">
+                <ul className="space-y-0.5">
                   {displayDomains.map((dom) => (
                     <li
                       key={dom.id || dom.domainName}
                       onClick={() => handleNavigate("domains")}
-                      className="flex items-center justify-between p-2 rounded-lg hover:bg-kumo-tint cursor-pointer transition-colors group"
+                      className="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-kumo-elevated/70 border border-transparent hover:border-kumo-hairline cursor-pointer transition-all group"
                     >
-                      <div className="flex items-center gap-2 text-xs font-medium text-kumo-strong">
+                      <div className="flex items-center gap-2 min-w-0 mr-2 text-kumo-default group-hover:text-cf-blue transition-colors">
                         <Globe size={15} className="text-cf-blue shrink-0" />
-                        <span className="truncate max-w-[170px]">{dom.domainName}</span>
+                        <span className="text-[14px] font-medium truncate max-w-[160px] leading-snug">{dom.domainName}</span>
                       </div>
                       <span
-                        className={`w-2 h-2 rounded-full ${dom.status === "VERIFIED" ? "bg-cf-success" : "bg-cf-amber"}`}
-                        title={dom.status === "VERIFIED" ? "Verified" : "Pending"}
-                      />
+                        className={`inline-flex items-center gap-1.5 text-[11px] sm:text-[12px] font-medium px-2 py-0.5 rounded-full border shrink-0 ${
+                          dom.status === "VERIFIED"
+                            ? "bg-cf-success/10 text-cf-success border-cf-success/20"
+                            : "bg-cf-amber/10 text-cf-amber border-cf-amber/20"
+                        }`}
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            dom.status === "VERIFIED" ? "bg-cf-success" : "bg-cf-amber"
+                          }`}
+                        />
+                        {dom.status === "VERIFIED" ? "Verified" : "Pending"}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -745,7 +756,7 @@ export function HomeView({
               displayDomains.length === 0 ? (
                 <Link
                   href="/onboarding"
-                  className="mt-3 w-full py-1.5 rounded-lg bg-cf-orange hover:bg-cf-orange-hover text-white text-center text-xs font-semibold transition-colors flex items-center justify-center gap-1 cursor-pointer shadow-2xs"
+                  className="mt-3 w-full py-1.5 rounded-lg bg-cf-orange hover:bg-cf-orange-hover text-white text-center text-xs font-medium transition-colors flex items-center justify-center gap-1 cursor-pointer shadow-2xs"
                 >
                   + Setup Domain
                 </Link>
@@ -761,134 +772,135 @@ export function HomeView({
           </div>
 
           {/* Column 2: Quick Actions (Inbox, Emails, API Keys) */}
-          <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-4 flex flex-col justify-between">
+          <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-4 sm:p-4.5 flex flex-col justify-between hover:border-kumo-line/80 transition-colors">
             <div>
-              <div className="flex items-center justify-between text-xs font-semibold text-kumo-subtle mb-3">
-                <span className="uppercase tracking-wider text-[10px]">Quick Actions</span>
-                <span className="text-[10px] text-cf-blue font-medium">Shortcuts</span>
+              <div className="flex items-center justify-between text-kumo-subtle mb-2">
+                <span className="uppercase tracking-wider text-[13px] font-medium text-kumo-subtle">Quick Actions</span>
               </div>
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 <button
                   onClick={() => handleNavigate("inbox")}
-                  className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-kumo-tint cursor-pointer transition-colors group text-left"
+                  className="w-full flex items-center justify-between py-1.5 px-2 rounded-lg border border-transparent hover:border-kumo-hairline hover:bg-kumo-elevated/60 active:bg-kumo-elevated transition-all duration-150 group text-left cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-cf-blue"
                 >
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-md bg-cf-blue/10 text-cf-blue flex items-center justify-center shrink-0">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-7 h-7 rounded-md bg-cf-blue/10 text-cf-blue flex items-center justify-center shrink-0 group-hover:bg-cf-blue group-hover:text-white transition-colors duration-150">
                       <Tray size={14} weight="bold" />
                     </div>
-                    <div>
-                      <div className="text-xs font-medium text-kumo-strong group-hover:text-cf-blue transition-colors">
+                    <div className="min-w-0">
+                      <div className="text-[14px] font-medium text-kumo-strong group-hover:text-cf-blue transition-colors leading-tight">
                         Inbox
                       </div>
-                      <div className="text-[11px] text-kumo-subtle">
+                      <div className="text-[13px] font-normal text-kumo-subtle leading-tight mt-0.5">
                         Inbound stream & mailboxes
                       </div>
                     </div>
                   </div>
-                  <CaretRight size={13} className="text-kumo-muted group-hover:text-kumo-strong shrink-0" />
+                  <CaretRight size={12} className="text-kumo-muted group-hover:text-kumo-strong group-hover:translate-x-0.5 transition-all shrink-0 ml-1.5" />
                 </button>
 
                 <button
                   onClick={() => handleNavigate("emails")}
-                  className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-kumo-tint cursor-pointer transition-colors group text-left"
+                  className="w-full flex items-center justify-between py-1.5 px-2 rounded-lg border border-transparent hover:border-kumo-hairline hover:bg-kumo-elevated/60 active:bg-kumo-elevated transition-all duration-150 group text-left cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-cf-blue"
                 >
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-md bg-cf-blue/10 text-cf-blue flex items-center justify-center shrink-0">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-7 h-7 rounded-md bg-cf-blue/10 text-cf-blue flex items-center justify-center shrink-0 group-hover:bg-cf-blue group-hover:text-white transition-colors duration-150">
                       <PaperPlaneTilt size={14} weight="bold" />
                     </div>
-                    <div>
-                      <div className="text-xs font-medium text-kumo-strong group-hover:text-cf-blue transition-colors">
+                    <div className="min-w-0">
+                      <div className="text-[14px] font-medium text-kumo-strong group-hover:text-cf-blue transition-colors leading-tight">
                         Emails
                       </div>
-                      <div className="text-[11px] text-kumo-subtle">
+                      <div className="text-[13px] font-normal text-kumo-subtle leading-tight mt-0.5">
                         Processed outbox & telemetry
                       </div>
                     </div>
                   </div>
-                  <CaretRight size={13} className="text-kumo-muted group-hover:text-kumo-strong shrink-0" />
+                  <CaretRight size={12} className="text-kumo-muted group-hover:text-kumo-strong group-hover:translate-x-0.5 transition-all shrink-0 ml-1.5" />
                 </button>
 
                 <button
                   onClick={() => handleNavigate("api-keys")}
-                  className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-kumo-tint cursor-pointer transition-colors group text-left"
+                  className="w-full flex items-center justify-between py-1.5 px-2 rounded-lg border border-transparent hover:border-kumo-hairline hover:bg-kumo-elevated/60 active:bg-kumo-elevated transition-all duration-150 group text-left cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-cf-blue"
                 >
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-md bg-cf-blue/10 text-cf-blue flex items-center justify-center shrink-0">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-7 h-7 rounded-md bg-cf-blue/10 text-cf-blue flex items-center justify-center shrink-0 group-hover:bg-cf-blue group-hover:text-white transition-colors duration-150">
                       <Key size={14} weight="bold" />
                     </div>
-                    <div>
-                      <div className="text-xs font-medium text-kumo-strong group-hover:text-cf-blue transition-colors">
+                    <div className="min-w-0">
+                      <div className="text-[14px] font-medium text-kumo-strong group-hover:text-cf-blue transition-colors leading-tight">
                         API Keys
                       </div>
-                      <div className="text-[11px] text-kumo-subtle">
+                      <div className="text-[13px] font-normal text-kumo-subtle leading-tight mt-0.5">
                         Manage credentials & tokens
                       </div>
                     </div>
                   </div>
-                  <CaretRight size={13} className="text-kumo-muted group-hover:text-kumo-strong shrink-0" />
+                  <CaretRight size={12} className="text-kumo-muted group-hover:text-kumo-strong group-hover:translate-x-0.5 transition-all shrink-0 ml-1.5" />
                 </button>
               </div>
             </div>
           </div>
 
           {/* Column 3: Live Recents Activity */}
-          <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-4 flex flex-col justify-between">
+          <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-4 sm:p-4.5 flex flex-col justify-between hover:border-kumo-line/80 transition-colors">
             <div>
-              <div className="flex items-center justify-between text-xs font-semibold text-kumo-subtle mb-3">
-                <span className="uppercase tracking-wider text-[10px]">Recents</span>
-                <span className="text-[10px] text-kumo-muted">Activity</span>
+              <div className="flex items-center justify-between text-kumo-subtle mb-2">
+                <span className="uppercase tracking-wider text-[13px] font-medium text-kumo-subtle">Recents</span>
+                <span className="text-[12px] sm:text-[13px] text-kumo-muted font-normal">Activity</span>
               </div>
 
               {isLoadingRecents ? (
-                <div className="space-y-2 py-1">
-                  <Skeleton className="h-8 w-full rounded-lg" />
-                  <Skeleton className="h-8 w-full rounded-lg" />
-                  <Skeleton className="h-8 w-full rounded-lg" />
-                  <Skeleton className="h-8 w-full rounded-lg" />
+                <div className="space-y-1.5 py-1">
+                  <Skeleton className="h-7 w-full rounded-lg" />
+                  <Skeleton className="h-7 w-full rounded-lg" />
+                  <Skeleton className="h-7 w-full rounded-lg" />
+                  <Skeleton className="h-7 w-full rounded-lg" />
                 </div>
               ) : activeRecents.length === 0 ? (
-                <div className="py-5 text-center space-y-2">
-                  <div className="w-8 h-8 mx-auto rounded-full bg-kumo-control text-kumo-muted flex items-center justify-center">
-                    <Clock size={18} />
+                <div className="py-4 text-center space-y-1 flex-1 flex flex-col justify-center">
+                  <div className="w-7 h-7 mx-auto rounded-lg bg-kumo-control/80 border border-kumo-hairline text-kumo-subtle flex items-center justify-center mb-1">
+                    <Clock size={15} />
                   </div>
-                  <div className="text-xs font-semibold text-kumo-strong">No recent activity</div>
-                  <p className="text-[11px] text-kumo-subtle max-w-[200px] mx-auto leading-relaxed">
+                  <div className="text-[13px] font-medium text-kumo-strong">No recent activity</div>
+                  <p className="text-[12px] text-kumo-subtle max-w-[200px] mx-auto leading-relaxed">
                     Dispatched emails, inbound messages, and API key events will appear here in real time.
                   </p>
                 </div>
               ) : (
-                <div className="divide-y divide-kumo-hairline text-xs">
+                <div className="space-y-0.5">
                   {activeRecents.map((item) => (
                     <button
                       key={item.id}
                       onClick={() => handleRecentClick(item)}
-                      className="w-full py-2 flex items-center justify-between text-left hover:bg-kumo-tint px-1.5 rounded transition-colors group cursor-pointer"
+                      className="w-full py-1.5 px-2 rounded-lg border border-transparent hover:border-kumo-hairline hover:bg-kumo-elevated/60 transition-all flex items-center justify-between text-left group cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-cf-blue"
                     >
-                      <div className="flex items-center gap-2 min-w-0 mr-2">
-                        {item.type === "inbox" ? (
-                          <Tray size={14} className="text-cf-blue shrink-0" />
-                        ) : item.type === "email" ? (
-                          <PaperPlaneTilt size={14} className="text-cf-blue shrink-0" />
-                        ) : item.type === "domain" ? (
-                          <Globe size={14} className="text-cf-blue shrink-0" />
-                        ) : (
-                          <Key size={14} className="text-cf-blue shrink-0" />
-                        )}
+                      <div className="flex items-center gap-2.5 min-w-0 mr-2">
+                        <div className="w-7 h-7 rounded-md bg-kumo-control border border-kumo-hairline/60 flex items-center justify-center shrink-0 text-cf-blue">
+                          {item.type === "inbox" ? (
+                            <Tray size={13} />
+                          ) : item.type === "email" ? (
+                            <PaperPlaneTilt size={13} />
+                          ) : item.type === "domain" ? (
+                            <Globe size={13} />
+                          ) : (
+                            <Key size={13} />
+                          )}
+                        </div>
                         <div className="min-w-0">
-                          <span className="text-kumo-strong font-medium truncate block leading-tight">
+                          <span className="text-[14px] font-medium text-kumo-strong truncate block leading-tight group-hover:text-cf-blue transition-colors">
                             {item.title}
                           </span>
-                          <span className="text-[10px] text-kumo-subtle truncate block leading-tight mt-0.5">
+                          <span className="text-[13px] font-normal text-kumo-subtle truncate block leading-tight mt-0.5">
                             {item.subtitle}
                           </span>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-1 shrink-0">
-                        <span className="text-[10px] text-kumo-muted font-mono">
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-[12px] font-normal text-kumo-muted font-mono">
                           {item.timestamp}
                         </span>
-                        <CaretRight size={12} className="text-kumo-muted group-hover:text-kumo-strong shrink-0" />
+                        <CaretRight size={12} className="text-kumo-muted group-hover:text-kumo-strong group-hover:translate-x-0.5 transition-all shrink-0 ml-0.5" />
                       </div>
                     </button>
                   ))}
@@ -903,21 +915,21 @@ export function HomeView({
       <section className="space-y-3.5 w-full">
         {/* Section Header Bar */}
         <div>
-          <h2 className="text-base font-semibold text-kumo-strong">
+          <h2 className="text-[15px] sm:text-base font-medium text-kumo-strong tracking-tight">
             Analytics
           </h2>
-          <p className="text-xs text-kumo-subtle">
-            Performance and infrastructure metrics over the last 1 month
+          <p className="text-[13px] text-kumo-subtle mt-0.5 font-normal">
+            Performance and infrastructure metrics over the last 30 days
           </p>
         </div>
 
         {/* KPI Summary Row (4 Cards) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
           {/* Card 1: Emails Sent */}
-          <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-4">
-            <div className="flex items-center justify-between text-xs text-kumo-subtle">
-              <span>Emails Sent</span>
-              <DotsThree size={16} />
+          <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-4 sm:p-4.5 flex flex-col justify-between hover:border-kumo-line/80 transition-colors">
+            <div className="flex items-center justify-between text-kumo-subtle">
+              <span className="text-[14px] font-medium text-kumo-subtle">Emails Sent</span>
+              <DotsThree size={16} className="text-kumo-muted" />
             </div>
             {isLoadingStats ? (
               <div className="mt-2 space-y-1.5">
@@ -925,27 +937,35 @@ export function HomeView({
                 <Skeleton className="h-3 w-28" />
               </div>
             ) : (
-              <>
-                <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-2xl font-bold tracking-tight text-kumo-strong font-mono">
+              <div className="mt-2">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-[26px] sm:text-[28px] font-semibold tracking-tight text-kumo-strong font-mono leading-none">
                     {emailStats ? emailStats.total.toLocaleString() : "0"}
                   </span>
-                  <span className="text-xs font-semibold text-cf-success flex items-center">
-                    ↗ {emailStats && emailStats.total > 0 ? "Active" : "0%"}
-                  </span>
+                  {hasDispatches ? (
+                    <span className="text-[13px] font-medium text-cf-success flex items-center gap-0.5">
+                      ↗ Active
+                    </span>
+                  ) : (
+                    <span className="text-[13px] font-normal text-kumo-muted flex items-center">
+                      No volume
+                    </span>
+                  )}
                 </div>
-                <span className="text-[11px] text-kumo-subtle block mt-1">
-                  {emailStats ? `${emailStats.delivered} delivered` : "Processed in 30 days"}
+                <span className="text-[13px] text-kumo-subtle block mt-1 font-normal">
+                  {hasDispatches && emailStats
+                    ? `${emailStats.delivered.toLocaleString()} delivered`
+                    : "0 dispatches in 30 days"}
                 </span>
-              </>
+              </div>
             )}
           </div>
 
           {/* Card 2: Delivery Rate */}
-          <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-4">
-            <div className="flex items-center justify-between text-xs text-kumo-subtle">
-              <span>Delivery Rate</span>
-              <DotsThree size={16} />
+          <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-4 sm:p-4.5 flex flex-col justify-between hover:border-kumo-line/80 transition-colors">
+            <div className="flex items-center justify-between text-kumo-subtle">
+              <span className="text-[14px] font-medium text-kumo-subtle">Delivery Rate</span>
+              <DotsThree size={16} className="text-kumo-muted" />
             </div>
             {isLoadingStats ? (
               <div className="mt-2 space-y-1.5">
@@ -953,35 +973,35 @@ export function HomeView({
                 <Skeleton className="h-3 w-32" />
               </div>
             ) : (
-              <>
-                <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-2xl font-bold tracking-tight text-kumo-strong font-mono">
-                    {emailStats && emailStats.total > 0 ? emailStats.deliveryRate : "0%"}
+              <div className="mt-2">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-[26px] sm:text-[28px] font-semibold tracking-tight text-kumo-strong font-mono leading-none">
+                    {hasDispatches && emailStats ? emailStats.deliveryRate : "—"}
                   </span>
-                  {emailStats && emailStats.total > 0 ? (
-                    <span className="text-xs font-semibold text-cf-success flex items-center">
+                  {hasDispatches ? (
+                    <span className="text-[13px] font-medium text-cf-success flex items-center">
                       250 OK
                     </span>
                   ) : (
-                    <span className="text-xs font-medium text-kumo-muted flex items-center">
-                      0 Delivered
+                    <span className="text-[13px] font-normal text-kumo-muted flex items-center">
+                      No data yet
                     </span>
                   )}
                 </div>
-                <span className="text-[11px] text-kumo-subtle block mt-1">
-                  {emailStats && emailStats.total > 0
-                    ? `${emailStats.delivered} of ${emailStats.total} delivered`
-                    : "No dispatches yet"}
+                <span className="text-[13px] text-kumo-subtle block mt-1 font-normal">
+                  {hasDispatches && emailStats
+                    ? `${emailStats.delivered.toLocaleString()} of ${emailStats.total.toLocaleString()} delivered`
+                    : "Requires at least 1 dispatch"}
                 </span>
-              </>
+              </div>
             )}
           </div>
 
           {/* Card 3: Bounce Rate */}
-          <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-4">
-            <div className="flex items-center justify-between text-xs text-kumo-subtle">
-              <span>Bounce Rate</span>
-              <DotsThree size={16} />
+          <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-4 sm:p-4.5 flex flex-col justify-between hover:border-kumo-line/80 transition-colors">
+            <div className="flex items-center justify-between text-kumo-subtle">
+              <span className="text-[14px] font-medium text-kumo-subtle">Bounce Rate</span>
+              <DotsThree size={16} className="text-kumo-muted" />
             </div>
             {isLoadingStats ? (
               <div className="mt-2 space-y-1.5">
@@ -989,30 +1009,39 @@ export function HomeView({
                 <Skeleton className="h-3 w-24" />
               </div>
             ) : (
-              <>
-                <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-2xl font-bold tracking-tight text-kumo-strong font-mono">
-                    {emailStats && emailStats.total > 0 ? emailStats.bounceRate : "0%"}
+              <div className="mt-2">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-[26px] sm:text-[28px] font-semibold tracking-tight text-kumo-strong font-mono leading-none">
+                    {hasDispatches && emailStats ? emailStats.bounceRate : "—"}
                   </span>
-                  <span className="text-xs font-medium text-kumo-muted flex items-center">
-                    {emailStats && emailStats.bounced > 0 ? `${emailStats.bounced} Bounces` : "0 Bounces"}
-                  </span>
+                  {hasDispatches && emailStats ? (
+                    <span
+                      className={`text-[13px] font-normal ${
+                        emailStats.bounced > 0 ? "text-cf-amber" : "text-kumo-subtle"
+                      }`}
+                    >
+                      {emailStats.bounced} {emailStats.bounced === 1 ? "Bounce" : "Bounces"}
+                    </span>
+                  ) : (
+                    <span className="text-[13px] font-normal text-kumo-muted flex items-center">
+                      No data yet
+                    </span>
+                  )}
                 </div>
-                <span className="text-[11px] text-kumo-subtle block mt-1">
-                  Hard bounces: {emailStats ? emailStats.bounced : 0}
+                <span className="text-[13px] text-kumo-subtle block mt-1 font-normal">
+                  {hasDispatches && emailStats
+                    ? `Hard bounces: ${emailStats.bounced}`
+                    : "No bounces recorded"}
                 </span>
-              </>
+              </div>
             )}
           </div>
 
           {/* Card 4: Service Infrastructure Health (Database, Redis, Worker) */}
-          <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-4 flex flex-col justify-between">
-            <div className="flex items-center justify-between text-xs text-kumo-subtle mb-1">
-              <span>Service Status</span>
-              <span className="text-[10px] text-cf-success font-semibold flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-cf-success animate-pulse" />
-                <span>Operational</span>
-              </span>
+          <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-4 sm:p-4.5 flex flex-col justify-between hover:border-kumo-line/80 transition-colors">
+            <div className="flex items-center justify-between text-kumo-subtle mb-1">
+              <span className="text-[14px] font-medium text-kumo-subtle">Service Status</span>
+              <DotsThree size={16} className="text-kumo-muted" />
             </div>
 
             {isLoadingHealth ? (
@@ -1023,44 +1052,44 @@ export function HomeView({
               </div>
             ) : (
               <div className="space-y-1.5 mt-2">
-                <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span
-                      className={`w-2 h-2 rounded-full ${
+                      className={`w-1.5 h-1.5 rounded-full ${
                         systemHealth.database ? "bg-cf-success" : "bg-kumo-danger"
                       }`}
                     />
-                    <span className="font-medium text-kumo-strong">Database</span>
+                    <span className="text-[14px] font-medium text-kumo-default">Database</span>
                   </div>
-                  <span className="text-[11px] font-mono text-kumo-subtle">
+                  <span className="text-[13px] font-mono text-kumo-subtle font-normal">
                     {systemHealth.database ? "Connected" : "Offline"}
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span
-                      className={`w-2 h-2 rounded-full ${
+                      className={`w-1.5 h-1.5 rounded-full ${
                         systemHealth.redis ? "bg-cf-success" : "bg-kumo-danger"
                       }`}
                     />
-                    <span className="font-medium text-kumo-strong">Redis</span>
+                    <span className="text-[14px] font-medium text-kumo-default">Redis</span>
                   </div>
-                  <span className="text-[11px] font-mono text-kumo-subtle">
+                  <span className="text-[13px] font-mono text-kumo-subtle font-normal">
                     {systemHealth.redis ? "Connected" : "Offline"}
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span
-                      className={`w-2 h-2 rounded-full ${
+                      className={`w-1.5 h-1.5 rounded-full ${
                         systemHealth.worker ? "bg-cf-success" : "bg-kumo-danger"
                       }`}
                     />
-                    <span className="font-medium text-kumo-strong">Worker</span>
+                    <span className="text-[14px] font-medium text-kumo-default">Worker</span>
                   </div>
-                  <span className="text-[11px] font-mono text-kumo-subtle">
+                  <span className="text-[13px] font-mono text-kumo-subtle font-normal">
                     {systemHealth.worker ? "Running" : "Stopped"}
                   </span>
                 </div>
@@ -1070,12 +1099,12 @@ export function HomeView({
         </div>
 
         {/* 2-Column Timeseries Chart Cards (Real Live Data & Interactive Hover Animations) */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
           {/* Chart 1: Total emails dispatched */}
           <InteractiveTimeseriesChart
             title="Total emails dispatched"
             totalText={emailStats ? emailStats.total.toLocaleString() : "0"}
-            subBadge={emailStats && emailStats.total > 0 ? "↗ Live" : "0 Dispatches"}
+            subBadge={hasDispatches ? "↗ Live" : "No dispatches"}
             data={emailDispatches}
             gradientId="chartBlueGrad"
             unitLabel="emails"
@@ -1095,9 +1124,9 @@ export function HomeView({
                 ? `${emailStats.unreadInbound} unread`
                 : emailStats && emailStats.totalInbound && emailStats.totalInbound > 0
                 ? "↗ Receiving"
-                : "Inbox ready"
+                : "No inbound mail"
             }
-            badgeIcon={<Tray size={13} weight="fill" className="text-cf-orange" />}
+            badgeIcon={<Tray size={12} weight="fill" className="text-cf-orange" />}
             data={inboundTraffic}
             gradientId="chartOrangeGrad"
             unitLabel="messages"
