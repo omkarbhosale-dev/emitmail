@@ -14,7 +14,6 @@ import {
   Gear,
   MagnifyingGlass,
   CaretUpDown,
-  CaretUp,
   X,
   Plus,
   Check,
@@ -72,15 +71,7 @@ function PanelLeftOpen({ size = 18, className = "" }: { size?: number; className
   );
 }
 
-function RefreshCw({
-  size = 18,
-  className = "",
-  weight,
-}: {
-  size?: number;
-  className?: string;
-  weight?: "regular" | "bold" | "fill";
-}) {
+function DownloadIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
   return (
     <svg
       width={size}
@@ -88,16 +79,15 @@ function RefreshCw({
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={weight === "fill" || weight === "bold" ? "2.25" : "1.85"}
+      strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
       className={className}
       aria-hidden="true"
     >
-      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-      <path d="M21 3v5h-5" />
-      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-      <path d="M8 16H3v5" />
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
     </svg>
   );
 }
@@ -142,7 +132,7 @@ export function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
   const { currentUser } = useAuth();
-  const { versionData, isUpgradeModalOpen, setIsUpgradeModalOpen } = useSystemVersion();
+  const { versionData, isUpdateAvailable, isUpgradeModalOpen, setIsUpgradeModalOpen } = useSystemVersion();
 
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [domains, setDomains] = useState<ApiDomain[]>([]);
@@ -161,6 +151,9 @@ export function Sidebar({
     (currentUser?.role === "ADMIN" ? "Administrator" : currentUser?.username) ||
     "Administrator";
   const displayUsername = currentUser?.username || "admin";
+
+  const rawVersion = versionData?.currentVersion || "0.30.8";
+  const currentVersionFormatted = rawVersion.startsWith("v") ? rawVersion : `v${rawVersion}`;
 
   // Initialize theme mode & listen for theme events
   useEffect(() => {
@@ -552,42 +545,60 @@ export function Sidebar({
         {/* Flexible vertical spacer between main navigation and bottom section */}
         <div className="flex-1 min-h-6" aria-hidden="true" />
 
-        {/* 4. Bottom Section: Update + Settings & Administrator Account Card */}
+        {/* 4. Bottom Section: Settings + Update Available + Administrator Account Card */}
         <div className="shrink-0 space-y-2">
           <ul className="space-y-2">
-            {renderNavItem(
-              {
-                id: "update",
-                label: "Update",
-                href: "/update",
-                icon: RefreshCw,
-                onClick: () => setIsUpgradeModalOpen(true),
-              },
-              false
-            )}
             {renderNavItem(
               { id: "settings", label: "Settings", href: "/settings", icon: Gear },
               false
             )}
           </ul>
 
-          {/* Administrator Account Card */}
+          {/* Horizontal Divider immediately above Update Available (Shown ONLY when an update is available) */}
+          {isUpdateAvailable && (
+            <div className="border-t border-kumo-hairline my-1 mx-0.5" aria-hidden="true" />
+          )}
+
+          {/* Update Available Banner Button - Shown ONLY when an update is available */}
+          {isUpdateAvailable && (
+            <button
+              type="button"
+              onClick={() => {
+                onCloseMobile();
+                setIsUpgradeModalOpen(true);
+              }}
+              className="w-full relative flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-kumo-base hover:bg-kumo-elevated border border-kumo-hairline hover:border-kumo-line transition-all cursor-pointer group shadow-2xs select-none focus:outline-none"
+            >
+              <div className="flex items-center gap-2">
+                <DownloadIcon size={16} className="text-kumo-strong" />
+                <span className="text-sm font-semibold text-kumo-strong">Update Available</span>
+              </div>
+              <span
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center justify-center w-2.5 h-2.5 rounded-full bg-cf-success/15 ring-1 ring-cf-success/25 shrink-0"
+                aria-hidden="true"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+              </span>
+            </button>
+          )}
+
+          {/* Administrator Account Row (Transparent, No Card) */}
           <div className="relative pt-0">
-            <div className="flex items-center justify-between p-2.5 rounded-2xl bg-kumo-base border border-kumo-hairline shadow-2xs">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-9 h-9 rounded-xl overflow-hidden border border-kumo-hairline/80 flex items-center justify-center shrink-0 shadow-2xs">
+            <div className="flex items-center justify-between px-1.5 py-1.5">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center shrink-0">
                   <Facehash
                     name={displayUsername}
-                    size={36}
+                    size={32}
                     interactive={false}
                   />
                 </div>
                 <div className="min-w-0">
-                  <div className="font-semibold text-[13px] text-kumo-strong truncate leading-tight">
-                    {displayName}
+                  <div className="font-semibold text-sm text-kumo-strong truncate leading-tight">
+                    {currentUser?.fullName || (currentUser?.role === "ADMIN" ? "Account" : displayName)}
                   </div>
                   <div className="text-xs text-kumo-muted truncate leading-tight mt-0.5">
-                    @{displayUsername}
+                    {currentUser?.email || `@${displayUsername}`}
                   </div>
                 </div>
               </div>
@@ -606,9 +617,9 @@ export function Sidebar({
               </button>
             </div>
 
-            {/* Emitmail Dashboard · v1.0.0 footer string */}
-            <div className="text-center text-[11px] text-kumo-muted select-none pt-2 pb-0.5 font-normal tracking-wide">
-              Emitmail Dashboard · v{versionData?.currentVersion || "1.0.0"}
+            {/* Current Version Indicator at the very bottom */}
+            <div className="text-center text-xs text-kumo-subtle select-none pt-2 pb-0.5 font-normal tracking-wide">
+              Version {currentVersionFormatted}
             </div>
           </div>
         </div>
@@ -814,27 +825,66 @@ export function Sidebar({
           {/* Flexible vertical spacer between main navigation and bottom section */}
           <div className="flex-1 min-h-6" aria-hidden="true" />
 
-          {/* 4. Bottom Section: Update + Settings + Administrator account card + version string (No separator borders/lines!) */}
+          {/* 4. Bottom Section: Settings + Update Available + Administrator Account Card + Version (No separator borders/lines!) */}
           <div className="shrink-0 space-y-2 pt-2">
-            {/* Update & Settings */}
+            {/* Settings */}
             <ul className="space-y-2">
-              {renderNavItem(
-                {
-                  id: "update",
-                  label: "Update",
-                  href: "/update",
-                  icon: RefreshCw,
-                  onClick: () => setIsUpgradeModalOpen(true),
-                },
-                isCollapsed
-              )}
               {renderNavItem(
                 { id: "settings", label: "Settings", href: "/settings", icon: Gear },
                 isCollapsed
               )}
             </ul>
 
-            {/* Administrator Account Card */}
+            {/* Horizontal Divider immediately above Update Available (Shown ONLY when an update is available) */}
+            {isUpdateAvailable && (
+              <div
+                className={cn(
+                  "border-t border-kumo-hairline my-1",
+                  isCollapsed ? "mx-1" : "mx-0.5"
+                )}
+                aria-hidden="true"
+              />
+            )}
+
+            {/* Update Available Banner Button - Shown ONLY when an update is available */}
+            {isUpdateAvailable && (
+              isCollapsed ? (
+                <button
+                  type="button"
+                  onClick={() => setIsUpgradeModalOpen(true)}
+                  title="Update Available"
+                  aria-label="Update Available"
+                  className="w-10 h-10 flex items-center justify-center rounded-xl bg-kumo-base hover:bg-kumo-elevated border border-kumo-hairline hover:border-kumo-line transition-all cursor-pointer relative mx-auto shadow-2xs group focus:outline-none"
+                >
+                  <DownloadIcon size={18} className="text-kumo-strong" />
+                  <span
+                    className="absolute top-1.5 right-1.5 flex items-center justify-center w-2.5 h-2.5 rounded-full bg-cf-success/15 ring-1 ring-cf-success/25 shrink-0"
+                    aria-hidden="true"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                  </span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setIsUpgradeModalOpen(true)}
+                  className="w-full relative flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-kumo-base hover:bg-kumo-elevated border border-kumo-hairline hover:border-kumo-line transition-all cursor-pointer group shadow-2xs select-none focus:outline-none"
+                >
+                  <div className="flex items-center gap-2">
+                    <DownloadIcon size={16} className="text-kumo-strong" />
+                    <span className="text-sm font-semibold text-kumo-strong">Update Available</span>
+                  </div>
+                  <span
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center justify-center w-2.5 h-2.5 rounded-full bg-cf-success/15 ring-1 ring-cf-success/25 shrink-0"
+                    aria-hidden="true"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                  </span>
+                </button>
+              )
+            )}
+
+            {/* Account Row (Transparent, No Card Container) */}
             <div className="relative pt-0" ref={accountMenuRef}>
               {isCollapsed ? (
                 <button
@@ -843,9 +893,9 @@ export function Sidebar({
                   title={`${displayName} (@${displayUsername})`}
                   aria-label="Account menu"
                   aria-expanded={isAccountMenuOpen}
-                  className="w-10 h-10 flex items-center justify-center rounded-xl bg-kumo-base hover:bg-kumo-elevated border border-kumo-hairline hover:border-kumo-line transition-all cursor-pointer mx-auto shadow-2xs focus:outline-none"
+                  className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-kumo-tint/60 transition-colors cursor-pointer mx-auto focus:outline-none"
                 >
-                  <div className="w-8 h-8 rounded-lg overflow-hidden border border-kumo-hairline shrink-0 shadow-2xs">
+                  <div className="w-8 h-8 rounded-full overflow-hidden shrink-0">
                     <Facehash
                       name={displayUsername}
                       size={32}
@@ -857,34 +907,30 @@ export function Sidebar({
                 <button
                   type="button"
                   onClick={() => setIsAccountMenuOpen(!isAccountMenuOpen)}
-                  className="w-full flex items-center justify-between p-2.5 rounded-2xl bg-kumo-base hover:bg-kumo-elevated border border-kumo-hairline hover:border-kumo-line transition-all cursor-pointer group text-left shadow-2xs select-none focus:outline-none"
+                  className="w-full flex items-center justify-between px-1.5 py-1.5 rounded-lg hover:bg-kumo-tint/60 transition-colors cursor-pointer group text-left select-none focus:outline-none"
                   aria-label="User account menu"
                   aria-expanded={isAccountMenuOpen}
                 >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-xl overflow-hidden border border-kumo-hairline/80 flex items-center justify-center shrink-0 shadow-2xs">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center shrink-0">
                       <Facehash
                         name={displayUsername}
-                        size={36}
+                        size={32}
                         interactive={false}
                       />
                     </div>
                     <div className="min-w-0">
-                      <div className="font-semibold text-[13px] text-kumo-strong truncate leading-tight">
-                        {displayName}
+                      <div className="font-semibold text-sm text-kumo-strong truncate leading-tight">
+                        {currentUser?.fullName || (currentUser?.role === "ADMIN" ? "Account" : displayName)}
                       </div>
                       <div className="text-xs text-kumo-muted truncate leading-tight mt-0.5">
-                        @{displayUsername}
+                        {currentUser?.email || `@${displayUsername}`}
                       </div>
                     </div>
                   </div>
-                  <CaretUp
+                  <CaretUpDown
                     size={16}
-                    weight="bold"
-                    className={cn(
-                      "text-kumo-muted group-hover:text-kumo-strong transition-transform shrink-0",
-                      isAccountMenuOpen && "rotate-180"
-                    )}
+                    className="text-kumo-muted group-hover:text-kumo-strong transition-colors shrink-0"
                   />
                 </button>
               )}
@@ -987,10 +1033,10 @@ export function Sidebar({
               )}
             </div>
 
-            {/* Emitmail Dashboard · v1.0.0 footer string (No divider line) */}
+            {/* Current Version Indicator at the very bottom (No divider line) */}
             {!isCollapsed && (
-              <div className="text-center text-[11px] text-kumo-muted select-none pt-1.5 pb-0.5 font-normal tracking-wide">
-                Emitmail Dashboard · v{versionData?.currentVersion || "1.0.0"}
+              <div className="text-center text-xs text-kumo-subtle select-none pt-2 pb-0.5 font-normal tracking-wide">
+                Version {currentVersionFormatted}
               </div>
             )}
           </div>
