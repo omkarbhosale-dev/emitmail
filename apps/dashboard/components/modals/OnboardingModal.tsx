@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   X,
   Globe,
@@ -268,7 +268,25 @@ export function OnboardingModal({ isOpen, onClose, onCompleted }: OnboardingModa
     }
   };
 
+  const isDomainConfirmed = createdDomain?.status === "VERIFIED";
+
+  const lastDisabledToastRef = useRef<number>(0);
+  const notifyDomainUnconfirmed = useCallback(() => {
+    const now = Date.now();
+    if (now - lastDisabledToastRef.current < 1500) return;
+    lastDisabledToastRef.current = now;
+    toast({
+      title: "Confirm your domain",
+      description: "Please verify your domain's DNS records before proceeding to the dashboard.",
+      type: "warning",
+    });
+  }, [toast]);
+
   const handleFinish = () => {
+    if (!isDomainConfirmed) {
+      notifyDomainUnconfirmed();
+      return;
+    }
     onClose();
     if (onCompleted) {
       onCompleted();
@@ -524,7 +542,7 @@ export function OnboardingModal({ isOpen, onClose, onCompleted }: OnboardingModa
                       <div className="flex items-center justify-between flex-wrap gap-1">
                         <div className="flex items-center gap-2">
                           <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-cf-orange-tint text-cf-orange border border-cf-orange-border">
-                            TXT (DKIM)
+                            TXT
                           </span>
                           <span className="text-xs font-mono font-bold text-kumo-strong">{r.host}</span>
                         </div>
@@ -552,7 +570,7 @@ export function OnboardingModal({ isOpen, onClose, onCompleted }: OnboardingModa
                       <div className="flex items-center justify-between flex-wrap gap-1">
                         <div className="flex items-center gap-2">
                           <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-cf-chart-blue/15 text-cf-chart-blue border border-cf-chart-blue/25">
-                            TXT (SPF)
+                            TXT
                           </span>
                           <span className="text-xs font-mono font-bold text-kumo-strong">{r.host}</span>
                         </div>
@@ -577,7 +595,7 @@ export function OnboardingModal({ isOpen, onClose, onCompleted }: OnboardingModa
                   <div className="flex items-center justify-between flex-wrap gap-1">
                     <div className="flex items-center gap-2">
                       <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-cf-chart-blue/15 text-cf-chart-blue border border-cf-chart-blue/25">
-                        TXT (Master SPF)
+                        TXT
                       </span>
                       <span className="text-xs font-mono font-bold text-kumo-strong">{spfDomain || `_spf.${createdDomain.domainName}`}</span>
                     </div>
@@ -604,7 +622,7 @@ export function OnboardingModal({ isOpen, onClose, onCompleted }: OnboardingModa
                       <div className="flex items-center justify-between flex-wrap gap-1">
                         <div className="flex items-center gap-2">
                           <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-cf-chart-purple/15 text-cf-chart-purple border border-cf-chart-purple/25">
-                            TXT (DMARC)
+                            TXT
                           </span>
                           <span className="text-xs font-mono font-bold text-kumo-strong">{r.host}</span>
                         </div>
@@ -652,10 +670,11 @@ export function OnboardingModal({ isOpen, onClose, onCompleted }: OnboardingModa
                 <div className="p-3 rounded-xl bg-kumo-control border border-kumo-line space-y-1.5">
                   <div className="flex items-center justify-between flex-wrap gap-1">
                     <div className="flex items-center gap-2">
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-cf-orange-tint text-cf-orange border border-cf-orange-border">
-                        MX (Priority 10)
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-cf-orange-tint text-cf-orange border border-cf-orange-border inline-flex items-center gap-1">
+                        <span>MX</span>
+                        <span className="bg-cf-orange/20 text-cf-orange px-1 rounded font-bold">(Priority 10)</span>
                       </span>
-                      <span className="text-xs font-mono font-bold text-kumo-strong">@ ({createdDomain.domainName})</span>
+                      <span className="text-xs font-mono font-bold text-kumo-strong">@</span>
                     </div>
                     <span className="text-[10px] font-semibold text-kumo-subtle">Inbound Mailboxes</span>
                   </div>
@@ -696,14 +715,39 @@ export function OnboardingModal({ isOpen, onClose, onCompleted }: OnboardingModa
                   &larr; Back to Details
                 </button>
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handleFinish}
-                    className="inline-flex items-center gap-1.5 px-5 py-2 text-xs font-bold bg-cf-orange hover:bg-cf-orange-hover text-white rounded-xl transition-all shadow-sm cursor-pointer active:scale-95"
+                  <div
+                    onClick={!isDomainConfirmed ? notifyDomainUnconfirmed : undefined}
+                    onKeyDown={
+                      !isDomainConfirmed
+                        ? (e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              notifyDomainUnconfirmed();
+                            }
+                          }
+                        : undefined
+                    }
+                    tabIndex={!isDomainConfirmed ? 0 : undefined}
+                    role={!isDomainConfirmed ? "button" : undefined}
+                    aria-disabled={!isDomainConfirmed ? "true" : undefined}
+                    aria-label={!isDomainConfirmed ? "Proceed to Dashboard (Domain verification required)" : undefined}
+                    className="inline-flex rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-cf-orange/50 cursor-pointer"
                   >
-                    <span>Proceed to Dashboard</span>
-                    <ArrowRight size={14} weight="bold" />
-                  </button>
+                    <button
+                      type="button"
+                      onClick={handleFinish}
+                      disabled={!isDomainConfirmed}
+                      title={isDomainConfirmed ? "Proceed to Dashboard" : undefined}
+                      className={`inline-flex items-center gap-1.5 px-5 py-2 text-xs font-bold bg-cf-orange hover:bg-cf-orange-hover text-white rounded-xl transition-all shadow-sm active:scale-95 ${
+                        !isDomainConfirmed
+                          ? "opacity-40 pointer-events-none"
+                          : "cursor-pointer"
+                      }`}
+                    >
+                      <span>Proceed to Dashboard</span>
+                      <ArrowRight size={14} weight="bold" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

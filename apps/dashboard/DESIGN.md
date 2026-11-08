@@ -466,7 +466,7 @@ All views strictly adhere to standard Tailwind typography classes:
     - `Type`: `20%` neutral label (`text-xs sm:text-sm font-mono font-medium text-kumo-strong truncate`).
     - `Host / Name`: `26%` exact hostname (`text-xs sm:text-sm font-mono font-medium text-kumo-strong truncate`).
     - `Value / Content`: `54%` full monospace DNS record (`text-xs sm:text-sm font-mono text-kumo-default truncate`).
-  - Interaction: Every cell is interactive (`cursor-pointer hover:bg-kumo-control/50`). Hover reveals copy cue; clicking copies complete unclipped value and triggers green `Copied` badge (`text-xs font-semibold bg-cf-success/10 text-cf-success`).
+  - Interaction: Every cell is interactive (`cursor-pointer hover:bg-kumo-control/50`). Clicking copies complete unclipped value and triggers green `Copied` badge (`text-xs font-semibold bg-cf-success/10 text-cf-success`).
 
 ### 8.2 Settings Page (`/settings`)
 
@@ -477,7 +477,7 @@ All views strictly adhere to standard Tailwind typography classes:
 
 ### 8.3 Team & Roles Directory
 
-- **Role Cards (Admin, Member, Viewer):** 3-column equal-height grid (`grid-cols-1 md:grid-cols-3 gap-3.5`), title in `text-sm sm:text-base font-semibold font-mono`, capability badges (`Full Access`, `Standard Ops`, `Read-Only`).
+- **Role Cards (Admin, Member, Viewer):** 3-column equal-height grid (`grid-cols-1 md:grid-cols-3 gap-3.5`), title in `text-sm sm:text-base font-semibold font-mono`.
 - **Member Rows:** `divide-y divide-kumo-hairline`, Facehash avatar (40px), role badge, status dot, and action buttons (`Role` toggle, `Reset` credentials, `Trash`).
 
 ---

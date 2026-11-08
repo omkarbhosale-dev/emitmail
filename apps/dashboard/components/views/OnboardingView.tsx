@@ -1,12 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Globe,
   HardDrives,
-  Copy,
   Check,
   ArrowRight,
   ShieldCheck,
@@ -276,7 +275,25 @@ export function OnboardingView() {
     }
   };
 
+  const isDomainConfirmed = createdDomain?.status === "VERIFIED";
+
+  const lastDisabledToastRef = useRef<number>(0);
+  const notifyDomainUnconfirmed = useCallback(() => {
+    const now = Date.now();
+    if (now - lastDisabledToastRef.current < 1500) return;
+    lastDisabledToastRef.current = now;
+    toast({
+      title: "Confirm your domain",
+      description: "Please verify your domain's DNS records before proceeding to the dashboard.",
+      type: "warning",
+    });
+  }, [toast]);
+
   const handleFinish = () => {
+    if (!isDomainConfirmed) {
+      notifyDomainUnconfirmed();
+      return;
+    }
     toast({
       title: "Setup Complete!",
       description: "Welcome to your EmitMail dashboard. You are ready to dispatch emails.",
@@ -602,10 +619,17 @@ export function OnboardingView() {
                     (r) => r.type === "TXT" && r.host.startsWith("_dmarc")
                   );
 
-                  const dnsRows = [
+                  const dnsRows: Array<{
+                    keyPrefix: string;
+                    type: string;
+                    badge?: string;
+                    host: string;
+                    value: string;
+                    copyValue: string;
+                  }> = [
                     {
                       keyPrefix: "dkim",
-                      type: "TXT (DKIM)",
+                      type: "TXT",
                       host: `${createdDomain?.dkimSelector || "esp"}._domainkey`,
                       value: createdDomain?.dkimPublicKey
                         ? `v=DKIM1; k=rsa; p=${createdDomain.dkimPublicKey}`
@@ -616,14 +640,14 @@ export function OnboardingView() {
                     },
                     {
                       keyPrefix: "spf-send",
-                      type: "TXT (Sender SPF)",
+                      type: "TXT",
                       host: "send",
                       value: `v=spf1 ip4:${vpsIp} a mx -all`,
                       copyValue: `v=spf1 ip4:${vpsIp} a mx -all`,
                     },
                     {
                       keyPrefix: "spf-master",
-                      type: "TXT (Master SPF)",
+                      type: "TXT",
                       host: spfDomain ? spfDomain.replace(`.${domainName}`, "") : "_spf",
                       value: `v=spf1 ip4:${vpsIp} ~all`,
                       copyValue: `v=spf1 ip4:${vpsIp} ~all`,
@@ -631,7 +655,7 @@ export function OnboardingView() {
                     ...(dmarcRecords && dmarcRecords.length > 0
                       ? dmarcRecords.map((r, i) => ({
                           keyPrefix: `dmarc-${i}`,
-                          type: "TXT (DMARC)",
+                          type: "TXT",
                           host: r.host,
                           value: r.value,
                           copyValue: r.value,
@@ -639,7 +663,7 @@ export function OnboardingView() {
                       : [
                           {
                             keyPrefix: "dmarc-fallback",
-                            type: "TXT (DMARC)",
+                            type: "TXT",
                             host: `_dmarc.${createdDomain?.domainName || domainName || "yourdomain.com"}`,
                             value: `v=DMARC1; p=reject; sp=reject; adkim=s; aspf=s; rua=mailto:dmarc-reports@${createdDomain?.domainName || domainName || "yourdomain.com"}`,
                             copyValue: `v=DMARC1; p=reject; sp=reject; adkim=s; aspf=s; rua=mailto:dmarc-reports@${createdDomain?.domainName || domainName || "yourdomain.com"}`,
@@ -654,7 +678,8 @@ export function OnboardingView() {
                     },
                     {
                       keyPrefix: "mx-record",
-                      type: "MX (Priority 10)",
+                      type: "MX",
+                      badge: "(Priority 10)",
                       host: "@",
                       value: mailHostname || `mail.${createdDomain?.domainName || domainName}`,
                       copyValue: mailHostname || `mail.${createdDomain?.domainName || domainName}`,
@@ -704,22 +729,24 @@ export function OnboardingView() {
                                 <td
                                   onClick={() => handleCopy(row.type, `${row.keyPrefix}-type`)}
                                   className="py-3 px-4 align-middle cursor-pointer hover:bg-kumo-control/50 transition-colors group/cell select-none relative overflow-hidden"
-                                  title={`Click to copy: ${row.type}`}
+                                  title={row.badge ? `Click to copy: ${row.type} ${row.badge}` : `Click to copy: ${row.type}`}
                                 >
                                   <div className="flex items-center justify-between gap-2 min-w-0">
-                                    <span className="font-mono text-[12px] sm:text-[13px] font-medium text-kumo-strong truncate block group-hover/cell:text-kumo-strong transition-colors">
-                                      {row.type}
-                                    </span>
-                                    {copiedKey === `${row.keyPrefix}-type` ? (
+                                    <div className="flex items-center gap-1.5 min-w-0">
+                                      <span className="font-mono text-[12px] sm:text-[13px] font-medium text-kumo-strong truncate block group-hover/cell:text-kumo-strong transition-colors">
+                                        {row.type}
+                                      </span>
+                                      {row.badge && (
+                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-mono font-semibold bg-cf-orange-tint text-cf-orange border border-cf-orange-border shrink-0 shadow-2xs">
+                                          {row.badge}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {copiedKey === `${row.keyPrefix}-type` && (
                                       <span className="inline-flex items-center gap-1 text-cf-success text-[11px] font-semibold shrink-0 bg-cf-success/10 px-1.5 py-0.5 rounded transition-all animate-in fade-in duration-150">
                                         <Check size={11} weight="bold" />
                                         <span>Copied</span>
                                       </span>
-                                    ) : (
-                                      <Copy
-                                        size={12}
-                                        className="text-kumo-subtle opacity-0 group-hover/cell:opacity-100 transition-opacity shrink-0"
-                                      />
                                     )}
                                   </div>
                                 </td>
@@ -734,16 +761,11 @@ export function OnboardingView() {
                                     <span className="font-mono text-[13px] font-medium text-kumo-strong truncate block group-hover/cell:text-kumo-strong transition-colors">
                                       {row.host}
                                     </span>
-                                    {copiedKey === `${row.keyPrefix}-host` ? (
+                                    {copiedKey === `${row.keyPrefix}-host` && (
                                       <span className="inline-flex items-center gap-1 text-cf-success text-[11px] font-semibold shrink-0 bg-cf-success/10 px-1.5 py-0.5 rounded transition-all animate-in fade-in duration-150">
                                         <Check size={11} weight="bold" />
                                         <span>Copied</span>
                                       </span>
-                                    ) : (
-                                      <Copy
-                                        size={12}
-                                        className="text-kumo-subtle opacity-0 group-hover/cell:opacity-100 transition-opacity shrink-0"
-                                      />
                                     )}
                                   </div>
                                 </td>
@@ -758,16 +780,11 @@ export function OnboardingView() {
                                     <span className="font-mono text-[12px] sm:text-[13px] text-kumo-default truncate block group-hover/cell:text-kumo-strong transition-colors">
                                       {row.value}
                                     </span>
-                                    {copiedKey === `${row.keyPrefix}-value` ? (
+                                    {copiedKey === `${row.keyPrefix}-value` && (
                                       <span className="inline-flex items-center gap-1 text-cf-success text-[11px] font-semibold shrink-0 bg-cf-success/10 px-1.5 py-0.5 rounded transition-all animate-in fade-in duration-150">
                                         <Check size={11} weight="bold" />
                                         <span>Copied</span>
                                       </span>
-                                    ) : (
-                                      <Copy
-                                        size={12}
-                                        className="text-kumo-subtle opacity-0 group-hover/cell:opacity-100 transition-opacity shrink-0"
-                                      />
                                     )}
                                   </div>
                                 </td>
@@ -811,25 +828,45 @@ export function OnboardingView() {
                     <span>&larr; Back to Domain Details</span>
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={handleFinish}
-                    className="btn-cf-primary h-9 sm:h-10 px-5 text-[13px] sm:text-[14px] font-medium inline-flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-[0.99] transition-all text-center"
+                  <div
+                    onClick={!isDomainConfirmed ? notifyDomainUnconfirmed : undefined}
+                    onKeyDown={
+                      !isDomainConfirmed
+                        ? (e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              notifyDomainUnconfirmed();
+                            }
+                          }
+                        : undefined
+                    }
+                    tabIndex={!isDomainConfirmed ? 0 : undefined}
+                    role={!isDomainConfirmed ? "button" : undefined}
+                    aria-disabled={!isDomainConfirmed ? "true" : undefined}
+                    aria-label={!isDomainConfirmed ? "Proceed to Dashboard (Domain verification required)" : undefined}
+                    className="inline-flex rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-cf-orange/50 cursor-pointer"
                   >
-                    <span>Proceed to Dashboard</span>
-                    <ArrowRight size={14} weight="bold" />
-                  </button>
+                    <button
+                      type="button"
+                      onClick={handleFinish}
+                      disabled={!isDomainConfirmed}
+                      title={isDomainConfirmed ? "Proceed to Dashboard" : undefined}
+                      className={`btn-cf-primary h-9 sm:h-10 px-5 text-[13px] sm:text-[14px] font-medium inline-flex items-center justify-center gap-2 shadow-sm active:scale-[0.99] transition-all text-center ${
+                        !isDomainConfirmed
+                          ? "opacity-40 pointer-events-none"
+                          : "cursor-pointer"
+                      }`}
+                    >
+                      <span>Proceed to Dashboard</span>
+                      <ArrowRight size={14} weight="bold" />
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
           </div>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="py-4 text-center text-xs text-kumo-muted border-t border-kumo-hairline">
-        EmitMail Sovereign Mail Infrastructure &bull; 100% Drop-In Resend Compatibility
-      </footer>
     </div>
   );
 }

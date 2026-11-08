@@ -1206,10 +1206,6 @@ export function SettingsView() {
                 <span className="text-[15px] sm:text-[16px] font-semibold text-kumo-strong">
                   Team Members & Role Access
                 </span>
-                <span className="inline-flex items-center gap-1.5 text-[11px] font-mono px-2 py-0.5 rounded-full bg-cf-orange/10 text-cf-orange border border-cf-orange/20 font-medium">
-                  <span className="w-1.5 h-1.5 rounded-full bg-cf-orange" />
-                  RBAC Active
-                </span>
               </div>
               <p className="text-[13px] text-kumo-subtle max-w-xl leading-relaxed mt-1">
                 Only Administrators can provision users, assign roles, or reset credentials. A unique one-time password is generated for each account and shown once.
@@ -1249,9 +1245,6 @@ export function SettingsView() {
                     Admin
                   </span>
                 </div>
-                <span className="text-[11px] font-mono bg-cf-orange/10 text-cf-orange px-2 py-0.5 rounded-full border border-cf-orange/20 font-medium">
-                  Full Access
-                </span>
               </div>
               <p className="text-[13px] text-kumo-subtle leading-relaxed">
                 Complete control over workspace parameters, team provisioning, domain verification, and API key management.
@@ -1269,9 +1262,6 @@ export function SettingsView() {
                     Member
                   </span>
                 </div>
-                <span className="text-[11px] font-mono bg-cf-chart-blue/10 text-cf-chart-blue px-2 py-0.5 rounded-full border border-cf-chart-blue/20 font-medium">
-                  Standard Ops
-                </span>
               </div>
               <p className="text-[13px] text-kumo-subtle leading-relaxed">
                 Authorized to dispatch emails, configure mailboxes, inspect analytics, and create domain-scoped API keys.
@@ -1289,9 +1279,6 @@ export function SettingsView() {
                     Viewer
                   </span>
                 </div>
-                <span className="text-[11px] font-mono bg-kumo-elevated text-kumo-subtle px-2 py-0.5 rounded-full border border-kumo-hairline font-medium">
-                  Read-Only
-                </span>
               </div>
               <p className="text-[13px] text-kumo-subtle leading-relaxed">
                 Read-only observability over delivery telemetry, inbound logs, and domain health without write permissions.
@@ -1389,18 +1376,13 @@ export function SettingsView() {
                       {/* Right: Security Status & Administrator Actions */}
                       <div className="flex items-center gap-3 self-end sm:self-auto shrink-0">
                         {/* First-login flag */}
-                        {member.mustChangePassword ? (
+                        {member.mustChangePassword && (
                           <span
                             className="inline-flex items-center gap-1.5 text-[11px] font-mono font-medium text-cf-amber bg-cf-amber/10 border border-cf-amber/20 px-2.5 py-0.5 rounded-full"
                             title="User must change default password on first login"
                           >
                             <span className="w-1.5 h-1.5 rounded-full bg-cf-amber" />
                             <span>Initial Password</span>
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 text-[11px] font-mono font-medium text-cf-success bg-cf-success/10 border border-cf-success/20 px-2.5 py-0.5 rounded-full">
-                            <span className="w-1.5 h-1.5 rounded-full bg-cf-success" />
-                            <span>Active</span>
                           </span>
                         )}
 
