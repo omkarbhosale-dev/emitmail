@@ -1,27 +1,28 @@
 # EmitMail Dashboard — Design System & UI Architecture (`DESIGN.md`)
 
 ## 1. Design Philosophy & Visual Reference
+
 The EmitMail Dashboard is built on **Cloudflare's Kumo Design System** (`@cloudflare/kumo`) and directly mirrors the **Cloudflare Dashboard ("Account Home" v2)** aesthetic in both Dark and Light modes.
 
 Key visual signatures:
 - **Ultra-Clean Contrast:** Pitch-black canvas (`#050505`) with subtle dark-charcoal cards (`#0C0C0C`) in Dark Mode; crisp warm off-white canvas (`#FBFBFB`) with pure white cards (`#FFFFFF`) in Light Mode.
 - **Signature Cloudflare Colors:**
-  - **Cloudflare Orange Theme:** Vibrant orange (`#FF6600` / `#F6821F`) used for brand logos, onboarding banners, graphic tiles, and active sidebar icons.
+  - **Cloudflare Orange Theme:** Vibrant brand orange (`#FF6600` / `#F6821F`) used for logos, onboarding banners, status highlights, and active sidebar navigation icons.
   - **Cloudflare Action Blue:** High-contrast royal blue (`#0066FF` in Dark / `#0051C3` in Light) for primary action buttons (`btn-cf-primary`), unread notification badges, and active search/focus rings.
 - **1px Hairline Precision:** Structural separation achieved through ultra-thin `1px` borders (`#1E1E1E` in Dark, `#E5E5E5` in Light) rather than heavy drop shadows.
-- **Component Stack:** `@cloudflare/kumo` (Base UI primitives + Tailwind CSS v4) paired with `@phosphor-icons/react` and `facehash` avatars.
+- **Component Stack:** `@cloudflare/kumo` (Base UI primitives + Tailwind CSS v4) paired with `@phosphor-icons/react` icons and `facehash` avatar graphics.
 
 ---
 
 ## 2. Core Golden Rules (Strict Enforcement)
 
 1. **Use Kumo Semantic Tokens + Cloudflare Tokens:** Always use Kumo semantic utility classes (`bg-kumo-canvas`, `bg-kumo-base`, `text-kumo-default`, `border-kumo-hairline`) alongside our registered Cloudflare theme tokens (`bg-cf-orange`, `text-cf-orange`, `text-cf-blue`, `btn-cf-primary`, `btn-cf-secondary`).
-2. **NEVER Use Raw Tailwind Grayscale/Blue Classes:** Avoid hardcoded classes like `bg-zinc-900` or `text-gray-500` in components so that switching `data-mode="dark"` and `data-mode="light"` works automatically without `dark:` prefixes.
-3. **NEVER Use the `dark:` Variant in Markup:** Theme switching is handled entirely by CSS custom properties (`[data-mode="dark"]` / `[data-mode="light"]`).
-4. **Always Use Standard Tailwind Typography Classes:** All typography must use standard Tailwind utility classes (`text-xs`, `text-sm`, `text-base`, `text-lg`, `text-xl`, `text-2xl`, `text-3xl`). Never use arbitrary pixel classes (e.g., `text-[13px]`) or custom utilities (e.g., `text-2xs`).
-5. **Always Use `cn()` for Class Composition:** Import `cn` from `@/lib/utils` or `@cloudflare/kumo` to merge conditional classes safely.
-6. **Root Portal Isolation:** Kumo floating elements (Dialogs, Popovers, Select menus, Dropdowns, Command Palettes) portal to `document.body`. The application root container (`#root` or `<main>`) **must** have `className="isolate"` (`isolation: isolate`).
-7. **Application Implementation is the Source of Truth:** Documentation describes the implemented reality of the application. Never invent fictional or unapproved patterns.
+2. **NEVER Use Raw Tailwind Grayscale/Blue Classes:** Avoid hardcoded classes like `bg-zinc-900` or `text-gray-500` in layout markup so that switching `data-mode="dark"` and `data-mode="light"` works automatically without manual theme overrides.
+3. **Theme Switching Via Data Attributes:** Theme mode is controlled at the root element level via `data-mode="dark"` and `data-mode="light"` powered by CSS custom properties.
+4. **Always Use Standard Tailwind Typography Classes:** All typography must use standard Tailwind utility classes (`text-xs`, `text-sm`, `text-base`, `text-lg`, `text-xl`, `text-2xl`, `text-3xl`). Never introduce custom font-size utilities (such as `text-2xs`) or arbitrary pixel-based classes in documentation.
+5. **Always Use `cn()` for Class Composition:** Import `cn` from `@/lib/utils` to merge conditional Tailwind classes safely.
+6. **Root Portal Isolation:** Floating overlays (Dialogs, Popovers, Select menus, Dropdowns, Command Palettes) portal to `document.body`. The application root container (`AppShell`) preserves `className="isolate"` (`isolation: isolate`).
+7. **Application Implementation is the Source of Truth:** Documentation strictly describes what exists in the active codebase. Never document hypothetical, planned, or unverified features as implemented reality.
 
 ---
 
@@ -33,11 +34,11 @@ Key visual signatures:
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Cloudflare Action Blue** | `--color-cf-blue` | `text-cf-blue` / `bg-cf-blue` | `#0051C3` | `#0066FF` | Primary button fill (`btn-cf-primary`), inbox unread badge, focus rings |
 | **Cloudflare Blue Hover** | `--color-cf-blue-hover` | `hover:bg-cf-blue-hover` | `#0043A6` | `#0052CC` | Hover state for primary action buttons |
-| **Cloudflare Primary Orange** | `--color-cf-orange` | `bg-cf-orange` / `text-cf-orange` | `#FF6600` | `#FF6600` | Setup wizard CTAs, brand icon box, inbound chart stroke |
+| **Cloudflare Primary Orange** | `--color-cf-orange` | `bg-cf-orange` / `text-cf-orange` | `#FF6600` | `#FF6600` | Setup wizard CTAs, brand icon box, active tab indicators |
 | **Cloudflare Classic Orange** | `--color-cf-orange-brand` | `text-cf-orange-brand` | `#F6821F` | `#F6821F` | Brand logo mark, primary brand accent |
 | **Cloudflare Orange Hover** | `--color-cf-orange-hover` | `hover:bg-cf-orange-hover` | `#E65C00` | `#FF7A1A` | Hover state for orange CTA buttons |
-| **Cloudflare Amber** | `--color-cf-amber` | `text-cf-amber` / `bg-cf-amber` | `#FBAD41` | `#FBBF24` | Warning badges, pending domain verification, soft alert borders |
-| **Cloudflare Orange Tint** | `--color-cf-orange-tint` | `bg-cf-orange-tint` | `#FFF3EB` | `#2A1205` | Setup callout background, version update pill background |
+| **Cloudflare Amber** | `--color-cf-amber` | `text-cf-amber` / `bg-cf-amber` | `#FBAD41` | `#FBBF24` | Warning badges, pending domain verification, warning toasts |
+| **Cloudflare Orange Tint** | `--color-cf-orange-tint` | `bg-cf-orange-tint` | `#FFF3EB` | `#2A1205` | Setup callout background, MX Priority badge, update banners |
 | **Cloudflare Orange Border** | `--color-cf-orange-border` | `border-cf-orange-border` | `#FFD4B8` | `#5C280B` | Border for orange-tinted callouts and banners |
 | **Analytics Chart Blue** | `--color-cf-chart-blue` | `text-cf-chart-blue` | `#0051C3` | `#3B82F6` | Outbound dispatched timeseries line & area gradient |
 | **Success Emerald** | `--color-cf-success` | `text-cf-success` / `bg-cf-success` | `#059669` | `#34D399` | 250 OK delivery rate, active status dots, verified domain badges |
@@ -125,6 +126,11 @@ Key visual signatures:
   --color-cf-orange-border: var(--cf-orange-border);
   --color-cf-chart-blue: var(--cf-chart-blue);
   --color-cf-success: var(--cf-success);
+
+  @keyframes skeleton {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
 }
 
 :root {
@@ -190,23 +196,92 @@ Key visual signatures:
   --cf-banner-outer-bg: #F7F7F7;
   --cf-banner-outer-border: #E5E5E5;
 }
+
+/* Explicit Cloudflare Button System */
+.btn-cf-primary {
+  background-color: #0066FF !important;
+  color: #FFFFFF !important;
+  font-weight: 500 !important;
+  border: 1px solid transparent !important;
+  border-radius: 0.375rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.375rem !important;
+  padding: 0.45rem 0.95rem !important;
+  font-size: 0.8125rem !important;
+  line-height: 1.125rem !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.25) !important;
+  transition: all 120ms ease !important;
+  cursor: pointer !important;
+  user-select: none !important;
+}
+.btn-cf-primary:hover {
+  background-color: #0052CC !important;
+}
+html[data-mode="light"] .btn-cf-primary {
+  background-color: #0051C3 !important;
+}
+html[data-mode="light"] .btn-cf-primary:hover {
+  background-color: #0043A6 !important;
+}
+
+.btn-cf-secondary {
+  background-color: #141414 !important;
+  color: #FFFFFF !important;
+  border: 1px solid #2B2B2B !important;
+  font-weight: 500 !important;
+  border-radius: 0.375rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.375rem !important;
+  padding: 0.45rem 0.95rem !important;
+  font-size: 0.8125rem !important;
+  line-height: 1.125rem !important;
+  transition: all 120ms ease !important;
+  cursor: pointer !important;
+  user-select: none !important;
+}
+.btn-cf-secondary:hover {
+  background-color: #1E1E22 !important;
+  border-color: #3E3E3E !important;
+}
+html[data-mode="light"] .btn-cf-secondary {
+  background-color: #FFFFFF !important;
+  color: #111111 !important;
+  border: 1px solid #D4D4D8 !important;
+}
+html[data-mode="light"] .btn-cf-secondary:hover {
+  background-color: #F4F4F5 !important;
+  border-color: #A1A1AA !important;
+}
 ```
 
 ---
 
-## 5. Application Shell & Layout Blueprints
+## 5. Application Shell & Navigation Architecture
 
 ### 5.1 Application Shell Architecture (`AppShell.tsx`)
 
 The dashboard features a modern, headerless desktop layout paired with a dedicated mobile header and drawer:
 
+- **Root Container:** `isolate h-screen w-screen overflow-hidden bg-kumo-canvas text-kumo-default flex flex-col`.
+- **Global Context Providers Stack:**
+  - `ToastProvider`: Manages floating toast notifications with 4s auto-dismiss.
+  - `VersionProvider`: Queries `/api/v1/system/version` and manages update state.
+  - `AuthProvider`: Manages current user session, permissions, and logout routines.
+- **Top Update Banner (`SystemUpdateBanner.tsx`):**
+  - Rendered at the top of the shell when an update is available (`isUpdateAvailable === true` and not dismissed).
+  - Background: Gradient from `cf-orange/10` via `cf-orange/5` to transparent with bottom border `cf-orange/20`.
+  - Content: Animated pulse icon, version tag, "Download & Install Update" button, and dismiss `X` button.
 - **Desktop Shell (`hidden lg:flex`):**
   - **No Global Desktop Header:** The top header bar is deliberately omitted on desktop to maximize vertical canvas space and mirror Cloudflare Account Home v2.
   - **Full-Height Sidebar:** Persistent fixed left sidebar running the entire height of the viewport (`h-full lg:flex`).
   - **Scrollable Main Canvas:** Independent scrollable viewport (`flex-1 min-w-0 overflow-y-auto bg-kumo-canvas`).
-  - **Centered Content Container:** All views are centered within `w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex-1 flex flex-col`.
+  - **Centered Content Container:** All views are centered within `w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5`.
 - **Mobile Shell (`lg:hidden`):**
-  - **Mobile Header (`h-12 border-b border-kumo-hairline bg-kumo-canvas px-4 flex items-center justify-between`):**
+  - **Mobile Header (`h-12 border-b border-kumo-hairline bg-kumo-base/90 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between`):**
     - Left: Hamburger drawer trigger (`List` icon, 20px).
     - Center: Brand mark with `PaperPlaneTilt` icon in orange box + `emitmail` logo.
     - Right: Quick search shortcut button opening the command palette.
@@ -233,7 +308,7 @@ The dashboard features a modern, headerless desktop layout paired with a dedicat
   1. **Domain Selector Dropdown (`mb-3.5`):**
      - Button: `w-full flex items-center justify-between px-2.5 py-2 rounded-lg bg-kumo-control hover:bg-kumo-elevated border border-kumo-line text-xs font-medium text-kumo-strong shadow-2xs`.
      - Left indicator: `w-5 h-5 rounded-md bg-cf-orange/15 text-cf-orange font-bold text-xs flex items-center justify-center shrink-0` showing the uppercase initial of the active domain or `Plus` icon.
-     - Center text: Truncated active domain name (e.g. `omkarbhosale.dev`).
+     - Center text: Truncated active domain name.
      - Right icon: `CaretUpDown` (14px).
      - Dropdown menu: `rounded-xl bg-kumo-base border border-kumo-hairline shadow-xl py-1 text-xs z-40` with verified checkmark and "+ Manage all domains" link to `/domains`.
   2. **Quick Search Button:**
@@ -241,7 +316,7 @@ The dashboard features a modern, headerless desktop layout paired with a dedicat
      - Left: `MagnifyingGlass` (15px) + `"Quick search..."`.
      - Right: `<kbd className="px-1.5 py-0.5 text-xs font-mono text-kumo-muted bg-kumo-recessed border border-kumo-hairline rounded">Ctrl K</kbd>`.
 - **Primary Navigation Map (7 Routes, `space-y-2`):**
-  1. **Home** (`/`, `House`) — Central command hub, onboarding, and 30-day analytics.
+  1. **Home** (`/`, `House`) — Central command hub, onboarding status, and 30-day analytics.
   2. **Email** (`/emails`, `EnvelopeSimple`) — Processed outbox telemetry, delivery rates, and send test email.
   3. **Inbox** (`/inbox`, `Tray`) — Real-time inbound mailboxes with blue unread badge (`bg-[#0066FF] text-white text-xs font-bold min-w-5 h-5 rounded-full`).
   4. **Analytics** (`/analytics`, `ChartLineUp`) — 30-day volume breakdown, bounce rates, and deliverability trends.
@@ -259,84 +334,19 @@ The dashboard features a modern, headerless desktop layout paired with a dedicat
      - Conditionally displayed **only** when `isUpdateAvailable === true`.
      - Container: `w-full relative flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-kumo-base hover:bg-kumo-elevated border border-kumo-hairline hover:border-kumo-line transition-all shadow-2xs`.
      - Content: `DownloadIcon` (16px) + `"Update Available"` in `text-sm font-semibold text-kumo-strong`.
-     - Subtle Status Indicator: Vertically centered on the right (`absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center justify-center w-2.5 h-2.5 rounded-full bg-cf-success/15 ring-1 ring-cf-success/25`), with a `w-1.5 h-1.5 rounded-full bg-emerald-600` dark-green center core.
-     - Action: Opens the Upgrade & Version Manager modal.
+     - Status Indicator: Vertically centered on the right (`absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center justify-center w-2.5 h-2.5 rounded-full bg-cf-success/15 ring-1 ring-cf-success/25`), with a `w-1.5 h-1.5 rounded-full bg-emerald-600` dark-green center core.
+     - Action: Opens the `UpgradeModal`.
   4. **Transparent Account Row:**
      - Container: Completely borderless, backgroundless transparent horizontal row (`w-full flex items-center justify-between px-1.5 py-1.5 rounded-lg hover:bg-kumo-tint/60 transition-colors text-left select-none`).
      - Avatar: Circular Facehash avatar (32px, `rounded-full overflow-hidden`).
-     - Identity: Label `"Account"` in `text-sm font-semibold text-kumo-strong leading-tight`, user email in `text-xs text-kumo-muted truncate mt-0.5`.
+     - Identity: Label `"Account"` in `text-sm font-semibold text-kumo-strong leading-tight`, user email or handle in `text-xs text-kumo-muted truncate mt-0.5`.
      - Right: `CaretUpDown` (16px) icon in `text-kumo-muted`.
      - Upward Popover Menu: Anchored upward (`bottom-full left-0 mb-2 w-full rounded-xl bg-kumo-base border border-kumo-hairline shadow-xl py-1 text-xs z-50`):
        - Header: Facehash (32px), user full name, role badge (`ADMIN`, `MEMBER`, `VIEW ONLY`), and email.
        - Nav Link: Workspace Settings (`/settings`).
        - Theme Toggle: Interactive button toggling dark/light mode with `Sun`/`Moon` icons.
        - Log Out: `text-red-500 hover:bg-red-500/10` action button.
-  5. **Current Version Indicator:** Centered subtle version string at the very bottom: `Version v0.30.8` (`text-center text-xs text-kumo-subtle select-none pt-2 pb-0.5 font-normal tracking-wide`).
-
-### 5.3 Hero Command Section (`HomeView.tsx`)
-
-- **Top Floating Status / Update Pill:**
-  - Conditionally rendered when an update is available: `inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cf-orange-tint border border-cf-orange-border text-xs font-medium text-cf-orange hover:bg-cf-orange hover:text-white transition-all shadow-2xs`.
-  - Animated pulsing indicator dot: `animate-ping bg-cf-orange`.
-  - Text: `EmitMail v0.30.8 is available — View upgrade notes` with `ArrowSquareOut` icon.
-- **Hero Greeting:**
-  - Centered: `text-2xl sm:text-3xl font-semibold tracking-tight text-kumo-strong mt-3 mb-4` (`"Welcome to EmitMail"`).
-- **Centered Global Command Search Bar:**
-  - Dimensions: `max-w-xl mx-auto w-full bg-kumo-control/60 hover:bg-kumo-control/90 border border-kumo-hairline hover:border-kumo-line focus-within:border-cf-blue/70 rounded-full px-4 py-2 sm:py-2.5 flex items-center justify-between transition-all shadow-2xs`.
-  - Left: `MagnifyingGlass` (16px) + `"Search messages, domains, or API keys..."` in `text-xs text-kumo-subtle`.
-  - Right: Keycap badges `<kbd className="px-1.5 py-0.5 text-xs font-mono bg-kumo-elevated border border-kumo-hairline rounded text-kumo-subtle">Ctrl</kbd> <kbd>K</kbd>`.
-- **Onboarding Callout Banner:**
-  - Displayed if the mail server or domains are unconfigured: `max-w-4xl mx-auto w-full mt-5 rounded-xl border border-cf-orange/30 bg-cf-orange-tint/80 p-4 sm:p-4.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-left shadow-2xs`.
-  - Left: Orange globe icon container (`w-9 h-9 rounded-lg bg-cf-orange/15 text-cf-orange`) + Heading `"Action Required: Complete Mail Server & Domain Setup"` + description.
-  - Right: Primary CTA button (`bg-cf-orange hover:bg-cf-orange-hover text-white text-xs font-semibold px-3.5 py-2 rounded-lg flex items-center gap-1.5 shadow-xs`) linking to `/onboarding`.
-
-### 5.4 Three-Column Quick Access Grid (`grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5`)
-
-- **Column 1 (`Domains`):**
-  - Header: `"DOMAINS"` uppercase tracking label with top-right `"View all >"` link.
-  - List: Up to 3 configured domains showing globe icon, domain name, and verified/pending status pill (`bg-cf-success/10 text-cf-success` or `bg-cf-amber/10 text-cf-amber`).
-  - Action: Bottom `+ Add Domain` button (`bg-kumo-elevated hover:bg-kumo-interact border border-kumo-hairline rounded-lg py-1.5 text-xs font-medium text-kumo-default`).
-- **Column 2 (`Quick Actions`):**
-  - Header: `"QUICK ACTIONS"` uppercase tracking label.
-  - Items: List of 3 fast-access actions (`Inbox`, `Emails`, `API Keys`) with `w-7 h-7 rounded-md bg-cf-blue/10 text-cf-blue` icons, titles, subtitles, and chevron right icons.
-- **Column 3 (`Recents`):**
-  - Header: `"RECENTS"` uppercase tracking label + `"Activity"`.
-  - Feed: Live activity feed across inbox messages, dispatched emails, verified domains, and API keys with relative monospace timestamps (`formatRelativeTime`, e.g., `Just now`, `5m ago`, `2h ago`).
-
-### 5.5 Analytics KPI Summary Cards (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4`)
-
-Four telemetry summary cards displayed above the timeseries charts:
-1. **Emails Sent:**
-   - Label: `text-xs sm:text-sm font-medium text-kumo-subtle` + `DotsThree` menu icon.
-   - Metric: `text-2xl sm:text-3xl font-semibold tracking-tight text-kumo-strong font-mono leading-none` (e.g., `4,330`) + `↗ Active` in `text-xs font-medium text-cf-success`.
-   - Subtext: `text-xs text-kumo-subtle font-normal mt-1` (e.g., `4,321 delivered`).
-2. **Delivery Rate:**
-   - Metric: `text-2xl sm:text-3xl font-semibold tracking-tight text-kumo-strong font-mono leading-none` (e.g., `99.8%` or `—`) + `250 OK` badge.
-   - Presentation Rule: Displays `—` and `"No data yet"` when total volume is 0.
-   - Subtext: `4,321 of 4,330 delivered` (or `"Requires at least 1 dispatch"`).
-3. **Bounce Rate:**
-   - Metric: `text-2xl sm:text-3xl font-semibold tracking-tight text-kumo-strong font-mono leading-none` (e.g., `0.2%` or `—`) + amber bounce count badge.
-   - Subtext: `Hard bounces: 9` (or `"No bounces recorded"`).
-4. **Service Status:**
-   - Infrastructure health list for `Database`, `Redis`, and `Worker`.
-   - Each item shows a `w-1.5 h-1.5 rounded-full` indicator dot (green `bg-cf-success` when connected/running, red `bg-kumo-danger` when offline/stopped) and monospace status label (`Connected`, `Running`, `Offline`).
-
-### 5.6 Interactive Timeseries Charts (`grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5`)
-
-Two interactive SVG timeseries chart cards with real data, animated line strokes, and hover tooltips:
-- **Card Container:** `bg-kumo-base border border-kumo-hairline rounded-xl p-4 sm:p-4.5 flex flex-col justify-between min-h-[240px] relative overflow-hidden group hover:border-kumo-line/80 transition-colors`.
-- **Chart 1 (Total emails dispatched):**
-  - Header: `"Total emails dispatched"` + `"30-day view"`.
-  - Metric: Large count in `text-2xl sm:text-3xl font-semibold text-kumo-strong font-mono leading-none` + `↗ Live` badge.
-  - Stroke & Gradient: Action Blue line (`var(--cf-chart-blue)`), gradient fill (`chartBlueGrad`).
-- **Chart 2 (Inbound email volume):**
-  - Header: `"Inbound email volume"` + `Tray` orange icon + `"30-day view"`.
-  - Metric: Large count in `text-2xl sm:text-3xl font-semibold text-kumo-strong font-mono leading-none` + `↗ Receiving` / unread badge.
-  - Stroke & Gradient: Cloudflare Orange line (`var(--cf-orange)`), gradient fill (`chartOrangeGrad`).
-- **Interaction:**
-  - Invisible hover hitbox columns over SVG coordinates.
-  - Active hover point: animated pulse indicator dot.
-  - Boundary-aware floating tooltip card showing exact value and date label.
+  5. **Current Version Indicator:** Centered subtle version string at the very bottom: `Version v0.30.8` (`text-center text-xs text-kumo-subtle select-none pt-2 pb-0.5 font-normal tracking-wide`), sourced dynamically from `/api/v1/system/version` with fallback to `0.30.8`.
 
 ---
 
@@ -408,6 +418,10 @@ All views strictly adhere to standard Tailwind typography classes:
   - Container: `p-4 rounded-xl bg-kumo-base border border-kumo-hairline flex items-start gap-3.5 shadow-2xs`.
   - Left icon: `p-2 rounded-lg bg-cf-blue/10 text-cf-blue shrink-0 mt-0.5` with `ShieldCheck` (20px, weight fill).
   - Content: Title in `text-sm sm:text-base font-medium text-kumo-strong`, body copy in `text-xs sm:text-sm text-kumo-subtle leading-relaxed`.
+- **View-Only Mode Banner (`ViewOnlyBanner.tsx`):**
+  - Rendered when user has `role === "VIEWER"`: `flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-kumo-elevated border border-kumo-hairline text-kumo-subtle text-xs`.
+  - Left: `Eye` icon in blue container.
+  - Right: `Lock` icon with uppercase label `VIEW ONLY`.
 
 ### 7.3 Data Tables & Pagination
 
@@ -451,34 +465,106 @@ All views strictly adhere to standard Tailwind typography classes:
 - **Root Isolation:** All floating overlays portal to `document.body` while the application root container preserves `className="isolate"`.
 - **Backdrop:** `fixed inset-0 bg-black/60 backdrop-blur-xs z-50 transition-opacity`.
 - **Dialog Container:** `bg-kumo-base border border-kumo-hairline rounded-2xl shadow-2xl overflow-hidden p-6 max-w-lg sm:max-w-2xl w-full mx-auto relative z-50 animate-in fade-in zoom-in-95 duration-150`.
-- **Command Palette:** Centered floating modal with instant search input (`h-12 border-b border-kumo-hairline px-4 text-sm`), category list headers (`text-xs text-kumo-subtle uppercase px-3 py-1.5`), and keyboard navigation.
+- **Command Palette (`CommandPalette.tsx`):**
+  - Shortcut: Global `Ctrl + K` / `Cmd + K` keybinding.
+  - Search input: `h-12 border-b border-kumo-hairline px-4 text-sm`.
+  - Actions list: Categorized items (`Action`, `Navigation`) with keyboard navigation and instant route switching.
 
 ---
 
-## 8. Onboarding Wizard & Settings Page Standards
+## 8. Page-Specific UI Architectures
 
-### 8.1 Setup Wizard (`/onboarding`)
+### 8.1 Setup Wizard & Onboarding (`/onboarding` & `OnboardingModal.tsx`)
 
-- **Card Container:** Centered `max-w-3xl w-full bg-kumo-base border border-kumo-line rounded-2xl shadow-xl overflow-hidden` in `min-h-screen bg-kumo-canvas`.
+- **Card Container:** Centered `max-w-4xl w-full bg-kumo-base border border-kumo-line rounded-2xl shadow-xl overflow-hidden` in `min-h-screen bg-kumo-canvas`.
 - **Progress Stepper:** Header indicator with numbered badges (`w-6 h-6 rounded-full text-xs font-semibold`), orange active state (`bg-cf-orange text-white`), and green completion checkmarks (`bg-cf-success/20 text-cf-success`).
-- **3-Column DNS Records Table with Click-to-Copy:**
+- **Step 1 — Server & Domain Parameters:**
+  - Primary Sending Domain input (`*` required) + VPS Public Static IPv4 address input.
+  - Auto-configured cluster records preview tiles: `Mail Server EHLO` (orange), `Return-Path Subdomain` (blue), and `Master SPF Host` (strong).
+- **Step 2 — 3-Column DNS Records Table with Click-to-Copy:**
   - Layout: `table-fixed w-full` summing to 100%:
-    - `Type`: `20%` neutral label (`text-xs sm:text-sm font-mono font-medium text-kumo-strong truncate`).
-    - `Host / Name`: `26%` exact hostname (`text-xs sm:text-sm font-mono font-medium text-kumo-strong truncate`).
-    - `Value / Content`: `54%` full monospace DNS record (`text-xs sm:text-sm font-mono text-kumo-default truncate`).
-  - Interaction: Every cell is interactive (`cursor-pointer hover:bg-kumo-control/50`). Clicking copies complete unclipped value and triggers green `Copied` badge (`text-xs font-semibold bg-cf-success/10 text-cf-success`).
+    - `Type` (`20%`): Clean monospace labels without bracket noise: `TXT`, `A Record`, `MX`. The MX record features a prominent highlighted badge: `<span className="bg-cf-orange-tint text-cf-orange border border-cf-orange-border">(Priority 10)</span>`.
+    - `Host / Name` (`26%`): Exact hostname (`em._domainkey`, `send`, `_spf`, `_dmarc`, `mail...`, `@`).
+    - `Value / Content` (`54%`): Full monospace cryptographic public key or target.
+  - Clean Interaction: Every cell is interactive (`cursor-pointer hover:bg-kumo-control/50`). No distracting hover icon is rendered. Clicking any cell copies the full unclipped value and triggers the green `Copied` check badge alongside a `"Copied to Clipboard"` toast.
+- **Proceed to Dashboard Gate:**
+  - Disabled until domain DNS verification is confirmed (`createdDomain?.status === "VERIFIED"`).
+  - Accessible wrapper pattern: Button has native `disabled`, `opacity-40`, and `pointer-events-none`.
+  - Hover behaviour: Ban pointer (`cursor-not-allowed`) and native `title` hover tooltips are suppressed; wrapper displays a natural `cursor-pointer`.
+  - Feedback on Attempted Click: Clicking or pressing Enter/Space while unverified displays a lightweight warning toast:
+    - **Title:** `Confirm your domain`
+    - **Message:** `Please verify your domain's DNS records before proceeding to the dashboard.`
+    - **Type:** `warning` (subtle amber alert matching the design system).
 
-### 8.2 Settings Page (`/settings`)
+### 8.2 Settings & Diagnostics (`/settings`)
 
 - **Container:** Centered canvas `max-w-5xl mx-auto w-full space-y-6`.
-- **Header:** Title in `text-xl sm:text-2xl font-semibold text-kumo-strong tracking-tight`, description in `text-xs sm:text-sm text-kumo-subtle`, and tab switcher in `p-1 bg-kumo-elevated rounded-xl border border-kumo-hairline`.
-- **Cards:** `bg-kumo-base border border-kumo-hairline rounded-xl p-5 sm:p-6 space-y-5 shadow-2xs`.
-- **Diagnostics Grid:** 6-tile grid (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5`) with equal-height tiles (`p-4 rounded-xl bg-kumo-recessed border border-kumo-hairline`).
+- **Header:** Title in `text-xl sm:text-2xl font-semibold text-kumo-strong tracking-tight`, description in `text-xs sm:text-sm text-kumo-subtle`, and top tab switcher (`Settings & System Diagnostics` vs `Team & Roles`).
+- **Overview Tab:**
+  - **Account Security:** Password change form with current, new, and confirm inputs, reveal password eye toggles, and security checklist banner.
+  - **Operator Identity Info:** Circular Facehash avatar (40px), username, full name, email, and role.
+  - **System Version & Updates:** Dynamic current version indicator, latest release check, and manual "Check for Updates" trigger. When an update is available, displays an orange `Update Available` status badge.
+  - **Infrastructure Diagnostics:** 6 equal-height diagnostic cards (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5`) detailing Inbound Port 25, Submission Port 587, Database Engine, Redis Cluster, SSL/TLS Cipher, and DKIM Key Length.
+  - **SMTP & API Endpoints:** Copyable endpoint callout rows for REST API Base, Inbound MX Endpoint, Outbound SMTP Relay, and Return-Path Domain.
+  - **Appearance & Theme:** Three segmented theme selectors (`Dark`, `Light`, `System`).
+- **Team & Roles Tab:**
+  - **Role Guide Cards:** 3 equal-height guide cards (`Admin`, `Member`, `Viewer`) detailing permissions.
+  - **Team Roster Table:** Directory displaying avatar, name, username, role badge, registration date, and actions (`Role` modifier modal, `Reset` credentials modal, `Delete` user modal).
 
-### 8.3 Team & Roles Directory
+### 8.3 Emails Telemetry View (`/emails`)
 
-- **Role Cards (Admin, Member, Viewer):** 3-column equal-height grid (`grid-cols-1 md:grid-cols-3 gap-3.5`), title in `text-sm sm:text-base font-semibold font-mono`.
-- **Member Rows:** `divide-y divide-kumo-hairline`, Facehash avatar (40px), role badge, status dot, and action buttons (`Role` toggle, `Reset` credentials, `Trash`).
+- **Header Toolbar:** Page title (`Processed Emails`), subtitle description, refresh button, and primary "Send Email" action button (`btn-cf-primary`).
+- **Filter Bar:**
+  - Search input with clear button.
+  - Status filter dropdown (`All`, `Delivered`, `Queued`, `Bounced`, `Failed`).
+  - Sending Domain filter dropdown.
+- **Data Table:**
+  - Columns: `Status` (StatusBadge with dot), `Recipient`, `Subject`, `Domain`, `Dispatched` (relative timestamp), and actions menu.
+  - Interactive row click or actions modal displaying message details, headers, delivery attempts, and delivery logs.
+  - Pagination footer bar with `PAGE_SIZE = 10`.
+
+### 8.4 Inbound Mailboxes View (`/inbox`)
+
+- **Directory Page (`/inbox`):**
+  - Header with mailbox count, search input, refresh button, and "+ Create Mailbox" primary action button.
+  - Table of active mailboxes: `Address` (`support@domain.com`), `Domain`, `Messages` count, `Unread` badge (`bg-cf-blue text-white rounded-full`), and delete action.
+- **Mailbox Thread View (`/inbox/[mailboxId]`):**
+  - List of received messages for the active mailbox. Unread messages feature bold text and blue dot indicator.
+- **Message Detail View (`/inbox/[mailboxId]/[id]`):**
+  - Sender header, recipient address, timestamp, raw headers inspection modal (`RawHeadersModal`), and sanitized HTML email body renderer (`EmailHtmlRenderer`).
+
+### 8.5 Domains Management View (`/domains`)
+
+- **Header Toolbar:** Page title (`Domains`), count badge, search filter, refresh button, and "+ Add Domain" button (`btn-cf-primary`).
+- **Domains Table:**
+  - Columns: `Domain Name` (with star shortcut), `Status` (`VERIFIED` green StatusBadge vs `PENDING` amber StatusBadge), `Outbound IP`, `DKIM Selector`, and 3-dots action menu (`Verify DNS Records`, `View Records`, `Delete Domain`).
+- **Domain Details View (`/domains/[id]`):**
+  - Full cryptographic records inspection: 2048-bit DKIM public key, Return-Path SPF, Master SPF, DMARC, A record, and MX record with click-to-copy and instant DNS propagation check button.
+
+### 8.6 API Keys & Developer Tokens (`/api-keys`)
+
+- **Header Toolbar:** Page title (`API Keys`), security description, refresh button, and "+ Create API Key" action button.
+- **Security Callout:** Blue banner reminding operators that API keys carry dispatch privileges.
+- **Keys Table:**
+  - Columns: `Name`, `Key Prefix` (`em_live_...` in font-mono), `Scopes` (`Full Access`, `Send Only`, `Read Only`), `Created`, `Last Used`, and actions (`Delete`).
+- **Creation Dialog:** Modal to name the key, assign granular permission scopes, set expiration, and copy the secret token once upon creation.
+
+### 8.7 Webhooks & Event Subscriptions (`/webhooks`)
+
+- **Header Toolbar:** Page title (`Webhooks`), `Live` pulse badge, refresh button, and "+ Add Webhook" button.
+- **Endpoints Table:**
+  - Columns: `Endpoint URL`, `Subscribed Events` (e.g. `email.delivered`, `email.bounced`), `Signing Secret` (with reveal/hide eye toggle), `Status`, and actions (`Test Webhook`, `Delete`).
+- **Recent Deliveries Feed:**
+  - Real-time HTTP delivery logs: Status code pill (`200 OK`, `500 Internal Error`), event type, latency (`42ms`), attempt timestamp, and "View Payload" modal.
+
+### 8.8 30-Day Analytics Engine (`/analytics`)
+
+- **Header Toolbar:** Page title (`Analytics & Telemetry`), 30-day timeframe badge, and refresh button.
+- **Metric Cards Grid:** `Dispatched Emails`, `Delivery Rate`, `Hard Bounces`, `Soft Bounces`, `Spam Complaints`, `Open Rate`, and `Click Rate`.
+- **Interactive Charts:**
+  - Dispatch timeseries area chart with `chartBlueGrad`.
+  - Inbound volume chart with `chartOrangeGrad`.
+  - Bounce & complaint attribution breakdown bar charts.
 
 ---
 
@@ -504,3 +590,6 @@ All views strictly adhere to standard Tailwind typography classes:
 - [ ] Account row has no card container, border, or background; Facehash avatar is circular (32px).
 - [ ] Primary buttons use `btn-cf-primary` (Cloudflare Action Blue) and `btn-cf-secondary` (neutral elevated).
 - [ ] Root container preserves `className="isolate"` for proper portal stacking.
+- [ ] Onboarding DNS records table features clean record types (`TXT`, `A Record`, `MX (Priority 10)`) with no hover copy icon and no bracket noise on TXT rows.
+- [ ] Onboarding "Proceed to Dashboard" button disabled state shows standard cursor (no ban pointer), suppresses native hover tooltips, and emits lightweight warning toast on attempted click.
+- [ ] Settings diagnostics and team roster contain no obsolete badges (`Custom Password Active`, `Up to Date`, `RBAC Active`, capability badges).
