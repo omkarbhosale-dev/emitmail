@@ -543,15 +543,10 @@ export function SettingsView() {
               </div>
 
               {/* Status Badge */}
-              {isDefaultPassword ? (
+              {isDefaultPassword && (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono font-medium bg-cf-amber/10 text-cf-amber border border-cf-amber/20">
                   <Lock size={12} weight="bold" />
                   <span>Default Password In Use</span>
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono font-medium bg-cf-success/10 text-cf-success border border-cf-success/20">
-                  <CheckCircle size={13} weight="fill" />
-                  <span>Custom Password Active</span>
                 </span>
               )}
             </div>
@@ -570,9 +565,6 @@ export function SettingsView() {
                 <div className="flex items-center gap-2">
                   <span className="text-[14px] font-semibold text-kumo-strong truncate">
                     {currentUser?.fullName || "EmitMail Administrator"}
-                  </span>
-                  <span className="text-[11px] font-mono font-medium px-2 py-0.5 rounded-full uppercase bg-cf-orange/10 text-cf-orange border border-cf-orange/20">
-                    {currentUser?.role || "ADMIN"}
                   </span>
                 </div>
                 <span className="text-[12px] text-kumo-subtle font-mono block mt-0.5">
@@ -721,14 +713,6 @@ export function SettingsView() {
               </div>
 
               <div className="flex items-center gap-2.5">
-                <Link
-                  href="/onboarding"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium text-cf-orange hover:bg-cf-orange-tint border border-cf-orange/40 transition-colors cursor-pointer"
-                >
-                  <Globe size={14} weight="bold" />
-                  <span>Setup Wizard</span>
-                </Link>
-
                 <button
                   type="button"
                   onClick={loadDiagnostics}
@@ -749,10 +733,6 @@ export function SettingsView() {
                   <span className="text-[11px] sm:text-[12px] text-kumo-subtle uppercase tracking-wider font-semibold font-mono truncate">
                     Outbound Dispatcher (MTA)
                   </span>
-                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-cf-success/10 text-cf-success border border-cf-success/20 font-mono shrink-0">
-                    <span className="w-1.5 h-1.5 rounded-full bg-cf-success" />
-                    TLS 1.3
-                  </span>
                 </div>
                 <div>
                   <span className="text-[13px] sm:text-[14px] font-mono font-semibold text-kumo-strong block truncate">
@@ -769,10 +749,6 @@ export function SettingsView() {
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-[11px] sm:text-[12px] text-kumo-subtle uppercase tracking-wider font-semibold font-mono truncate">
                     Outbound Port 25
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-cf-success/10 text-cf-success border border-cf-success/20 font-mono shrink-0">
-                    <span className="w-1.5 h-1.5 rounded-full bg-cf-success" />
-                    Unblocked
                   </span>
                 </div>
                 <div>
@@ -791,9 +767,6 @@ export function SettingsView() {
                   <span className="text-[11px] sm:text-[12px] text-kumo-subtle uppercase tracking-wider font-semibold font-mono truncate">
                     Inbound Daemon
                   </span>
-                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-cf-blue-tint/60 text-cf-blue border border-cf-blue-border/40 font-mono shrink-0">
-                    Port 2525
-                  </span>
                 </div>
                 <div>
                   <span className="text-[13px] sm:text-[14px] font-mono font-semibold text-kumo-strong block truncate">
@@ -810,9 +783,6 @@ export function SettingsView() {
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-[11px] sm:text-[12px] text-kumo-subtle uppercase tracking-wider font-semibold font-mono truncate">
                     DKIM Cryptography
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-cf-success/10 text-cf-success border border-cf-success/20 font-mono shrink-0">
-                    2048-bit RSA
                   </span>
                 </div>
                 <div>
@@ -831,15 +801,6 @@ export function SettingsView() {
                   <span className="text-[11px] sm:text-[12px] text-kumo-subtle uppercase tracking-wider font-semibold font-mono truncate">
                     Queue Engine (BullMQ)
                   </span>
-                  <span
-                    className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold font-mono shrink-0 ${
-                      systemHealth?.services?.redis === "connected"
-                        ? "bg-cf-success/10 text-cf-success border border-cf-success/20"
-                        : "bg-cf-amber/10 text-cf-amber border border-cf-amber/20"
-                    }`}
-                  >
-                    {systemHealth?.services?.redis === "connected" ? "Connected" : "Standby"}
-                  </span>
                 </div>
                 <div>
                   <span className="text-[13px] sm:text-[14px] font-mono font-semibold text-kumo-strong block truncate">
@@ -856,15 +817,6 @@ export function SettingsView() {
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-[11px] sm:text-[12px] text-kumo-subtle uppercase tracking-wider font-semibold font-mono truncate">
                     Database (PostgreSQL 16)
-                  </span>
-                  <span
-                    className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold font-mono shrink-0 ${
-                      systemHealth?.services?.database === "connected"
-                        ? "bg-cf-success/10 text-cf-success border border-cf-success/20"
-                        : "bg-cf-amber/10 text-cf-amber border border-cf-amber/20"
-                    }`}
-                  >
-                    {systemHealth?.services?.database === "connected" ? "Connected" : "Standby"}
                   </span>
                 </div>
                 <div>
@@ -1147,15 +1099,10 @@ export function SettingsView() {
                   <span className="text-[14px] sm:text-[15px] font-mono font-semibold text-kumo-strong">
                     v{versionData?.latestVersion || "1.0.0"}
                   </span>
-                  {versionData?.isUpdateAvailable ? (
+                  {versionData?.isUpdateAvailable && (
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-cf-orange-tint text-cf-orange border border-cf-orange-border/40 font-mono">
                       <span className="w-1.5 h-1.5 rounded-full bg-cf-orange animate-pulse" />
                       Update Available
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-cf-success/10 text-cf-success border border-cf-success/20 font-mono">
-                      <span className="w-1.5 h-1.5 rounded-full bg-cf-success" />
-                      Up to Date
                     </span>
                   )}
                 </div>
@@ -1418,17 +1365,17 @@ export function SettingsView() {
                                 You
                               </span>
                             )}
-                            <span
-                              className={`text-[11px] font-mono font-medium px-2 py-0.5 rounded-full tracking-wide uppercase ${
-                                displayRole === "ADMIN"
-                                  ? "bg-cf-orange/10 text-cf-orange border border-cf-orange/20"
-                                  : displayRole === "MEMBER"
-                                  ? "bg-cf-chart-blue/10 text-cf-chart-blue border border-cf-chart-blue/20"
-                                  : "bg-kumo-elevated text-kumo-subtle border border-kumo-hairline"
-                              }`}
-                            >
-                              {isMainAdmin ? "Main Admin" : displayRole}
-                            </span>
+                            {displayRole !== "ADMIN" && !isMainAdmin && (
+                              <span
+                                className={`text-[11px] font-mono font-medium px-2 py-0.5 rounded-full tracking-wide uppercase ${
+                                  displayRole === "MEMBER"
+                                    ? "bg-cf-chart-blue/10 text-cf-chart-blue border border-cf-chart-blue/20"
+                                    : "bg-kumo-elevated text-kumo-subtle border border-kumo-hairline"
+                                }`}
+                              >
+                                {displayRole}
+                              </span>
+                            )}
                           </div>
 
                           <div className="flex items-center gap-2.5 text-[12px] text-kumo-subtle mt-1 font-mono">
