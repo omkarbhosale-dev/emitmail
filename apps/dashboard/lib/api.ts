@@ -1087,21 +1087,50 @@ export const api = {
 
     serverConfig: {
       get: async () => {
-        return apiFetch<{
-          config: {
+        interface ServerConfigPayload {
+          config?: {
             mailServerHostname: string;
             vpsPublicIpv4: string;
             spfIncludeDomain: string;
             isConfigured: boolean;
           };
-          checklist: Array<{
+          serverConfig?: {
+            mailServerHostname: string;
+            vpsPublicIpv4: string;
+            spfIncludeDomain: string;
+            isConfigured: boolean;
+          };
+          checklist?: Array<{
             type: string;
             host?: string;
             value: string;
             purpose: string;
             instructions: string;
           }>;
-        }>("/server-config");
+          masterDnsChecklist?: Array<{
+            type: string;
+            host?: string;
+            value: string;
+            purpose: string;
+            instructions: string;
+          }>;
+        }
+
+        const res = await apiFetch<ServerConfigPayload>("/server-config");
+        const cfg = res?.serverConfig || res?.config || {
+          mailServerHostname: "",
+          vpsPublicIpv4: "",
+          spfIncludeDomain: "",
+          isConfigured: false,
+        };
+        const list = res?.masterDnsChecklist || res?.checklist || [];
+
+        return {
+          config: cfg,
+          serverConfig: cfg,
+          checklist: list,
+          masterDnsChecklist: list,
+        };
       },
 
       update: async (data: {
@@ -1109,24 +1138,53 @@ export const api = {
         vpsPublicIpv4: string;
         spfIncludeDomain: string;
       }) => {
-        return apiFetch<{
-          serverConfig: {
+        interface UpdatePayload {
+          config?: {
             mailServerHostname: string;
             vpsPublicIpv4: string;
             spfIncludeDomain: string;
             isConfigured: boolean;
           };
-          masterDnsChecklist: Array<{
+          serverConfig?: {
+            mailServerHostname: string;
+            vpsPublicIpv4: string;
+            spfIncludeDomain: string;
+            isConfigured: boolean;
+          };
+          checklist?: Array<{
             type: string;
             host?: string;
             value: string;
             purpose: string;
             instructions: string;
           }>;
-        }>("/server-config", {
+          masterDnsChecklist?: Array<{
+            type: string;
+            host?: string;
+            value: string;
+            purpose: string;
+            instructions: string;
+          }>;
+        }
+
+        const res = await apiFetch<UpdatePayload>("/server-config", {
           method: "PATCH",
           body: JSON.stringify(data),
         });
+        const cfg = res?.serverConfig || res?.config || {
+          mailServerHostname: data.mailServerHostname,
+          vpsPublicIpv4: data.vpsPublicIpv4,
+          spfIncludeDomain: data.spfIncludeDomain,
+          isConfigured: true,
+        };
+        const list = res?.masterDnsChecklist || res?.checklist || [];
+
+        return {
+          config: cfg,
+          serverConfig: cfg,
+          checklist: list,
+          masterDnsChecklist: list,
+        };
       },
     },
 

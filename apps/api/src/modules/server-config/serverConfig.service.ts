@@ -26,10 +26,8 @@ export class ServerConfigService {
       !h ||
       h === 'mail.yourdomain.com' ||
       h === 'mail.example.com' ||
-      h === 'mail.omkarbhosale.dev' ||
       h.includes('yourdomain.com') ||
       h.includes('example.com') ||
-      h.includes('omkarbhosale.dev') ||
       h === 'localhost';
 
     if (!config) {
@@ -67,6 +65,18 @@ export class ServerConfigService {
         },
       });
       console.log(`🔧 [ServerConfig] Auto-healed placeholder hostname to "${env.SMTP_EHLO_HOSTNAME}".`);
+    }
+
+    // Auto-heal configured flag if domains already exist in the database
+    if (config && !config.isConfigured) {
+      const domainCount = await prisma.domain.count();
+      if (domainCount > 0) {
+        config = await prisma.serverConfig.update({
+          where: { id: 'master' },
+          data: { isConfigured: true },
+        });
+        console.log(`🔧 [ServerConfig] Auto-healed isConfigured to true since ${domainCount} domain(s) exist.`);
+      }
     }
 
     return config;
@@ -116,7 +126,9 @@ export class ServerConfigService {
 
     return {
       serverConfig: config,
+      config,
       masterDnsChecklist: checklist,
+      checklist,
     };
   }
 
@@ -188,7 +200,9 @@ export class ServerConfigService {
 
     return {
       serverConfig: updatedConfig,
+      config: updatedConfig,
       masterDnsChecklist: checklist,
+      checklist,
       refreshedPendingDomainsCount: pendingDomains.length,
     };
   }

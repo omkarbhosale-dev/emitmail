@@ -107,16 +107,20 @@ function AppShellInner({
         api.serverConfig.get().catch(() => null),
         api.domains.list().catch(() => []),
       ]).then(([configRes, domainsList]) => {
-        const isConfigured = Boolean(configRes?.config?.isConfigured);
+        const isConfigured = Boolean(
+          configRes?.serverConfig?.isConfigured ??
+          configRes?.config?.isConfigured
+        );
         const hasDomains = Array.isArray(domainsList) && domainsList.length > 0;
-        const isSetupComplete = isConfigured && hasDomains;
+        // User has completed setup if they already have registered domains or if serverConfig is configured
+        const isSetupComplete = hasDomains || isConfigured;
 
         if (!isSetupComplete) {
           // If setup is not complete, redirect to /onboarding for all routes except /settings and /login
           if (pathname !== "/onboarding" && !pathname.startsWith("/settings") && pathname !== "/login") {
             router.replace("/onboarding");
           }
-        } else if (pathname === "/onboarding" && isSetupComplete) {
+        } else if (pathname === "/onboarding") {
           // If setup is complete and user visits /onboarding, redirect to overview
           router.replace("/");
         }
