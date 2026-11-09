@@ -259,7 +259,7 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
                 />
               </div>
 
-              <span className="text-[11px] font-mono text-kumo-subtle">
+              <span className="text-xs font-mono text-kumo-subtle">
                 Awaiting container health check... (poll #{pollCount})
               </span>
             </div>
@@ -288,7 +288,7 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
               <p className="text-xs leading-relaxed text-kumo-default">
                 {errorMessage || "The updater service could not be reached."}
               </p>
-              <p className="text-[11px] text-kumo-subtle">
+              <p className="text-xs text-kumo-subtle">
                 You can always run the manual update command on your VPS host terminal below.
               </p>
             </div>

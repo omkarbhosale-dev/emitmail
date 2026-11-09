@@ -193,7 +193,7 @@ export function InboxMessageDetailView({ messageId, mailboxId }: InboxMessageDet
           <>
             <Link
               href={`/inbox/${mailboxId}`}
-              className="hover:text-kumo-strong transition-colors font-mono truncate max-w-[200px]"
+              className="hover:text-kumo-strong transition-colors font-mono truncate max-w-50"
             >
               {recipientMailboxAddress}
             </Link>
@@ -264,7 +264,7 @@ export function InboxMessageDetailView({ messageId, mailboxId }: InboxMessageDet
                   &lt;{message.fromAddress}&gt;
                 </span>
               </div>
-              <div className="text-[11px] text-kumo-subtle mt-0.5 flex items-center gap-2">
+              <div className="text-xs text-kumo-subtle mt-0.5 flex items-center gap-2">
                 <span>
                   to{" "}
                   {Array.isArray(message.toAddresses)
@@ -356,7 +356,7 @@ export function InboxMessageDetailView({ messageId, mailboxId }: InboxMessageDet
                       </span>
                     </div>
 
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-kumo-recessed text-kumo-subtle border border-kumo-hairline">
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-kumo-recessed text-kumo-subtle border border-kumo-hairline">
                       {isOutbound ? "Sent" : "Inbound"}
                     </span>
                   </div>
@@ -393,7 +393,7 @@ export function InboxMessageDetailView({ messageId, mailboxId }: InboxMessageDet
                     <span className="font-medium text-kumo-strong block truncate">
                       {att.filename}
                     </span>
-                    <span className="text-[11px] text-kumo-subtle block font-mono">
+                    <span className="text-xs text-kumo-subtle block font-mono">
                       {(att.sizeBytes / 1024).toFixed(1)} KB • {att.contentType}
                     </span>
                   </div>
@@ -419,7 +419,7 @@ export function InboxMessageDetailView({ messageId, mailboxId }: InboxMessageDet
       {isViewer ? (
         <ViewOnlyBanner message="You have view-only access and cannot send replies from this mailbox." />
       ) : (
-        <div className="bg-kumo-base border border-kumo-line rounded-2xl p-5 shadow-2xs focus-within:border-[#0066FF] transition-colors">
+        <div className="bg-kumo-base border border-kumo-line rounded-2xl p-5 shadow-2xs focus-within:border-cf-blue transition-colors">
           <form onSubmit={handleSendReply} className="space-y-3">
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-kumo-hairline pb-3">
@@ -434,7 +434,7 @@ export function InboxMessageDetailView({ messageId, mailboxId }: InboxMessageDet
                 </strong>
               </div>
 
-              <span className="text-xs font-semibold text-[#0066FF] font-mono">
+              <span className="text-xs font-semibold text-cf-blue font-mono">
                 Re: {message.subject.replace(/^Re:\s*/i, "")}
               </span>
             </div>
@@ -483,12 +483,12 @@ export function InboxMessageDetailView({ messageId, mailboxId }: InboxMessageDet
               value={replyText}
               onChange={(e) => setReplyText(e.target.value)}
               placeholder="Write your reply here..."
-              className="w-full bg-kumo-control border border-kumo-line rounded-xl p-3.5 text-xs text-kumo-strong placeholder:text-kumo-muted focus:outline-none focus:border-[#0066FF] leading-relaxed min-h-[140px]"
+              className="w-full bg-kumo-control border border-kumo-line rounded-xl p-3.5 text-xs text-kumo-strong placeholder:text-kumo-muted focus:outline-none focus:border-cf-blue leading-relaxed min-h-36"
             />
 
             {/* Send Bottom Bar */}
             <div className="flex items-center justify-between pt-1">
-              <span className="text-[11px] text-kumo-subtle">
+              <span className="text-xs text-kumo-subtle">
                 Your reply will be cryptographically signed with 2048-bit DKIM.
               </span>
 

@@ -24,7 +24,7 @@ export function SystemUpdateBanner() {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap min-w-0">
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-cf-orange text-white shadow-2xs">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-cf-orange text-white shadow-2xs">
             <RocketLaunch size={11} weight="fill" />
             New Update Available (v{versionData.latestVersion})
           </span>

@@ -187,7 +187,7 @@ export function AddMailboxView() {
                 ))}
               </select>
             )}
-            <p className="text-[11px] text-kumo-subtle">
+            <p className="text-xs text-kumo-subtle">
               Receives incoming emails directed to this domain via MX records.
             </p>
           </div>
@@ -218,7 +218,7 @@ export function AddMailboxView() {
               </div>
             </div>
 
-            <p className="text-[11px] text-kumo-subtle">
+            <p className="text-xs text-kumo-subtle">
               Examples: <code className="text-kumo-strong">support</code>, <code className="text-kumo-strong">billing</code>, <code className="text-kumo-strong">contact</code>, <code className="text-kumo-strong">hello</code>.
             </p>
           </div>
@@ -236,7 +236,7 @@ export function AddMailboxView() {
               placeholder="e.g. EmitMail Support or Billing Desk"
               className="w-full bg-kumo-control border border-kumo-line rounded-lg px-3 py-2 text-xs text-kumo-strong focus:outline-none focus:border-cf-blue disabled:opacity-60"
             />
-            <p className="text-[11px] text-kumo-subtle">
+            <p className="text-xs text-kumo-subtle">
               Friendly sender name displayed on outbound reply threads.
             </p>
           </div>
@@ -244,12 +244,12 @@ export function AddMailboxView() {
           {/* Preview Box */}
           <div className="p-4 rounded-xl bg-kumo-control border border-kumo-line flex items-center justify-between">
             <div>
-              <span className="text-[11px] text-kumo-subtle block font-sans">Full Inbound Address:</span>
+              <span className="text-xs text-kumo-subtle block font-sans">Full Inbound Address:</span>
               <span className="text-sm font-mono font-bold text-cf-blue block mt-0.5 select-all">
                 {fullAddressPreview}
               </span>
             </div>
-            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-cf-blue/10 text-cf-blue border border-cf-blue/20">
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-cf-blue/10 text-cf-blue border border-cf-blue/20">
               Inbound Alias
             </span>
           </div>

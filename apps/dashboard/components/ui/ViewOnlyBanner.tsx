@@ -22,7 +22,7 @@ export function ViewOnlyBanner({
       <span className="leading-snug flex-1 font-medium text-kumo-default">
         {message}
       </span>
-      <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-kumo-recessed border border-kumo-hairline text-kumo-subtle shrink-0">
+      <span className="inline-flex items-center gap-1 text-xs font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-kumo-recessed border border-kumo-hairline text-kumo-subtle shrink-0">
         <Lock size={10} weight="bold" />
         View Only
       </span>

@@ -202,7 +202,7 @@ export function CommandPalette({
               <X size={15} />
             </button>
           ) : (
-            <kbd className="px-1.5 py-0.5 text-[10px] bg-kumo-recessed border border-kumo-line rounded text-kumo-muted font-mono">
+            <kbd className="px-1.5 py-0.5 text-2xs bg-kumo-recessed border border-kumo-line rounded text-kumo-muted font-mono">
               ESC
             </kbd>
           )}
@@ -231,7 +231,7 @@ export function CommandPalette({
                       <span className="text-xs font-medium text-kumo-strong block">
                         {item.label}
                       </span>
-                      <span className="text-[10px] text-kumo-subtle">
+                      <span className="text-xs text-kumo-subtle">
                         {item.category}
                       </span>
                     </div>
@@ -247,9 +247,9 @@ export function CommandPalette({
         </div>
 
         {/* Footer Hint */}
-        <div className="px-4 py-2 bg-kumo-recessed border-t border-kumo-hairline flex items-center justify-between text-[11px] text-kumo-subtle">
+        <div className="px-4 py-2 bg-kumo-recessed border-t border-kumo-hairline flex items-center justify-between text-xs text-kumo-subtle">
           <span>Navigate with mouse or keyboard</span>
-          <span className="font-mono text-[10px]">EmitMail v1.0 • BullMQ</span>
+          <span className="font-mono text-xs">EmitMail v1.0 • BullMQ</span>
         </div>
       </div>
     </div>

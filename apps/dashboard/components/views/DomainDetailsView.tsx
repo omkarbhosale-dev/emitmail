@@ -288,9 +288,9 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5 text-sm font-bold text-white">
             <span>{title}</span>
-            <ArrowUpRight size={14} className="text-[#8E8E93]" />
+            <ArrowUpRight size={14} className="text-kumo-subtle" />
             {title === "DKIM" && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cf-orange/15 text-cf-orange border border-cf-orange/30">
+              <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-cf-orange/15 text-cf-orange border border-cf-orange/30">
                 2048-bit RSA
               </span>
             )}
@@ -300,7 +300,7 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
               type="button"
               onClick={handleRotateDkim}
               disabled={isRotatingDkim || isVerifying}
-              className="text-xs font-medium px-2.5 py-1 rounded-md bg-[#1C1C1E] hover:bg-[#2C2C2E] border border-[#333336] text-white flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+              className="text-xs font-medium px-2.5 py-1 rounded-md bg-kumo-elevated hover:bg-kumo-interact border border-kumo-line text-white flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
               title="Regenerate a brand-new 2048-bit RSA DKIM key"
             >
               <ArrowsClockwise size={12} className={isRotatingDkim ? "animate-spin text-cf-orange" : ""} />
@@ -309,9 +309,9 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
           )}
         </div>
 
-        <div className="bg-[#0C0C0E] border border-[#222226] rounded-xl overflow-hidden shadow-2xs">
+        <div className="bg-kumo-base border border-kumo-line rounded-xl overflow-hidden shadow-2xs">
           {/* Table Header matching the screenshot */}
-          <div className="bg-[#141416] border-b border-[#222226] px-4 py-2.5 grid grid-cols-12 gap-3 text-xs text-[#8E8E93] font-medium items-center select-none">
+          <div className="bg-kumo-elevated border-b border-kumo-line px-4 py-2.5 grid grid-cols-12 gap-3 text-xs text-kumo-subtle font-medium items-center select-none">
             <div className="col-span-2 sm:col-span-1">Type</div>
             <div className="col-span-3 sm:col-span-3">Name</div>
             <div className="col-span-4 sm:col-span-5">Content</div>
@@ -320,7 +320,7 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
           </div>
 
           {/* Table Rows with click-to-copy on Name and Content */}
-          <div className="divide-y divide-[#1C1C1F]">
+          <div className="divide-y divide-kumo-hairline">
             {records.map((rec, idx) => {
               const isRecVerified = rec.status === "VERIFIED";
               const isRecFailed = rec.status === "FAILED";
@@ -332,7 +332,7 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
               return (
                 <div
                   key={idx}
-                  className="grid grid-cols-12 gap-3 px-4 py-3.5 text-xs items-center hover:bg-[#121214] transition-colors"
+                  className="grid grid-cols-12 gap-3 px-4 py-3.5 text-xs items-center hover:bg-kumo-recessed transition-colors"
                 >
                   {/* Type */}
                   <div className="col-span-2 sm:col-span-1 font-mono text-white text-xs font-semibold">
@@ -347,14 +347,14 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
                   >
                     <span className="truncate">{hostVal}</span>
                     {isNameCopied ? (
-                      <span className="text-[10px] text-emerald-400 font-sans flex items-center gap-0.5 shrink-0 bg-emerald-500/10 px-1 rounded">
+                      <span className="text-xs text-emerald-400 font-sans flex items-center gap-0.5 shrink-0 bg-emerald-500/10 px-1 rounded">
                         <Check size={11} />
                         <span>Copied</span>
                       </span>
                     ) : (
                       <Copy
                         size={13}
-                        className="text-[#6E6E6E] opacity-0 group-hover/name:opacity-100 transition-opacity shrink-0"
+                        className="text-kumo-subtle opacity-0 group-hover/name:opacity-100 transition-opacity shrink-0"
                       />
                     )}
                   </div>
@@ -363,24 +363,24 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
                   <div
                     onClick={() => copyToClipboard(contentVal, `content-${rec.type}-${hostVal}`)}
                     title="Click to copy Content"
-                    className="col-span-4 sm:col-span-5 font-mono text-[#D4D4D8] text-xs cursor-pointer hover:text-white transition-colors flex items-center justify-between gap-2 group/content select-none"
+                    className="col-span-4 sm:col-span-5 font-mono text-kumo-default text-xs cursor-pointer hover:text-white transition-colors flex items-center justify-between gap-2 group/content select-none"
                   >
                     <span className="truncate font-mono">{contentVal}</span>
                     {isContentCopied ? (
-                      <span className="text-[10px] text-emerald-400 font-sans flex items-center gap-0.5 shrink-0 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                      <span className="text-xs text-emerald-400 font-sans flex items-center gap-0.5 shrink-0 bg-emerald-500/10 px-1.5 py-0.5 rounded">
                         <Check size={11} />
                         <span>Copied</span>
                       </span>
                     ) : (
                       <Copy
                         size={13}
-                        className="text-[#6E6E6E] opacity-0 group-hover/content:opacity-100 transition-opacity shrink-0"
+                        className="text-kumo-subtle opacity-0 group-hover/content:opacity-100 transition-opacity shrink-0"
                       />
                     )}
                   </div>
 
                   {/* TTL */}
-                  <div className="col-span-1 sm:col-span-1 font-mono text-[#8E8E93] text-xs">
+                  <div className="col-span-1 sm:col-span-1 font-mono text-kumo-subtle text-xs">
                     Auto
                   </div>
 
@@ -429,7 +429,7 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
       )}
 
       {/* Domain Top Header Card */}
-      <div className="bg-[#0C0C0E] border border-[#222226] rounded-2xl p-6 sm:p-7 shadow-sm">
+      <div className="bg-kumo-base border border-kumo-line rounded-2xl p-6 sm:p-7 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-2">
             <div className="flex items-center gap-3 flex-wrap">
@@ -478,13 +478,13 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
               </span>
               <span>•</span>
               <span>
-                Added on: <span className="text-[#D4D4D8]">{new Date(domain.createdAt).toLocaleDateString()}</span>
+                Added on: <span className="text-kumo-default">{new Date(domain.createdAt).toLocaleDateString()}</span>
               </span>
               {domain.lastVerifiedAt && (
                 <>
                   <span>•</span>
                   <span>
-                    Last checked: <span className="text-[#D4D4D8]">{new Date(domain.lastVerifiedAt).toLocaleTimeString()}</span>
+                    Last checked: <span className="text-kumo-default">{new Date(domain.lastVerifiedAt).toLocaleTimeString()}</span>
                   </span>
                 </>
               )}
@@ -498,12 +498,12 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
                 type="button"
                 onClick={handleRotateDkim}
                 disabled={isRotatingDkim || isVerifying}
-                className="h-9 px-3.5 rounded-md bg-[#1C1C1E] hover:bg-[#2C2C2E] text-white text-xs font-medium inline-flex items-center justify-center gap-1.5 border border-[#333336] shadow-sm transition-all duration-120 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed select-none"
+                className="h-9 px-3.5 rounded-md bg-kumo-elevated hover:bg-kumo-interact text-white text-xs font-medium inline-flex items-center justify-center gap-1.5 border border-kumo-line shadow-sm transition-all duration-120 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed select-none"
                 title="Regenerate a brand-new 2048-bit RSA DKIM key"
               >
                 <ArrowsClockwise
                   size={14}
-                  className={isRotatingDkim ? "animate-spin text-[#FF6600]" : "text-[#8E8E93]"}
+                  className={isRotatingDkim ? "animate-spin text-cf-orange" : "text-kumo-subtle"}
                 />
                 <span>{isRotatingDkim ? "Rotating DKIM..." : "Rotate DKIM (2048-bit)"}</span>
               </button>
@@ -512,7 +512,7 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
                 type="button"
                 onClick={handleVerifyDns}
                 disabled={isVerifying}
-                className="h-9 px-3.5 rounded-md bg-[#0066FF] hover:bg-[#0052CC] text-white text-xs font-medium inline-flex items-center justify-center gap-1.5 shadow-sm transition-all duration-120 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed select-none"
+                className="h-9 px-3.5 rounded-md bg-cf-blue hover:bg-cf-blue-hover text-white text-xs font-medium inline-flex items-center justify-center gap-1.5 shadow-sm transition-all duration-120 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed select-none"
               >
                 <ArrowsClockwise
                   size={14}
@@ -537,11 +537,11 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
       </div>
 
       {/* Main Bordered DNS Records Card (Collapsible) */}
-      <div className="bg-[#0C0C0E] border border-[#222226] rounded-2xl overflow-hidden shadow-sm">
+      <div className="bg-kumo-base border border-kumo-line rounded-2xl overflow-hidden shadow-sm">
         {/* Card Header with Collapsible Trigger */}
         <div
           onClick={() => setIsDnsCollapsed(!isDnsCollapsed)}
-          className="px-6 py-4.5 border-b border-[#222226] flex items-center justify-between cursor-pointer hover:bg-[#121214] transition-colors select-none"
+          className="px-6 py-4.5 border-b border-kumo-line flex items-center justify-between cursor-pointer hover:bg-kumo-recessed transition-colors select-none"
         >
           <div className="flex items-center gap-3 flex-wrap">
             <h2 className="text-base font-bold text-white tracking-tight">

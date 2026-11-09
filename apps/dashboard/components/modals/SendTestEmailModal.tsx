@@ -164,7 +164,7 @@ export function SendTestEmailModal({ isOpen, onClose }: SendTestEmailModalProps)
               <h3 className="text-sm font-semibold text-kumo-strong">
                 Send Test Email
               </h3>
-              <p className="text-[11px] text-kumo-subtle">
+              <p className="text-xs text-kumo-subtle">
                 Verify deliverability, DKIM signing, and BullMQ worker pipeline
               </p>
             </div>

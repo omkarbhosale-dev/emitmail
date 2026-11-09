@@ -28,7 +28,7 @@ interface ChartDataPoint {
 interface AnalyticsChartProps {
   title: string;
   totalText: string;
-  subBadge: string;
+  subBadge?: string;
   badgeIcon?: React.ReactNode;
   data: ChartDataPoint[];
   gradientId: string;
@@ -96,24 +96,26 @@ function AnalyticsTimeseriesChart({
   }
 
   return (
-    <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-4 sm:p-5 flex flex-col justify-between min-h-[270px] relative overflow-hidden group">
+    <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-4 sm:p-5 flex flex-col justify-between min-h-68 relative overflow-hidden group hover:border-kumo-line/80 transition-colors shadow-2xs">
       <div>
         <div className="flex items-center justify-between">
-          <span className="text-xs font-medium text-kumo-subtle">{title}</span>
-          <span className="text-[11px] text-kumo-muted font-mono flex items-center gap-1">
+          <span className="text-sm sm:text-base font-medium text-kumo-strong">{title}</span>
+          <span className="text-xs text-kumo-subtle font-mono flex items-center gap-1.5">
             {badgeIcon}
             <span>Timeline</span>
           </span>
         </div>
-        <div className="flex items-baseline gap-2 mt-1">
+        <div className="flex items-baseline gap-2 mt-1.5">
           {isLoading ? (
             <Skeleton className="h-8 w-20" />
           ) : (
-            <span className="text-2xl font-bold text-kumo-strong tracking-tight font-mono">
+            <span className="text-2xl font-semibold text-kumo-strong tracking-tight font-mono leading-none">
               {totalText}
             </span>
           )}
-          <span className="text-xs font-semibold text-cf-success">{subBadge}</span>
+          {subBadge ? (
+            <span className="text-xs font-medium text-cf-success">{subBadge}</span>
+          ) : null}
         </div>
       </div>
 
@@ -122,7 +124,7 @@ function AnalyticsTimeseriesChart({
       ) : (
         <div className="relative mt-3 pt-2 select-none">
           {/* Y-Axis Guidelines */}
-          <div className="absolute inset-0 flex flex-col justify-between pointer-events-none text-[10px] text-kumo-muted font-mono">
+          <div className="absolute inset-0 flex flex-col justify-between pointer-events-none text-xs text-kumo-subtle font-mono">
             <div className="border-b border-kumo-hairline/60 w-full flex justify-between pr-1">
               <span>{maxVal}</span>
             </div>
@@ -243,13 +245,13 @@ function AnalyticsTimeseriesChart({
                   transform: cardTransform,
                 }}
               >
-                <div className="bg-kumo-base/95 backdrop-blur-md border border-kumo-hairline shadow-2xl rounded-xl p-3 min-w-[170px] select-none text-left ring-1 ring-black/10">
+                <div className="bg-kumo-base/95 backdrop-blur-md border border-kumo-hairline shadow-2xl rounded-xl p-3 min-w-44 select-none text-left ring-1 ring-black/10">
                   <div className="flex items-center justify-between gap-3 pb-2 border-b border-kumo-hairline">
-                    <span className="text-[11px] font-medium text-kumo-subtle font-mono flex items-center gap-1.5">
+                    <span className="text-xs font-medium text-kumo-subtle font-mono flex items-center gap-1.5">
                       <CalendarBlank size={13} className="text-kumo-muted" />
                       {activePoint.time}
                     </span>
-                    <span className="text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-kumo-elevated text-kumo-muted border border-kumo-hairline">
+                    <span className="text-xs font-mono font-medium px-1.5 py-0.5 rounded bg-kumo-elevated text-kumo-subtle border border-kumo-hairline">
                       Metric
                     </span>
                   </div>
@@ -260,18 +262,18 @@ function AnalyticsTimeseriesChart({
                         className="w-2.5 h-2.5 rounded-full ring-2 ring-kumo-base shrink-0"
                         style={{ backgroundColor: chartColor }}
                       />
-                      <span className="text-xs text-kumo-muted capitalize font-medium">{unitLabel}</span>
+                      <span className="text-sm text-kumo-subtle capitalize font-medium">{unitLabel}</span>
                     </div>
-                    <span className="text-base font-bold font-mono text-kumo-strong tracking-tight">
+                    <span className="text-base font-semibold font-mono text-kumo-strong tracking-tight">
                       {activePoint.val.toLocaleString()}
                     </span>
                   </div>
 
-                  <div className="mt-2 pt-1.5 border-t border-kumo-hairline/60 flex items-center justify-between text-[10px] font-mono">
-                    <span className="text-kumo-muted">Activity</span>
+                  <div className="mt-2 pt-1.5 border-t border-kumo-hairline/60 flex items-center justify-between text-xs font-mono">
+                    <span className="text-kumo-subtle">Activity</span>
                     <span
                       className={`flex items-center gap-1 font-semibold ${
-                        activePoint.val > 0 ? "text-cf-success" : "text-kumo-muted"
+                        activePoint.val > 0 ? "text-cf-success" : "text-kumo-subtle"
                       }`}
                     >
                       <span
@@ -288,7 +290,7 @@ function AnalyticsTimeseriesChart({
           </div>
 
           {/* X-Axis Timestamps */}
-          <div className="flex justify-between text-[10px] text-kumo-muted mt-2 font-mono">
+          <div className="flex justify-between text-xs text-kumo-subtle mt-2.5 font-mono">
             {data.map((d, idx) => (
               <span key={`${d.time}-${idx}`}>{d.time}</span>
             ))}
@@ -377,8 +379,33 @@ export function AnalyticsView() {
   }, [timeRange, customStartDate, customEndDate, selectedDomainId]);
 
   useEffect(() => {
-    fetchAnalytics();
-  }, [fetchAnalytics]);
+    let isMounted = true;
+    api.analytics
+      .getDetailedStats({
+        timeRange,
+        startDate: customStartDate || undefined,
+        endDate: customEndDate || undefined,
+        domainId: selectedDomainId,
+      })
+      .then((data) => {
+        if (!isMounted) return;
+        setStats(data);
+      })
+      .catch((err) => {
+        if (!isMounted) return;
+        console.error("Failed to fetch detailed analytics:", err);
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoading(false);
+          setIsRefreshing(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [timeRange, customStartDate, customEndDate, selectedDomainId]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
@@ -405,8 +432,10 @@ export function AnalyticsView() {
       {/* Top Header & Filter Controls Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-kumo-hairline pb-5">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-kumo-strong">Analytics</h1>
-          <p className="text-xs text-kumo-subtle mt-1">
+          <h1 className="text-2xl font-semibold tracking-tight text-kumo-strong leading-tight">
+            Analytics
+          </h1>
+          <p className="text-sm text-kumo-subtle mt-0.5 font-normal leading-relaxed">
             Real-time delivery performance, bounce analytics, and traffic trends across your infrastructure.
           </p>
         </div>
@@ -418,7 +447,8 @@ export function AnalyticsView() {
             <select
               value={selectedDomainId}
               onChange={(e) => setSelectedDomainId(e.target.value)}
-              className="bg-kumo-base border border-kumo-hairline hover:border-kumo-line text-xs text-kumo-default font-medium rounded-lg px-2.5 py-1.5 pr-7 focus:outline-none focus:ring-1 focus:ring-cf-blue cursor-pointer appearance-none"
+              className="h-9 bg-kumo-base hover:bg-kumo-elevated border border-kumo-hairline hover:border-kumo-line text-sm text-kumo-strong font-medium rounded-lg px-3 py-1.5 pr-7 focus:outline-none focus:border-cf-blue/80 focus:ring-1 focus:ring-cf-blue/30 cursor-pointer appearance-none shadow-2xs transition-colors"
+              aria-label="Filter by domain"
             >
               <option value="all">All Domains</option>
               {domains.map((d) => (
@@ -428,13 +458,13 @@ export function AnalyticsView() {
               ))}
             </select>
             <Globe
-              size={12}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-kumo-muted pointer-events-none"
+              size={13}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-kumo-muted pointer-events-none"
             />
           </div>
 
           {/* Time Range Pills */}
-          <div className="bg-kumo-elevated border border-kumo-hairline p-0.5 rounded-lg flex items-center text-xs">
+          <div className="bg-kumo-elevated border border-kumo-hairline p-0.5 rounded-lg flex items-center shadow-2xs">
             {(
               [
                 { id: "today", label: "Today" },
@@ -446,10 +476,10 @@ export function AnalyticsView() {
               <button
                 key={opt.id}
                 onClick={() => setTimeRange(opt.id)}
-                className={`px-3 py-1 rounded-md font-medium transition-all ${
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all cursor-pointer ${
                   timeRange === opt.id
-                    ? "bg-kumo-base text-kumo-strong shadow-sm font-semibold"
-                    : "text-kumo-subtle hover:text-kumo-strong"
+                    ? "bg-kumo-base text-kumo-strong shadow-2xs font-medium border border-kumo-line/50"
+                    : "text-kumo-subtle hover:text-kumo-strong font-normal"
                 }`}
               >
                 {opt.label}
@@ -461,11 +491,12 @@ export function AnalyticsView() {
           <button
             onClick={() => fetchAnalytics(false)}
             disabled={isRefreshing}
-            className="p-1.5 text-kumo-subtle hover:text-kumo-strong bg-kumo-base border border-kumo-hairline hover:border-kumo-line rounded-lg transition-all"
+            className="p-2 text-kumo-subtle hover:text-kumo-strong bg-kumo-base hover:bg-kumo-elevated border border-kumo-hairline hover:border-kumo-line rounded-lg transition-colors shadow-2xs cursor-pointer disabled:opacity-50"
             title="Refresh metrics"
+            aria-label="Refresh metrics"
           >
             <ArrowsClockwise
-              size={15}
+              size={16}
               className={`${isRefreshing ? "animate-spin text-cf-blue" : ""}`}
             />
           </button>
@@ -474,35 +505,35 @@ export function AnalyticsView() {
 
       {/* Custom Date Range Picker Accordion (When 'Custom' is selected) */}
       {timeRange === "custom" && (
-        <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-3.5 flex flex-wrap items-center gap-3 text-xs animate-in fade-in duration-150">
-          <div className="flex items-center gap-1.5 text-kumo-subtle font-medium">
+        <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-3.5 flex flex-wrap items-center gap-3 text-sm animate-in fade-in duration-150 shadow-2xs">
+          <div className="flex items-center gap-1.5 text-kumo-strong font-medium">
             <Funnel size={14} className="text-cf-blue" />
             <span>Custom Date Range:</span>
           </div>
 
           <div className="flex items-center gap-2">
-            <label className="text-kumo-muted">Start:</label>
+            <label className="text-kumo-subtle">Start:</label>
             <input
               type="date"
               value={customStartDate}
               onChange={(e) => setCustomStartDate(e.target.value)}
-              className="bg-kumo-elevated border border-kumo-hairline text-kumo-strong rounded px-2 py-1 font-mono text-xs focus:outline-none focus:border-cf-blue"
+              className="bg-kumo-elevated border border-kumo-hairline text-kumo-strong rounded-md px-2.5 py-1 font-mono text-sm focus:outline-none focus:border-cf-blue"
             />
           </div>
 
           <div className="flex items-center gap-2">
-            <label className="text-kumo-muted">End:</label>
+            <label className="text-kumo-subtle">End:</label>
             <input
               type="date"
               value={customEndDate}
               onChange={(e) => setCustomEndDate(e.target.value)}
-              className="bg-kumo-elevated border border-kumo-hairline text-kumo-strong rounded px-2 py-1 font-mono text-xs focus:outline-none focus:border-cf-blue"
+              className="bg-kumo-elevated border border-kumo-hairline text-kumo-strong rounded-md px-2.5 py-1 font-mono text-sm focus:outline-none focus:border-cf-blue"
             />
           </div>
 
           <button
             onClick={() => fetchAnalytics(false)}
-            className="px-3 py-1 bg-cf-blue text-white rounded-md font-medium hover:bg-cf-blue-hover transition-colors text-xs ml-auto sm:ml-0"
+            className="px-3 py-1.5 bg-cf-blue text-white rounded-md font-medium hover:bg-cf-blue-hover transition-colors text-sm ml-auto sm:ml-0 shadow-2xs cursor-pointer"
           >
             Apply Range
           </button>
@@ -512,122 +543,122 @@ export function AnalyticsView() {
       {/* 6 Core Metric KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
         {/* Metric 1: Emails Sent */}
-        <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-4 flex flex-col justify-between">
+        <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-4 sm:p-4.5 flex flex-col justify-between hover:border-kumo-line/80 transition-colors shadow-2xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-kumo-subtle">Emails Sent</span>
-            <PaperPlaneTilt size={14} className="text-cf-blue" />
+            <span className="text-sm font-medium text-kumo-subtle">Emails Sent</span>
+            <PaperPlaneTilt size={15} className="text-cf-blue" />
           </div>
           <div className="mt-2">
             {isLoading ? (
               <Skeleton className="h-7 w-16" />
             ) : (
-              <div className="text-2xl font-bold font-mono text-kumo-strong tracking-tight">
+              <div className="text-2xl font-semibold font-mono text-kumo-strong tracking-tight leading-none">
                 {stats?.totalSent.toLocaleString() ?? "0"}
               </div>
             )}
-            <div className="text-[11px] text-kumo-muted font-mono mt-0.5">
+            <div className="text-xs text-kumo-subtle mt-1.5 font-normal leading-normal">
               Outbound dispatches
             </div>
           </div>
         </div>
 
         {/* Metric 2: Delivery Rate */}
-        <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-4 flex flex-col justify-between">
+        <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-4 sm:p-4.5 flex flex-col justify-between hover:border-kumo-line/80 transition-colors shadow-2xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-kumo-subtle">Delivery Rate</span>
-            <CheckCircle size={14} className="text-cf-success" />
+            <span className="text-sm font-medium text-kumo-subtle">Delivery Rate</span>
+            <CheckCircle size={15} className="text-cf-success" />
           </div>
           <div className="mt-2">
             {isLoading ? (
               <Skeleton className="h-7 w-16" />
             ) : (
-              <div className={`text-2xl font-bold font-mono tracking-tight ${
+              <div className={`text-2xl font-semibold font-mono tracking-tight leading-none ${
                 stats && stats.totalSent > 0 ? "text-cf-success" : "text-kumo-strong"
               }`}>
                 {stats && stats.totalSent > 0 ? stats.deliveryRate : "0.0%"}
               </div>
             )}
-            <div className="text-[11px] text-kumo-muted font-mono mt-0.5">
+            <div className="text-xs text-kumo-subtle mt-1.5 font-normal leading-normal">
               {stats?.delivered ?? 0} of {stats?.totalSent ?? 0} delivered
             </div>
           </div>
         </div>
 
         {/* Metric 3: Bounce Rate */}
-        <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-4 flex flex-col justify-between">
+        <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-4 sm:p-4.5 flex flex-col justify-between hover:border-kumo-line/80 transition-colors shadow-2xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-kumo-subtle">Bounce Rate</span>
-            <WarningCircle size={14} className="text-cf-orange" />
+            <span className="text-sm font-medium text-kumo-subtle">Bounce Rate</span>
+            <WarningCircle size={15} className="text-cf-orange" />
           </div>
           <div className="mt-2">
             {isLoading ? (
               <Skeleton className="h-7 w-16" />
             ) : (
-              <div className="text-2xl font-bold font-mono text-kumo-strong tracking-tight">
+              <div className="text-2xl font-semibold font-mono text-kumo-strong tracking-tight leading-none">
                 {stats?.bounceRate ?? "0.0%"}
               </div>
             )}
-            <div className="text-[11px] text-kumo-muted font-mono mt-0.5">
+            <div className="text-xs text-kumo-subtle mt-1.5 font-normal leading-normal">
               {stats?.bounced ?? 0} total bounces
             </div>
           </div>
         </div>
 
         {/* Metric 4: Inbound Received */}
-        <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-4 flex flex-col justify-between">
+        <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-4 sm:p-4.5 flex flex-col justify-between hover:border-kumo-line/80 transition-colors shadow-2xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-kumo-subtle">Inbound Received</span>
-            <Tray size={14} className="text-cf-orange" />
+            <span className="text-sm font-medium text-kumo-subtle">Inbound Received</span>
+            <Tray size={15} className="text-cf-orange" />
           </div>
           <div className="mt-2">
             {isLoading ? (
               <Skeleton className="h-7 w-16" />
             ) : (
-              <div className="text-2xl font-bold font-mono text-kumo-strong tracking-tight">
+              <div className="text-2xl font-semibold font-mono text-kumo-strong tracking-tight leading-none">
                 {stats?.totalInbound.toLocaleString() ?? "0"}
               </div>
             )}
-            <div className="text-[11px] text-kumo-muted font-mono mt-0.5">
+            <div className="text-xs text-kumo-subtle mt-1.5 font-normal leading-normal">
               {stats?.unreadInbound ?? 0} unread messages
             </div>
           </div>
         </div>
 
         {/* Metric 5: Suppressed / Failed */}
-        <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-4 flex flex-col justify-between">
+        <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-4 sm:p-4.5 flex flex-col justify-between hover:border-kumo-line/80 transition-colors shadow-2xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-kumo-subtle">Suppressed / Fail</span>
-            <ShieldCheck size={14} className="text-kumo-subtle" />
+            <span className="text-sm font-medium text-kumo-subtle">Suppressed / Fail</span>
+            <ShieldCheck size={15} className="text-kumo-subtle" />
           </div>
           <div className="mt-2">
             {isLoading ? (
               <Skeleton className="h-7 w-16" />
             ) : (
-              <div className="text-2xl font-bold font-mono text-kumo-strong tracking-tight">
+              <div className="text-2xl font-semibold font-mono text-kumo-strong tracking-tight leading-none">
                 {(stats?.suppressed ?? 0) + (stats?.failed ?? 0)}
               </div>
             )}
-            <div className="text-[11px] text-kumo-muted font-mono mt-0.5">
+            <div className="text-xs text-kumo-subtle mt-1.5 font-normal leading-normal">
               {stats?.suppressed ?? 0} suppressed, {stats?.failed ?? 0} failed
             </div>
           </div>
         </div>
 
         {/* Metric 6: Delivery Retries */}
-        <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-4 flex flex-col justify-between">
+        <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-4 sm:p-4.5 flex flex-col justify-between hover:border-kumo-line/80 transition-colors shadow-2xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-kumo-subtle">Avg Retries</span>
-            <Clock size={14} className="text-kumo-subtle" />
+            <span className="text-sm font-medium text-kumo-subtle">Avg Retries</span>
+            <Clock size={15} className="text-kumo-subtle" />
           </div>
           <div className="mt-2">
             {isLoading ? (
               <Skeleton className="h-7 w-16" />
             ) : (
-              <div className="text-2xl font-bold font-mono text-kumo-strong tracking-tight">
+              <div className="text-2xl font-semibold font-mono text-kumo-strong tracking-tight leading-none">
                 {stats?.avgAttempts ?? "1.0"}
               </div>
             )}
-            <div className="text-[11px] text-kumo-muted font-mono mt-0.5">
+            <div className="text-xs text-kumo-subtle mt-1.5 font-normal leading-normal">
               Attempts per message
             </div>
           </div>
@@ -640,7 +671,7 @@ export function AnalyticsView() {
         <AnalyticsTimeseriesChart
           title="Outbound email dispatches"
           totalText={stats ? stats.totalSent.toLocaleString() : "0"}
-          subBadge={stats && stats.totalSent > 0 ? "↗ Live" : "0 Dispatches"}
+          subBadge={stats && stats.totalSent > 0 ? "↗ Live" : undefined}
           data={stats?.chartOutbound && stats.chartOutbound.length > 0 ? stats.chartOutbound : [{ time: "Start", val: 0 }, { time: "End", val: 0 }]}
           gradientId="analyticsBlueGrad"
           unitLabel="emails"
@@ -665,13 +696,13 @@ export function AnalyticsView() {
       {/* Detailed Insights: Delivery Status Distribution & Domain Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Delivery Status Distribution Bar Card */}
-        <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-5 flex flex-col justify-between">
+        <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-5 flex flex-col justify-between hover:border-kumo-line/80 transition-colors shadow-2xs">
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold text-kumo-strong">Status Distribution</span>
-              <span className="text-[11px] font-mono text-kumo-muted">All dispatches</span>
+              <span className="text-base font-medium text-kumo-strong">Status Distribution</span>
+              <span className="text-xs font-mono text-kumo-muted">All dispatches</span>
             </div>
-            <p className="text-xs text-kumo-subtle mt-0.5">Breakdown of delivery lifecycle outcomes.</p>
+            <p className="text-sm text-kumo-subtle mt-0.5 font-normal">Breakdown of delivery lifecycle outcomes.</p>
 
             {/* Segmented Stacked Progress Bar */}
             <div className="h-3 w-full bg-kumo-elevated rounded-full overflow-hidden flex mt-4 border border-kumo-hairline">
@@ -691,17 +722,17 @@ export function AnalyticsView() {
             {/* Legend List */}
             <div className="mt-4 space-y-2">
               {stats?.statusBreakdown.map((sb, idx) => (
-                <div key={idx} className="flex items-center justify-between text-xs font-mono">
+                <div key={idx} className="flex items-center justify-between text-sm font-mono">
                   <div className="flex items-center gap-2">
                     <span
                       className="w-2.5 h-2.5 rounded-full shrink-0"
                       style={{ backgroundColor: sb.color }}
                     />
-                    <span className="text-kumo-default font-sans">{sb.status}</span>
+                    <span className="text-kumo-default font-sans text-sm font-normal">{sb.status}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-kumo-strong font-semibold">{sb.count}</span>
-                    <span className="text-kumo-muted text-[11px] w-9 text-right">({sb.percentage}%)</span>
+                    <span className="text-kumo-strong font-semibold text-sm">{sb.count}</span>
+                    <span className="text-kumo-subtle text-xs w-10 text-right">({sb.percentage}%)</span>
                   </div>
                 </div>
               ))}
@@ -709,18 +740,18 @@ export function AnalyticsView() {
           </div>
 
           {/* Infrastructure Health Status */}
-          <div className="mt-5 pt-3.5 border-t border-kumo-hairline flex items-center justify-between text-xs">
-            <span className="text-kumo-muted">System State:</span>
+          <div className="mt-5 pt-3.5 border-t border-kumo-hairline flex items-center justify-between text-sm">
+            <span className="text-kumo-subtle font-medium">System State:</span>
             <div className="flex items-center gap-3">
-              <span className="flex items-center gap-1.5 font-mono text-[11px]">
+              <span className="flex items-center gap-1.5 font-mono text-xs text-kumo-default font-medium">
                 <span className={`w-2 h-2 rounded-full ${stats?.health.database ? "bg-cf-success" : "bg-kumo-danger"}`} />
                 DB
               </span>
-              <span className="flex items-center gap-1.5 font-mono text-[11px]">
+              <span className="flex items-center gap-1.5 font-mono text-xs text-kumo-default font-medium">
                 <span className={`w-2 h-2 rounded-full ${stats?.health.redis ? "bg-cf-success" : "bg-kumo-danger"}`} />
                 Redis
               </span>
-              <span className="flex items-center gap-1.5 font-mono text-[11px]">
+              <span className="flex items-center gap-1.5 font-mono text-xs text-kumo-default font-medium">
                 <span className={`w-2 h-2 rounded-full ${stats?.health.worker ? "bg-cf-success" : "bg-kumo-danger"}`} />
                 Worker
               </span>
@@ -729,26 +760,26 @@ export function AnalyticsView() {
         </div>
 
         {/* Domain Performance Table (Spans 2 columns on lg) */}
-        <div className="lg:col-span-2 bg-kumo-base border border-kumo-hairline rounded-xl p-5 flex flex-col justify-between">
+        <div className="lg:col-span-2 bg-kumo-base border border-kumo-hairline rounded-xl p-5 flex flex-col justify-between hover:border-kumo-line/80 transition-colors shadow-2xs">
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold text-kumo-strong">Domain Performance</span>
-              <span className="text-[11px] font-mono text-kumo-muted">Tenancy metrics</span>
+              <span className="text-base font-medium text-kumo-strong">Domain Performance</span>
+              <span className="text-xs font-mono text-kumo-muted">Tenancy metrics</span>
             </div>
-            <p className="text-xs text-kumo-subtle mt-0.5">
+            <p className="text-sm text-kumo-subtle mt-0.5 font-normal">
               Deliverability and volume tracked per verified sending domain.
             </p>
 
             <div className="overflow-x-auto mt-4">
-              <table className="w-full text-left text-xs font-mono">
+              <table className="w-full text-left text-sm font-mono border-collapse">
                 <thead>
-                  <tr className="border-b border-kumo-hairline text-kumo-muted">
-                    <th className="pb-2 font-medium">Domain</th>
-                    <th className="pb-2 font-medium text-right">Sent</th>
-                    <th className="pb-2 font-medium text-right">Delivered</th>
-                    <th className="pb-2 font-medium text-right">Bounces</th>
-                    <th className="pb-2 font-medium text-right">Delivery Rate</th>
-                    <th className="pb-2 font-medium text-right">Status</th>
+                  <tr className="border-b border-kumo-hairline text-kumo-subtle text-sm">
+                    <th className="pb-2.5 font-medium">Domain</th>
+                    <th className="pb-2.5 font-medium text-right">Sent</th>
+                    <th className="pb-2.5 font-medium text-right">Delivered</th>
+                    <th className="pb-2.5 font-medium text-right">Bounces</th>
+                    <th className="pb-2.5 font-medium text-right">Delivery Rate</th>
+                    <th className="pb-2.5 font-medium text-right">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-kumo-hairline/60">
@@ -761,19 +792,19 @@ export function AnalyticsView() {
                   ) : stats?.domainStats && stats.domainStats.length > 0 ? (
                     stats.domainStats.map((dom) => (
                       <tr key={dom.domainId} className="hover:bg-kumo-elevated/40 transition-colors">
-                        <td className="py-2.5 font-sans font-medium text-kumo-strong flex items-center gap-1.5">
-                          <Globe size={13} className="text-kumo-muted shrink-0" />
+                        <td className="py-2.5 font-sans font-medium text-sm text-kumo-strong flex items-center gap-1.5">
+                          <Globe size={14} className="text-kumo-muted shrink-0" />
                           <span>{dom.domainName}</span>
                         </td>
-                        <td className="py-2.5 text-right text-kumo-default">{dom.sent}</td>
-                        <td className="py-2.5 text-right text-cf-success">{dom.delivered}</td>
-                        <td className="py-2.5 text-right text-kumo-default">{dom.bounced}</td>
-                        <td className="py-2.5 text-right text-kumo-strong font-semibold">{dom.deliveryRate}</td>
+                        <td className="py-2.5 text-right font-mono text-sm text-kumo-default">{dom.sent}</td>
+                        <td className="py-2.5 text-right font-mono text-sm text-cf-success font-medium">{dom.delivered}</td>
+                        <td className="py-2.5 text-right font-mono text-sm text-kumo-default">{dom.bounced}</td>
+                        <td className="py-2.5 text-right font-mono text-sm text-kumo-strong font-semibold">{dom.deliveryRate}</td>
                         <td className="py-2.5 text-right">
-                          <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                          <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
                             dom.status === "VERIFIED"
                               ? "bg-cf-success/10 text-cf-success border border-cf-success/20"
-                              : "bg-kumo-elevated text-kumo-muted border border-kumo-hairline"
+                              : "bg-kumo-elevated text-kumo-subtle border border-kumo-hairline"
                           }`}>
                             {dom.status}
                           </span>
@@ -782,7 +813,7 @@ export function AnalyticsView() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={6} className="py-6 text-center text-kumo-muted">
+                      <td colSpan={6} className="py-6 text-center text-kumo-muted text-sm">
                         No domains registered yet.
                       </td>
                     </tr>
@@ -792,10 +823,10 @@ export function AnalyticsView() {
             </div>
           </div>
 
-          <div className="mt-4 pt-3 border-t border-kumo-hairline flex items-center justify-between text-[11px] text-kumo-muted">
+          <div className="mt-4 pt-3 border-t border-kumo-hairline flex items-center justify-between text-xs text-kumo-subtle">
             <span>Aggregated across active DKIM & SPF domains</span>
-            <span className="flex items-center gap-1 font-mono text-cf-blue hover:underline cursor-pointer">
-              Manage domains <ArrowUpRight size={11} />
+            <span className="flex items-center gap-1 font-mono text-xs text-cf-blue hover:underline cursor-pointer">
+              Manage domains <ArrowUpRight size={12} />
             </span>
           </div>
         </div>
@@ -803,4 +834,3 @@ export function AnalyticsView() {
     </div>
   );
 }
-

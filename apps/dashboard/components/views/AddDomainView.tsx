@@ -157,7 +157,7 @@ export function AddDomainView() {
                 required
               />
             </div>
-            <p className="text-[11px] text-kumo-subtle">
+            <p className="text-xs text-kumo-subtle">
               Enter your root apex domain (e.g., <code className="text-kumo-strong">yourcompany.com</code>) or a sending subdomain (<code className="text-kumo-strong">mail.yourcompany.com</code>).
             </p>
           </div>
@@ -186,7 +186,7 @@ export function AddDomainView() {
                   className="w-full pl-9 pr-3 py-2 bg-kumo-control border border-kumo-line rounded-lg text-xs text-kumo-strong font-mono focus:outline-none focus:border-cf-orange transition-colors disabled:opacity-60"
                 />
               </div>
-              <p className="text-[11px] text-kumo-subtle">
+              <p className="text-xs text-kumo-subtle">
                 Default: <code className="text-cf-orange">esp</code> &rarr; Host: <code className="text-kumo-strong">{dkimSelector || "esp"}._domainkey.{cleanDomain || "example.com"}</code>
               </p>
             </div>
@@ -213,7 +213,7 @@ export function AddDomainView() {
                   className="w-full pl-9 pr-3 py-2 bg-kumo-control border border-kumo-line rounded-lg text-xs text-kumo-strong font-mono focus:outline-none focus:border-cf-orange transition-colors disabled:opacity-60"
                 />
               </div>
-              <p className="text-[11px] text-kumo-subtle">
+              <p className="text-xs text-kumo-subtle">
                 Default: <code className="text-cf-orange">send</code> &rarr; Host: <code className="text-kumo-strong">{returnPathSubdomain || "send"}.{cleanDomain || "example.com"}</code>
               </p>
             </div>
@@ -229,13 +229,13 @@ export function AddDomainView() {
               EmitMail cryptographically generates a private/public <strong>2048-bit RSA keypair</strong> stored in encrypted AES-256 storage. On the next screen, you will receive your exact DNS configuration records (DKIM, Return-Path SPF, Bounce MX, and DMARC).
             </p>
             <div className="flex flex-wrap gap-2 pt-1">
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono bg-kumo-base border border-kumo-hairline text-kumo-strong">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-mono bg-kumo-base border border-kumo-hairline text-kumo-strong">
                 <Check size={10} className="text-cf-orange" /> 2048-bit RSA DKIM
               </span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono bg-kumo-base border border-kumo-hairline text-kumo-strong">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-mono bg-kumo-base border border-kumo-hairline text-kumo-strong">
                 <Check size={10} className="text-cf-orange" /> SPF Alignment
               </span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono bg-kumo-base border border-kumo-hairline text-kumo-strong">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-mono bg-kumo-base border border-kumo-hairline text-kumo-strong">
                 <Check size={10} className="text-cf-orange" /> MX Bounce Handler
               </span>
             </div>

@@ -103,7 +103,7 @@ export function ComposeEmailModal({
                 <h3 className="text-sm font-semibold text-kumo-strong">
                   Compose Email
                 </h3>
-                <span className="text-[11px] text-kumo-subtle">
+                <span className="text-xs text-kumo-subtle">
                   Send transactional or reply email from custom domain
                 </span>
               </div>

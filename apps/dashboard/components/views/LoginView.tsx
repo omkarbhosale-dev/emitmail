@@ -79,7 +79,7 @@ export function LoginView() {
       `}</style>
 
       {/* Left Column: Clean Administrator Login Form */}
-      <div className="w-full lg:w-[45%] xl:w-[42%] h-full flex flex-col justify-between p-6 sm:p-10 lg:p-14 bg-kumo-canvas border-r border-kumo-hairline z-20 overflow-y-auto">
+      <div className="w-full lg:w-5/12 xl:w-5/12 h-full flex flex-col justify-between p-6 sm:p-10 lg:p-14 bg-kumo-canvas border-r border-kumo-hairline z-20 overflow-y-auto">
         {/* Brand Header */}
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-cf-orange flex items-center justify-center text-white shadow-md shadow-cf-orange/20">
@@ -182,7 +182,7 @@ export function LoginView() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-2.5 px-4 rounded-xl bg-cf-orange hover:bg-cf-orange-hover text-white text-xs font-semibold shadow-md shadow-cf-orange/20 hover:shadow-cf-orange/30 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] disabled:opacity-70 disabled:cursor-not-allowed mt-2"
+              className="w-full py-2.5 px-4 rounded-xl bg-cf-orange hover:bg-cf-orange-hover text-white text-xs font-semibold shadow-md shadow-cf-orange/20 hover:shadow-cf-orange/30 transition-all flex items-center justify-center gap-2 cursor-pointer active-press disabled:opacity-70 disabled:cursor-not-allowed mt-2"
             >
               {isLoading ? (
                 <>
@@ -204,7 +204,7 @@ export function LoginView() {
       </div>
 
       {/* Right Column: Screenshot Inspired Cloudflare Orange Showcase with Dot Matrix Animation */}
-      <div className="hidden lg:flex flex-1 h-full relative overflow-hidden bg-gradient-to-br from-[#FA8B38] via-[#F38020] to-[#E55A00] items-center justify-center p-12 xl:p-16 text-center select-none">
+      <div className="hidden lg:flex flex-1 h-full relative overflow-hidden bg-gradient-to-br from-cf-orange-brand via-cf-orange to-cf-orange-hover items-center justify-center p-12 xl:p-16 text-center select-none">
         {/* 1. Fine Dot-Matrix Overlay Grid Pattern */}
         <div
           className="absolute inset-0 pointer-events-none"
@@ -217,7 +217,7 @@ export function LoginView() {
 
         {/* 2. Bottom Radiant Horizon Illumination Flare (Matching the screenshot glow) */}
         <div
-          className="absolute -bottom-16 left-1/2 -translate-x-1/2 w-[120%] h-80 pointer-events-none"
+          className="absolute -bottom-16 left-1/2 -translate-x-1/2 w-full scale-125 h-80 pointer-events-none"
           style={{
             background:
               "radial-gradient(ellipse 70% 55% at 50% 100%, rgba(255, 248, 220, 0.95) 0%, rgba(255, 220, 150, 0.45) 45%, transparent 75%)",
@@ -237,7 +237,7 @@ export function LoginView() {
             height="420"
             viewBox="0 0 560 420"
             fill="none"
-            className="w-[85%] max-w-[580px] text-white"
+            className="w-5/6 max-w-xl text-white"
           >
             {/* Grid of matrix dots defining the envelope body and flap */}
             <g fill="currentColor">
@@ -284,12 +284,12 @@ export function LoginView() {
         {/* 4. Showcase Text & CTA Content (Matching Screenshot Content & Typography) */}
         <div className="relative z-10 max-w-xl mx-auto flex flex-col items-center">
           {/* Main Headline */}
-          <h2 className="text-3xl xl:text-[42px] font-bold text-white tracking-tight leading-[1.14] font-sans drop-shadow-sm">
+          <h2 className="text-3xl xl:text-4xl font-bold text-white tracking-tight leading-tight font-sans drop-shadow-sm">
             Everything we learned from powering 20% of the Internet—yours by default
           </h2>
 
           {/* Subtitle */}
-          <p className="text-white/90 text-sm xl:text-[15px] max-w-md mt-4 sm:mt-5 leading-relaxed font-normal">
+          <p className="text-white/90 text-sm xl:text-base max-w-md mt-4 sm:mt-5 leading-relaxed font-normal">
             One platform for your apps, agents, and workforce.
             <br />
             Build, secure, and scale without managing infrastructure.
