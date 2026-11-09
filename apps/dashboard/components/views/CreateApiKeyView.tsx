@@ -182,7 +182,7 @@ export function CreateApiKeyView() {
                 autoFocus
                 required
               />
-              <p className="text-[11px] text-kumo-subtle">
+              <p className="text-xs text-kumo-subtle">
                 A human-readable label to identify where this credential is used.
               </p>
             </div>
@@ -206,7 +206,7 @@ export function CreateApiKeyView() {
                   </option>
                 ))}
               </select>
-              <p className="text-[11px] text-kumo-subtle">
+              <p className="text-xs text-kumo-subtle">
                 Restricting an API key prevents accidental unauthorized dispatches across other domains.
               </p>
             </div>
@@ -348,7 +348,7 @@ export function CreateApiKeyView() {
               <Code size={14} className="text-cf-orange" />
               <span>Drop-in Code Example (Resend NPM SDK)</span>
             </div>
-            <div className="p-3.5 bg-kumo-recessed border border-kumo-hairline rounded-xl font-mono text-[11px] text-kumo-default overflow-x-auto leading-relaxed">
+            <div className="p-3.5 bg-kumo-recessed border border-kumo-hairline rounded-xl font-mono text-xs text-kumo-default overflow-x-auto leading-relaxed">
               <pre>{`import { Resend } from 'resend';
 
 // Point Resend SDK to your self-hosted EmitMail instance

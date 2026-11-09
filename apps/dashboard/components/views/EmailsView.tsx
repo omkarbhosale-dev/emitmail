@@ -221,10 +221,10 @@ export function EmailsView({ onTriggerSendEmail }: EmailsViewProps = {}) {
       {/* 1. Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
         <div>
-          <h1 className="text-[20px] sm:text-[22px] font-semibold tracking-tight text-kumo-strong leading-tight">
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-kumo-strong leading-tight">
             Processed Emails
           </h1>
-          <p className="text-[13px] text-kumo-subtle mt-0.5 font-normal leading-relaxed">
+          <p className="text-sm text-kumo-subtle mt-0.5 font-normal leading-relaxed">
             Real-time feed of transactional and broadcast messages processed through the BullMQ queue and SMTP engine.
           </p>
         </div>
@@ -259,25 +259,25 @@ export function EmailsView({ onTriggerSendEmail }: EmailsViewProps = {}) {
         {/* Card 1: Total Messages */}
         <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-3.5 sm:p-4 flex flex-col justify-between hover:border-kumo-line/80 transition-colors shadow-2xs">
           <div className="flex items-center justify-between text-kumo-subtle">
-            <span className="text-[13px] sm:text-[14px] font-medium text-kumo-subtle">Total Messages</span>
+            <span className="text-sm font-medium text-kumo-subtle">Total Messages</span>
             <DotsThree size={16} className="text-kumo-muted" />
           </div>
           <div className="mt-2">
             <div className="flex items-baseline gap-2">
-              <span className="text-[22px] sm:text-[24px] font-semibold tracking-tight text-kumo-strong font-mono leading-none">
+              <span className="text-2xl font-semibold tracking-tight text-kumo-strong font-mono leading-none">
                 {totalEmailsCount.toLocaleString()}
               </span>
               {totalEmailsCount > 0 ? (
-                <span className="text-[12px] font-medium text-cf-success flex items-center gap-0.5">
+                <span className="text-xs font-medium text-cf-success flex items-center gap-0.5">
                   ↗ Active
                 </span>
               ) : (
-                <span className="text-[12px] font-normal text-kumo-muted flex items-center">
+                <span className="text-xs font-normal text-kumo-muted flex items-center">
                   No volume
                 </span>
               )}
             </div>
-            <span className="text-[12px] text-kumo-subtle block mt-1 font-normal">
+            <span className="text-xs text-kumo-subtle block mt-1 font-normal">
               {totalEmailsCount > 0
                 ? `${deliveredCount.toLocaleString()} delivered`
                 : "All recorded dispatches"}
@@ -288,25 +288,25 @@ export function EmailsView({ onTriggerSendEmail }: EmailsViewProps = {}) {
         {/* Card 2: Delivery Rate (Presentation rule: display "—" and "No data yet" when totalEmailsCount is 0) */}
         <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-3.5 sm:p-4 flex flex-col justify-between hover:border-kumo-line/80 transition-colors shadow-2xs">
           <div className="flex items-center justify-between text-kumo-subtle">
-            <span className="text-[13px] sm:text-[14px] font-medium text-kumo-subtle">Delivery Rate</span>
+            <span className="text-sm font-medium text-kumo-subtle">Delivery Rate</span>
             <DotsThree size={16} className="text-kumo-muted" />
           </div>
           <div className="mt-2">
             <div className="flex items-baseline gap-2">
-              <span className="text-[22px] sm:text-[24px] font-semibold tracking-tight text-kumo-strong font-mono leading-none">
+              <span className="text-2xl font-semibold tracking-tight text-kumo-strong font-mono leading-none">
                 {totalEmailsCount > 0 ? deliveryRate : "—"}
               </span>
               {totalEmailsCount > 0 ? (
-                <span className="text-[12px] font-medium text-cf-success flex items-center">
+                <span className="text-xs font-medium text-cf-success flex items-center">
                   250 OK
                 </span>
               ) : (
-                <span className="text-[12px] font-normal text-kumo-muted flex items-center">
+                <span className="text-xs font-normal text-kumo-muted flex items-center">
                   No data yet
                 </span>
               )}
             </div>
-            <span className="text-[12px] text-kumo-subtle block mt-1 font-normal">
+            <span className="text-xs text-kumo-subtle block mt-1 font-normal">
               {totalEmailsCount > 0
                 ? `${deliveredCount.toLocaleString()} of ${totalEmailsCount.toLocaleString()} delivered`
                 : "Requires at least 1 dispatch"}
@@ -317,26 +317,26 @@ export function EmailsView({ onTriggerSendEmail }: EmailsViewProps = {}) {
         {/* Card 3: Queued */}
         <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-3.5 sm:p-4 flex flex-col justify-between hover:border-kumo-line/80 transition-colors shadow-2xs">
           <div className="flex items-center justify-between text-kumo-subtle">
-            <span className="text-[13px] sm:text-[14px] font-medium text-kumo-subtle">Queued</span>
+            <span className="text-sm font-medium text-kumo-subtle">Queued</span>
             <DotsThree size={16} className="text-kumo-muted" />
           </div>
           <div className="mt-2">
             <div className="flex items-baseline gap-2">
-              <span className="text-[22px] sm:text-[24px] font-semibold tracking-tight text-kumo-strong font-mono leading-none">
+              <span className="text-2xl font-semibold tracking-tight text-kumo-strong font-mono leading-none">
                 {queuedCount.toLocaleString()}
               </span>
               {queuedCount > 0 ? (
-                <span className="text-[12px] font-medium text-cf-blue flex items-center gap-1">
+                <span className="text-xs font-medium text-cf-blue flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-cf-blue animate-pulse" />
                   In transit
                 </span>
               ) : (
-                <span className="text-[12px] font-normal text-kumo-muted flex items-center">
+                <span className="text-xs font-normal text-kumo-muted flex items-center">
                   Queue idle
                 </span>
               )}
             </div>
-            <span className="text-[12px] text-kumo-subtle block mt-1 font-normal">
+            <span className="text-xs text-kumo-subtle block mt-1 font-normal">
               BullMQ message engine
             </span>
           </div>
@@ -345,25 +345,25 @@ export function EmailsView({ onTriggerSendEmail }: EmailsViewProps = {}) {
         {/* Card 4: Bounce Rate */}
         <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-3.5 sm:p-4 flex flex-col justify-between hover:border-kumo-line/80 transition-colors shadow-2xs">
           <div className="flex items-center justify-between text-kumo-subtle">
-            <span className="text-[13px] sm:text-[14px] font-medium text-kumo-subtle">Bounce Rate</span>
+            <span className="text-sm font-medium text-kumo-subtle">Bounce Rate</span>
             <DotsThree size={16} className="text-kumo-muted" />
           </div>
           <div className="mt-2">
             <div className="flex items-baseline gap-2">
-              <span className="text-[22px] sm:text-[24px] font-semibold tracking-tight text-kumo-strong font-mono leading-none">
+              <span className="text-2xl font-semibold tracking-tight text-kumo-strong font-mono leading-none">
                 {totalEmailsCount > 0 ? bounceRate : "0.0%"}
               </span>
               {bouncedCount === 0 ? (
-                <span className="text-[12px] font-medium text-cf-success flex items-center">
+                <span className="text-xs font-medium text-cf-success flex items-center">
                   Optimal
                 </span>
               ) : (
-                <span className="text-[12px] font-medium text-cf-amber flex items-center">
+                <span className="text-xs font-medium text-cf-amber flex items-center">
                   {bouncedCount} bounced
                 </span>
               )}
             </div>
-            <span className="text-[12px] text-kumo-subtle block mt-1 font-normal">
+            <span className="text-xs text-kumo-subtle block mt-1 font-normal">
               {totalEmailsCount > 0
                 ? `${bouncedCount.toLocaleString()} rejected / suppressed`
                 : "Suppressed & rejected"}
@@ -389,7 +389,7 @@ export function EmailsView({ onTriggerSendEmail }: EmailsViewProps = {}) {
                 type="button"
                 onClick={() => handleFilterChange(tab.key)}
                 className={cn(
-                  "px-3 py-1.5 rounded-md text-[13px] transition-colors cursor-pointer shrink-0 select-none",
+                  "px-3 py-1.5 rounded-md text-sm transition-colors cursor-pointer shrink-0 select-none",
                   isActive
                     ? "bg-kumo-elevated text-kumo-strong font-medium shadow-2xs border border-kumo-line/50"
                     : "text-kumo-subtle hover:text-kumo-strong hover:bg-kumo-tint/50 font-normal"
@@ -408,7 +408,7 @@ export function EmailsView({ onTriggerSendEmail }: EmailsViewProps = {}) {
               value={domainFilter}
               onChange={(e) => handleDomainFilterChange(e.target.value)}
               aria-label="Filter by domain"
-              className="w-full sm:w-auto h-9 bg-kumo-control hover:bg-kumo-elevated border border-kumo-line rounded-lg pl-3 pr-8 text-[13px] text-kumo-strong focus:outline-none focus:border-cf-blue/80 focus:ring-1 focus:ring-cf-blue/30 cursor-pointer transition-colors appearance-none shadow-2xs"
+              className="w-full sm:w-auto h-9 bg-kumo-control hover:bg-kumo-elevated border border-kumo-line rounded-lg pl-3 pr-8 text-sm text-kumo-strong focus:outline-none focus:border-cf-blue/80 focus:ring-1 focus:ring-cf-blue/30 cursor-pointer transition-colors appearance-none shadow-2xs"
             >
               <option value="all">All Domains</option>
               {domains.map((dom) => (
@@ -433,7 +433,7 @@ export function EmailsView({ onTriggerSendEmail }: EmailsViewProps = {}) {
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="Search recipient, msg_id..."
-              className="w-full h-9 pl-8 pr-7 text-[13px] bg-kumo-control hover:bg-kumo-elevated/50 border border-kumo-line rounded-lg text-kumo-strong placeholder:text-kumo-muted focus:outline-none focus:border-cf-blue/80 focus:ring-1 focus:ring-cf-blue/30 transition-colors shadow-2xs"
+              className="w-full h-9 pl-8 pr-7 text-sm bg-kumo-control hover:bg-kumo-elevated/50 border border-kumo-line rounded-lg text-kumo-strong placeholder:text-kumo-muted focus:outline-none focus:border-cf-blue/80 focus:ring-1 focus:ring-cf-blue/30 transition-colors shadow-2xs"
             />
             {searchQuery && (
               <button
@@ -458,7 +458,7 @@ export function EmailsView({ onTriggerSendEmail }: EmailsViewProps = {}) {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-kumo-hairline bg-kumo-recessed/40 text-kumo-subtle font-medium text-[13px]">
+                <tr className="border-b border-kumo-hairline bg-kumo-recessed/40 text-kumo-subtle font-medium text-sm">
                   <th className="py-2.5 px-4 font-medium">Message ID</th>
                   <th className="py-2.5 px-4 font-medium">Recipient & Subject</th>
                   <th className="py-2.5 px-4 font-medium hidden md:table-cell">Sender / Domain</th>
@@ -466,7 +466,7 @@ export function EmailsView({ onTriggerSendEmail }: EmailsViewProps = {}) {
                   <th className="py-2.5 px-4 font-medium text-right">Dispatched</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-kumo-hairline text-[13px]">
+              <tbody className="divide-y divide-kumo-hairline text-sm">
                 {paginatedEmails.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="py-12 sm:py-16 text-center">
@@ -478,12 +478,12 @@ export function EmailsView({ onTriggerSendEmail }: EmailsViewProps = {}) {
                             <Funnel size={18} className="text-kumo-subtle" />
                           )}
                         </div>
-                        <div className="text-[14px] font-medium text-kumo-strong">
+                        <div className="text-sm font-medium text-kumo-strong">
                           {emails.length === 0
                             ? "No processed emails yet"
                             : "No matching emails found"}
                         </div>
-                        <p className="text-[12px] sm:text-[13px] text-kumo-subtle mt-1 font-normal leading-relaxed">
+                        <p className="text-xs sm:text-sm text-kumo-subtle mt-1 font-normal leading-relaxed">
                           {emails.length === 0
                             ? "Emails dispatched through your SMTP server or API will appear in this real-time telemetry feed."
                             : "No processed emails match the selected filters or search query."}
@@ -521,8 +521,8 @@ export function EmailsView({ onTriggerSendEmail }: EmailsViewProps = {}) {
                         className="hover:bg-kumo-elevated/40 transition-colors group"
                       >
                         {/* Message ID */}
-                        <td className="py-3 px-4 font-mono text-[11px] text-kumo-subtle align-middle">
-                          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-kumo-recessed/70 border border-kumo-hairline max-w-[150px] group-hover:border-kumo-line transition-colors">
+                        <td className="py-3 px-4 font-mono text-xs text-kumo-subtle align-middle">
+                          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-kumo-recessed/70 border border-kumo-hairline max-w-38 group-hover:border-kumo-line transition-colors">
                             <span className="truncate text-kumo-strong">{displayId}</span>
                             <button
                               type="button"
@@ -537,17 +537,17 @@ export function EmailsView({ onTriggerSendEmail }: EmailsViewProps = {}) {
                         </td>
 
                         {/* Recipient & Subject */}
-                        <td className="py-3 px-4 max-w-[280px] lg:max-w-[340px] align-middle">
-                          <div className="font-medium text-kumo-strong truncate text-[13px] sm:text-[14px]">
+                        <td className="py-3 px-4 max-w-70 lg:max-w-85 align-middle">
+                          <div className="font-medium text-kumo-strong truncate text-sm">
                             {recipientText}
                           </div>
-                          <div className="text-[12px] text-kumo-subtle truncate mt-0.5 font-normal">
+                          <div className="text-xs text-kumo-subtle truncate mt-0.5 font-normal">
                             {item.subject || "(No subject)"}
                           </div>
                         </td>
 
                         {/* Sender Domain */}
-                        <td className="py-3 px-4 text-kumo-subtle hidden md:table-cell font-mono text-[12px] truncate max-w-[200px] align-middle">
+                        <td className="py-3 px-4 text-kumo-subtle hidden md:table-cell font-mono text-xs truncate max-w-50 align-middle">
                           <span className="truncate block font-normal">{senderText}</span>
                         </td>
 
@@ -568,10 +568,10 @@ export function EmailsView({ onTriggerSendEmail }: EmailsViewProps = {}) {
 
                         {/* Timestamp */}
                         <td className="py-3 px-4 text-right align-middle whitespace-nowrap">
-                          <div className="font-mono text-[12px] text-kumo-default">
+                          <div className="font-mono text-xs text-kumo-default">
                             {formatRelativeTime(item.createdAt)}
                           </div>
-                          <div className="text-[11px] text-kumo-muted font-normal mt-0.5">
+                          <div className="text-xs text-kumo-muted font-normal mt-0.5">
                             {item.deliveryAttempts ? `${item.deliveryAttempts} attempt(s)` : "1 attempt"}
                           </div>
                         </td>
@@ -584,7 +584,7 @@ export function EmailsView({ onTriggerSendEmail }: EmailsViewProps = {}) {
 
             {/* Pagination Controls Footer */}
             {filteredEmails.length > 0 && (
-              <div className="px-4 py-3 border-t border-kumo-hairline bg-kumo-recessed/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[12px] text-kumo-subtle select-none">
+              <div className="px-4 py-3 border-t border-kumo-hairline bg-kumo-recessed/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-kumo-subtle select-none">
                 <div>
                   Showing{" "}
                   <span className="font-medium text-kumo-strong font-mono">
@@ -602,7 +602,7 @@ export function EmailsView({ onTriggerSendEmail }: EmailsViewProps = {}) {
                 </div>
 
                 <div className="flex items-center gap-3 self-end sm:self-auto">
-                  <span className="text-[11px] sm:text-[12px] text-kumo-muted">
+                  <span className="text-xs text-kumo-muted">
                     Page <span className="font-mono text-kumo-strong">{safeCurrentPage}</span> of{" "}
                     <span className="font-mono text-kumo-strong">{totalPages}</span>
                   </span>
@@ -612,7 +612,7 @@ export function EmailsView({ onTriggerSendEmail }: EmailsViewProps = {}) {
                       type="button"
                       onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                       disabled={safeCurrentPage <= 1}
-                      className="px-2.5 py-1 text-[12px] font-medium rounded-md border border-kumo-line bg-kumo-base hover:bg-kumo-elevated text-kumo-strong disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer flex items-center gap-1 shadow-2xs"
+                      className="px-2.5 py-1 text-xs font-medium rounded-md border border-kumo-line bg-kumo-base hover:bg-kumo-elevated text-kumo-strong disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer flex items-center gap-1 shadow-2xs"
                       title="Previous page"
                     >
                       <CaretLeft size={12} weight="bold" />
@@ -622,7 +622,7 @@ export function EmailsView({ onTriggerSendEmail }: EmailsViewProps = {}) {
                       type="button"
                       onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                       disabled={safeCurrentPage >= totalPages}
-                      className="px-2.5 py-1 text-[12px] font-medium rounded-md border border-kumo-line bg-kumo-base hover:bg-kumo-elevated text-kumo-strong disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer flex items-center gap-1 shadow-2xs"
+                      className="px-2.5 py-1 text-xs font-medium rounded-md border border-kumo-line bg-kumo-base hover:bg-kumo-elevated text-kumo-strong disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer flex items-center gap-1 shadow-2xs"
                       title="Next page"
                     >
                       <span>Next</span>

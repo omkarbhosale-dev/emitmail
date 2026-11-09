@@ -123,11 +123,11 @@ function InteractiveTimeseriesChart({
   }
 
   return (
-    <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-4 sm:p-4.5 flex flex-col justify-between min-h-[240px] relative overflow-hidden group hover:border-kumo-line/80 transition-colors">
+    <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-4 sm:p-4.5 flex flex-col justify-between min-h-60 relative overflow-hidden group hover:border-kumo-line/80 transition-colors">
       <div>
         <div className="flex items-center justify-between">
-          <span className="text-[13px] sm:text-[14px] font-medium text-kumo-subtle">{title}</span>
-          <span className="text-[12px] text-kumo-muted font-mono flex items-center gap-1.5">
+          <span className="text-sm font-medium text-kumo-subtle">{title}</span>
+          <span className="text-xs text-kumo-muted font-mono flex items-center gap-1.5">
             {badgeIcon}
             <span>30-day view</span>
           </span>
@@ -136,12 +136,12 @@ function InteractiveTimeseriesChart({
           {isLoading ? (
             <Skeleton className="h-7 w-20" />
           ) : (
-            <span className="text-[26px] sm:text-[28px] font-semibold text-kumo-strong tracking-tight font-mono leading-none">
+            <span className="text-3xl font-semibold text-kumo-strong tracking-tight font-mono leading-none">
               {totalText}
             </span>
           )}
           <span
-            className={`text-[13px] ${
+            className={`text-sm ${
               hasActivity ? "text-cf-success font-medium" : "text-kumo-muted font-normal"
             }`}
           >
@@ -158,15 +158,15 @@ function InteractiveTimeseriesChart({
           <div className="w-7 h-7 rounded-md bg-kumo-control/70 border border-kumo-hairline/60 flex items-center justify-center text-kumo-muted mb-1.5">
             {badgeIcon || <PaperPlaneTilt size={13} className="text-kumo-muted" />}
           </div>
-          <span className="text-[13px] font-medium text-kumo-default">No telemetry recorded yet</span>
-          <span className="text-[12px] text-kumo-subtle max-w-[260px] mt-0.5 leading-relaxed font-normal">
+          <span className="text-sm font-medium text-kumo-default">No telemetry recorded yet</span>
+          <span className="text-xs text-kumo-subtle max-w-65 mt-0.5 leading-relaxed font-normal">
             Activity over the last 30 days will be plotted here automatically once {unitLabel} are processed.
           </span>
         </div>
       ) : (
         <div className="relative mt-3 pt-2 select-none">
           {/* Y-Axis Guidelines (Subtle, non-prominent) */}
-          <div className="absolute inset-0 flex flex-col justify-between pointer-events-none text-[10px] text-kumo-muted/80 font-mono">
+          <div className="absolute inset-0 flex flex-col justify-between pointer-events-none text-xs text-kumo-muted/80 font-mono">
             <div className="border-b border-kumo-hairline/40 w-full flex justify-between pr-1">
               <span>{maxVal}</span>
             </div>
@@ -287,14 +287,14 @@ function InteractiveTimeseriesChart({
                   transform: cardTransform,
                 }}
               >
-                <div className="bg-kumo-base/95 backdrop-blur-md border border-kumo-hairline shadow-2xl rounded-xl p-3 min-w-[170px] select-none text-left ring-1 ring-white/5">
+                <div className="bg-kumo-base/95 backdrop-blur-md border border-kumo-hairline shadow-2xl rounded-xl p-3 min-w-44 select-none text-left ring-1 ring-white/5">
                   {/* Card Header: Timestamp & Badge */}
                   <div className="flex items-center justify-between gap-3 pb-2 border-b border-kumo-hairline">
-                    <span className="text-[11px] font-medium text-kumo-subtle font-mono flex items-center gap-1.5">
+                    <span className="text-xs font-medium text-kumo-subtle font-mono flex items-center gap-1.5">
                       <CalendarBlank size={13} className="text-kumo-muted" />
                       {activePoint.time}
                     </span>
-                    <span className="text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-kumo-elevated text-kumo-muted border border-kumo-hairline">
+                    <span className="text-xs font-mono font-medium px-1.5 py-0.5 rounded bg-kumo-elevated text-kumo-muted border border-kumo-hairline">
                       30d Metric
                     </span>
                   </div>
@@ -314,7 +314,7 @@ function InteractiveTimeseriesChart({
                   </div>
 
                   {/* Card Footer: Activity status */}
-                  <div className="mt-2 pt-1.5 border-t border-kumo-hairline/60 flex items-center justify-between text-[10px] font-mono">
+                  <div className="mt-2 pt-1.5 border-t border-kumo-hairline/60 flex items-center justify-between text-xs font-mono">
                     <span className="text-kumo-muted">Activity</span>
                     <span
                       className={`flex items-center gap-1 font-semibold ${
@@ -335,7 +335,7 @@ function InteractiveTimeseriesChart({
           </div>
 
           {/* X-Axis Timestamps */}
-          <div className="flex justify-between text-[10px] text-kumo-muted mt-2 font-mono">
+          <div className="flex justify-between text-xs text-kumo-muted mt-2 font-mono">
             {data.map((d) => (
               <span key={d.time}>{d.time}</span>
             ))}
@@ -654,10 +654,10 @@ export function HomeView({
             <span>Search messages, domains, or API keys...</span>
           </div>
           <div className="flex items-center gap-1">
-            <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-kumo-elevated border border-kumo-hairline rounded text-kumo-subtle">
+            <kbd className="px-1.5 py-0.5 text-xs font-mono bg-kumo-elevated border border-kumo-hairline rounded text-kumo-subtle">
               Ctrl
             </kbd>
-            <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-kumo-elevated border border-kumo-hairline rounded text-kumo-subtle">
+            <kbd className="px-1.5 py-0.5 text-xs font-mono bg-kumo-elevated border border-kumo-hairline rounded text-kumo-subtle">
               K
             </kbd>
           </div>
@@ -695,10 +695,10 @@ export function HomeView({
           <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-4 sm:p-4.5 flex flex-col justify-between hover:border-kumo-line/80 transition-colors">
             <div>
               <div className="flex items-center justify-between text-kumo-subtle mb-2">
-                <span className="uppercase tracking-wider text-[13px] font-medium text-kumo-subtle">Domains</span>
+                <span className="uppercase tracking-wider text-sm font-medium text-kumo-subtle">Domains</span>
                 <button
                   onClick={() => handleNavigate("domains")}
-                  className="hover:text-cf-blue flex items-center gap-0.5 text-kumo-subtle transition-colors cursor-pointer group text-[13px] font-normal"
+                  className="hover:text-cf-blue flex items-center gap-0.5 text-kumo-subtle transition-colors cursor-pointer group text-sm font-normal"
                 >
                   <span>View all</span>
                   <CaretRight size={11} className="group-hover:translate-x-0.5 transition-transform" />
@@ -716,8 +716,8 @@ export function HomeView({
                   <div className="w-7 h-7 mx-auto rounded-lg bg-cf-orange/10 text-cf-orange flex items-center justify-center mb-1">
                     <Globe size={15} />
                   </div>
-                  <div className="text-[13px] font-medium text-kumo-strong">No domains configured</div>
-                  <p className="text-[12px] text-kumo-subtle max-w-[200px] mx-auto leading-relaxed">
+                  <div className="text-sm font-medium text-kumo-strong">No domains configured</div>
+                  <p className="text-xs text-kumo-subtle max-w-50 mx-auto leading-relaxed">
                     Add and verify your domain to generate 2048-bit DKIM keys and start delivering.
                   </p>
                 </div>
@@ -731,10 +731,10 @@ export function HomeView({
                     >
                       <div className="flex items-center gap-2 min-w-0 mr-2 text-kumo-default group-hover:text-cf-blue transition-colors">
                         <Globe size={15} className="text-cf-blue shrink-0" />
-                        <span className="text-[14px] font-medium truncate max-w-[160px] leading-snug">{dom.domainName}</span>
+                        <span className="text-sm font-medium truncate max-w-40 leading-snug">{dom.domainName}</span>
                       </div>
                       <span
-                        className={`inline-flex items-center gap-1.5 text-[11px] sm:text-[12px] font-medium px-2 py-0.5 rounded-full border shrink-0 ${
+                        className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full border shrink-0 ${
                           dom.status === "VERIFIED"
                             ? "bg-cf-success/10 text-cf-success border-cf-success/20"
                             : "bg-cf-amber/10 text-cf-amber border-cf-amber/20"
@@ -775,7 +775,7 @@ export function HomeView({
           <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-4 sm:p-4.5 flex flex-col justify-between hover:border-kumo-line/80 transition-colors">
             <div>
               <div className="flex items-center justify-between text-kumo-subtle mb-2">
-                <span className="uppercase tracking-wider text-[13px] font-medium text-kumo-subtle">Quick Actions</span>
+                <span className="uppercase tracking-wider text-sm font-medium text-kumo-subtle">Quick Actions</span>
               </div>
               <div className="space-y-0.5">
                 <button
@@ -787,10 +787,10 @@ export function HomeView({
                       <Tray size={14} weight="bold" />
                     </div>
                     <div className="min-w-0">
-                      <div className="text-[14px] font-medium text-kumo-strong group-hover:text-cf-blue transition-colors leading-tight">
+                      <div className="text-sm font-medium text-kumo-strong group-hover:text-cf-blue transition-colors leading-tight">
                         Inbox
                       </div>
-                      <div className="text-[13px] font-normal text-kumo-subtle leading-tight mt-0.5">
+                      <div className="text-sm font-normal text-kumo-subtle leading-tight mt-0.5">
                         Inbound stream & mailboxes
                       </div>
                     </div>
@@ -807,10 +807,10 @@ export function HomeView({
                       <PaperPlaneTilt size={14} weight="bold" />
                     </div>
                     <div className="min-w-0">
-                      <div className="text-[14px] font-medium text-kumo-strong group-hover:text-cf-blue transition-colors leading-tight">
+                      <div className="text-sm font-medium text-kumo-strong group-hover:text-cf-blue transition-colors leading-tight">
                         Emails
                       </div>
-                      <div className="text-[13px] font-normal text-kumo-subtle leading-tight mt-0.5">
+                      <div className="text-sm font-normal text-kumo-subtle leading-tight mt-0.5">
                         Processed outbox & telemetry
                       </div>
                     </div>
@@ -827,10 +827,10 @@ export function HomeView({
                       <Key size={14} weight="bold" />
                     </div>
                     <div className="min-w-0">
-                      <div className="text-[14px] font-medium text-kumo-strong group-hover:text-cf-blue transition-colors leading-tight">
+                      <div className="text-sm font-medium text-kumo-strong group-hover:text-cf-blue transition-colors leading-tight">
                         API Keys
                       </div>
-                      <div className="text-[13px] font-normal text-kumo-subtle leading-tight mt-0.5">
+                      <div className="text-sm font-normal text-kumo-subtle leading-tight mt-0.5">
                         Manage credentials & tokens
                       </div>
                     </div>
@@ -845,8 +845,8 @@ export function HomeView({
           <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-4 sm:p-4.5 flex flex-col justify-between hover:border-kumo-line/80 transition-colors">
             <div>
               <div className="flex items-center justify-between text-kumo-subtle mb-2">
-                <span className="uppercase tracking-wider text-[13px] font-medium text-kumo-subtle">Recents</span>
-                <span className="text-[12px] sm:text-[13px] text-kumo-muted font-normal">Activity</span>
+                <span className="uppercase tracking-wider text-sm font-medium text-kumo-subtle">Recents</span>
+                <span className="text-xs sm:text-sm text-kumo-muted font-normal">Activity</span>
               </div>
 
               {isLoadingRecents ? (
@@ -861,8 +861,8 @@ export function HomeView({
                   <div className="w-7 h-7 mx-auto rounded-lg bg-kumo-control/80 border border-kumo-hairline text-kumo-subtle flex items-center justify-center mb-1">
                     <Clock size={15} />
                   </div>
-                  <div className="text-[13px] font-medium text-kumo-strong">No recent activity</div>
-                  <p className="text-[12px] text-kumo-subtle max-w-[200px] mx-auto leading-relaxed">
+                  <div className="text-sm font-medium text-kumo-strong">No recent activity</div>
+                  <p className="text-xs text-kumo-subtle max-w-50 mx-auto leading-relaxed">
                     Dispatched emails, inbound messages, and API key events will appear here in real time.
                   </p>
                 </div>
@@ -887,17 +887,17 @@ export function HomeView({
                           )}
                         </div>
                         <div className="min-w-0">
-                          <span className="text-[14px] font-medium text-kumo-strong truncate block leading-tight group-hover:text-cf-blue transition-colors">
+                          <span className="text-sm font-medium text-kumo-strong truncate block leading-tight group-hover:text-cf-blue transition-colors">
                             {item.title}
                           </span>
-                          <span className="text-[13px] font-normal text-kumo-subtle truncate block leading-tight mt-0.5">
+                          <span className="text-sm font-normal text-kumo-subtle truncate block leading-tight mt-0.5">
                             {item.subtitle}
                           </span>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="text-[12px] font-normal text-kumo-muted font-mono">
+                        <span className="text-xs font-normal text-kumo-muted font-mono">
                           {item.timestamp}
                         </span>
                         <CaretRight size={12} className="text-kumo-muted group-hover:text-kumo-strong group-hover:translate-x-0.5 transition-all shrink-0 ml-0.5" />
@@ -915,10 +915,10 @@ export function HomeView({
       <section className="space-y-3.5 w-full">
         {/* Section Header Bar */}
         <div>
-          <h2 className="text-[15px] sm:text-base font-medium text-kumo-strong tracking-tight">
+          <h2 className="text-base font-medium text-kumo-strong tracking-tight">
             Analytics
           </h2>
-          <p className="text-[13px] text-kumo-subtle mt-0.5 font-normal">
+          <p className="text-sm text-kumo-subtle mt-0.5 font-normal">
             Performance and infrastructure metrics over the last 30 days
           </p>
         </div>
@@ -928,7 +928,7 @@ export function HomeView({
           {/* Card 1: Emails Sent */}
           <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-4 sm:p-4.5 flex flex-col justify-between hover:border-kumo-line/80 transition-colors">
             <div className="flex items-center justify-between text-kumo-subtle">
-              <span className="text-[14px] font-medium text-kumo-subtle">Emails Sent</span>
+              <span className="text-sm font-medium text-kumo-subtle">Emails Sent</span>
               <DotsThree size={16} className="text-kumo-muted" />
             </div>
             {isLoadingStats ? (
@@ -939,20 +939,20 @@ export function HomeView({
             ) : (
               <div className="mt-2">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-[26px] sm:text-[28px] font-semibold tracking-tight text-kumo-strong font-mono leading-none">
+                  <span className="text-3xl font-semibold tracking-tight text-kumo-strong font-mono leading-none">
                     {emailStats ? emailStats.total.toLocaleString() : "0"}
                   </span>
                   {hasDispatches ? (
-                    <span className="text-[13px] font-medium text-cf-success flex items-center gap-0.5">
+                    <span className="text-sm font-medium text-cf-success flex items-center gap-0.5">
                       ↗ Active
                     </span>
                   ) : (
-                    <span className="text-[13px] font-normal text-kumo-muted flex items-center">
+                    <span className="text-sm font-normal text-kumo-muted flex items-center">
                       No volume
                     </span>
                   )}
                 </div>
-                <span className="text-[13px] text-kumo-subtle block mt-1 font-normal">
+                <span className="text-sm text-kumo-subtle block mt-1 font-normal">
                   {hasDispatches && emailStats
                     ? `${emailStats.delivered.toLocaleString()} delivered`
                     : "0 dispatches in 30 days"}
@@ -964,7 +964,7 @@ export function HomeView({
           {/* Card 2: Delivery Rate */}
           <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-4 sm:p-4.5 flex flex-col justify-between hover:border-kumo-line/80 transition-colors">
             <div className="flex items-center justify-between text-kumo-subtle">
-              <span className="text-[14px] font-medium text-kumo-subtle">Delivery Rate</span>
+              <span className="text-sm font-medium text-kumo-subtle">Delivery Rate</span>
               <DotsThree size={16} className="text-kumo-muted" />
             </div>
             {isLoadingStats ? (
@@ -975,20 +975,20 @@ export function HomeView({
             ) : (
               <div className="mt-2">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-[26px] sm:text-[28px] font-semibold tracking-tight text-kumo-strong font-mono leading-none">
+                  <span className="text-3xl font-semibold tracking-tight text-kumo-strong font-mono leading-none">
                     {hasDispatches && emailStats ? emailStats.deliveryRate : "—"}
                   </span>
                   {hasDispatches ? (
-                    <span className="text-[13px] font-medium text-cf-success flex items-center">
+                    <span className="text-sm font-medium text-cf-success flex items-center">
                       250 OK
                     </span>
                   ) : (
-                    <span className="text-[13px] font-normal text-kumo-muted flex items-center">
+                    <span className="text-sm font-normal text-kumo-muted flex items-center">
                       No data yet
                     </span>
                   )}
                 </div>
-                <span className="text-[13px] text-kumo-subtle block mt-1 font-normal">
+                <span className="text-sm text-kumo-subtle block mt-1 font-normal">
                   {hasDispatches && emailStats
                     ? `${emailStats.delivered.toLocaleString()} of ${emailStats.total.toLocaleString()} delivered`
                     : "Requires at least 1 dispatch"}
@@ -1000,7 +1000,7 @@ export function HomeView({
           {/* Card 3: Bounce Rate */}
           <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-4 sm:p-4.5 flex flex-col justify-between hover:border-kumo-line/80 transition-colors">
             <div className="flex items-center justify-between text-kumo-subtle">
-              <span className="text-[14px] font-medium text-kumo-subtle">Bounce Rate</span>
+              <span className="text-sm font-medium text-kumo-subtle">Bounce Rate</span>
               <DotsThree size={16} className="text-kumo-muted" />
             </div>
             {isLoadingStats ? (
@@ -1011,24 +1011,24 @@ export function HomeView({
             ) : (
               <div className="mt-2">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-[26px] sm:text-[28px] font-semibold tracking-tight text-kumo-strong font-mono leading-none">
+                  <span className="text-3xl font-semibold tracking-tight text-kumo-strong font-mono leading-none">
                     {hasDispatches && emailStats ? emailStats.bounceRate : "—"}
                   </span>
                   {hasDispatches && emailStats ? (
                     <span
-                      className={`text-[13px] font-normal ${
+                      className={`text-sm font-normal ${
                         emailStats.bounced > 0 ? "text-cf-amber" : "text-kumo-subtle"
                       }`}
                     >
                       {emailStats.bounced} {emailStats.bounced === 1 ? "Bounce" : "Bounces"}
                     </span>
                   ) : (
-                    <span className="text-[13px] font-normal text-kumo-muted flex items-center">
+                    <span className="text-sm font-normal text-kumo-muted flex items-center">
                       No data yet
                     </span>
                   )}
                 </div>
-                <span className="text-[13px] text-kumo-subtle block mt-1 font-normal">
+                <span className="text-sm text-kumo-subtle block mt-1 font-normal">
                   {hasDispatches && emailStats
                     ? `Hard bounces: ${emailStats.bounced}`
                     : "No bounces recorded"}
@@ -1040,7 +1040,7 @@ export function HomeView({
           {/* Card 4: Service Infrastructure Health (Database, Redis, Worker) */}
           <div className="bg-kumo-base border border-kumo-hairline rounded-xl p-4 sm:p-4.5 flex flex-col justify-between hover:border-kumo-line/80 transition-colors">
             <div className="flex items-center justify-between text-kumo-subtle mb-1">
-              <span className="text-[14px] font-medium text-kumo-subtle">Service Status</span>
+              <span className="text-sm font-medium text-kumo-subtle">Service Status</span>
               <DotsThree size={16} className="text-kumo-muted" />
             </div>
 
@@ -1059,9 +1059,9 @@ export function HomeView({
                         systemHealth.database ? "bg-cf-success" : "bg-kumo-danger"
                       }`}
                     />
-                    <span className="text-[14px] font-medium text-kumo-default">Database</span>
+                    <span className="text-sm font-medium text-kumo-default">Database</span>
                   </div>
-                  <span className="text-[13px] font-mono text-kumo-subtle font-normal">
+                  <span className="text-sm font-mono text-kumo-subtle font-normal">
                     {systemHealth.database ? "Connected" : "Offline"}
                   </span>
                 </div>
@@ -1073,9 +1073,9 @@ export function HomeView({
                         systemHealth.redis ? "bg-cf-success" : "bg-kumo-danger"
                       }`}
                     />
-                    <span className="text-[14px] font-medium text-kumo-default">Redis</span>
+                    <span className="text-sm font-medium text-kumo-default">Redis</span>
                   </div>
-                  <span className="text-[13px] font-mono text-kumo-subtle font-normal">
+                  <span className="text-sm font-mono text-kumo-subtle font-normal">
                     {systemHealth.redis ? "Connected" : "Offline"}
                   </span>
                 </div>
@@ -1087,9 +1087,9 @@ export function HomeView({
                         systemHealth.worker ? "bg-cf-success" : "bg-kumo-danger"
                       }`}
                     />
-                    <span className="text-[14px] font-medium text-kumo-default">Worker</span>
+                    <span className="text-sm font-medium text-kumo-default">Worker</span>
                   </div>
-                  <span className="text-[13px] font-mono text-kumo-subtle font-normal">
+                  <span className="text-sm font-mono text-kumo-subtle font-normal">
                     {systemHealth.worker ? "Running" : "Stopped"}
                   </span>
                 </div>

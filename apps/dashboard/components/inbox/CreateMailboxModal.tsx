@@ -162,7 +162,7 @@ export function CreateMailboxModal({
                   @{activeDomain?.domainName || "domain.com"}
                 </span>
               </div>
-              <p className="text-[11px] text-kumo-subtle mt-1">
+              <p className="text-xs text-kumo-subtle mt-1">
                 Enter letters, numbers, dots, or hyphens.
               </p>
             </div>
@@ -184,12 +184,12 @@ export function CreateMailboxModal({
             {/* 4. Live Address Preview Callout */}
             <div className="p-3.5 rounded-xl bg-kumo-recessed border border-kumo-hairline flex items-center justify-between">
               <div>
-                <span className="text-[11px] text-kumo-subtle block">Full Inbound Address:</span>
+                <span className="text-xs text-kumo-subtle block">Full Inbound Address:</span>
                 <span className="text-xs font-mono font-semibold text-cf-orange block mt-0.5 select-all">
                   {fullAddressPreview}
                 </span>
               </div>
-              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-cf-orange-tint text-cf-orange border border-cf-orange-border/30">
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-cf-orange-tint text-cf-orange border border-cf-orange-border/30">
                 Live Inbound
               </span>
             </div>

@@ -369,7 +369,7 @@ export function OnboardingModal({ isOpen, onClose, onCompleted }: OnboardingModa
                     className="w-full px-3.5 py-2.5 text-xs font-mono bg-kumo-control border border-kumo-line rounded-xl text-kumo-strong placeholder:text-kumo-subtle focus:outline-hidden focus:border-cf-orange focus:ring-1 focus:ring-cf-orange transition-all"
                   />
                 </div>
-                <p className="text-[11px] text-kumo-subtle">
+                <p className="text-xs text-kumo-subtle">
                   The domain you want to send emails from (e.g. <span className="font-mono text-kumo-default">hello@yourcompany.com</span>).
                 </p>
               </div>
@@ -386,7 +386,7 @@ export function OnboardingModal({ isOpen, onClose, onCompleted }: OnboardingModa
                     type="button"
                     onClick={handleDetectIp}
                     disabled={isDetectingIp}
-                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-cf-orange hover:underline cursor-pointer disabled:opacity-50"
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-cf-orange hover:underline cursor-pointer disabled:opacity-50"
                   >
                     <ArrowsClockwise size={12} className={isDetectingIp ? "animate-spin" : ""} />
                     <span>Auto-Detect IP</span>
@@ -400,7 +400,7 @@ export function OnboardingModal({ isOpen, onClose, onCompleted }: OnboardingModa
                   placeholder="e.g. 198.51.100.1"
                   className="w-full px-3.5 py-2.5 text-xs font-mono bg-kumo-control border border-kumo-line rounded-xl text-kumo-strong placeholder:text-kumo-subtle focus:outline-hidden focus:border-cf-orange focus:ring-1 focus:ring-cf-orange transition-all"
                 />
-                <p className="text-[11px] text-kumo-subtle">
+                <p className="text-xs text-kumo-subtle">
                   The public IPv4 address of your VPS server hosting EmitMail. Used for SPF authorization and PTR reverse DNS.
                 </p>
               </div>
@@ -412,7 +412,7 @@ export function OnboardingModal({ isOpen, onClose, onCompleted }: OnboardingModa
                     <Sparkle size={14} className="text-cf-orange" weight="fill" />
                     <span>Automated Cluster Configuration</span>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
                     <div className="p-2 rounded-lg bg-kumo-base border border-kumo-hairline">
                       <span className="text-kumo-subtle block">Mail Server Hostname</span>
                       <span className="font-mono font-bold text-kumo-strong truncate block mt-0.5">
@@ -449,7 +449,7 @@ export function OnboardingModal({ isOpen, onClose, onCompleted }: OnboardingModa
                 {showAdvanced && (
                   <div className="mt-2.5 p-3.5 rounded-xl bg-kumo-recessed/50 border border-kumo-hairline space-y-3 animate-in fade-in">
                     <div className="space-y-1">
-                      <label className="text-[11px] font-semibold text-kumo-strong">
+                      <label className="text-xs font-semibold text-kumo-strong">
                         Custom SMTP EHLO Hostname
                       </label>
                       <input
@@ -461,7 +461,7 @@ export function OnboardingModal({ isOpen, onClose, onCompleted }: OnboardingModa
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[11px] font-semibold text-kumo-strong">
+                      <label className="text-xs font-semibold text-kumo-strong">
                         Custom SPF Include Domain
                       </label>
                       <input
@@ -488,7 +488,7 @@ export function OnboardingModal({ isOpen, onClose, onCompleted }: OnboardingModa
                 <button
                   type="submit"
                   disabled={isSubmitting || !domainName || !vpsIp}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 text-xs font-bold bg-cf-orange hover:bg-cf-orange-hover text-white rounded-xl transition-all shadow-sm cursor-pointer disabled:opacity-50 active:scale-95"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 text-xs font-bold bg-cf-orange hover:bg-cf-orange-hover text-white rounded-xl transition-all shadow-sm cursor-pointer disabled:opacity-50 active-press"
                 >
                   {isSubmitting ? (
                     <>
@@ -541,15 +541,15 @@ export function OnboardingModal({ isOpen, onClose, onCompleted }: OnboardingModa
                     <div key={`dkim-${i}`} className="p-3 rounded-xl bg-kumo-control border border-kumo-line space-y-1.5">
                       <div className="flex items-center justify-between flex-wrap gap-1">
                         <div className="flex items-center gap-2">
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-cf-orange-tint text-cf-orange border border-cf-orange-border">
+                          <span className="px-1.5 py-0.5 rounded text-xs font-mono font-bold bg-cf-orange-tint text-cf-orange border border-cf-orange-border">
                             TXT
                           </span>
                           <span className="text-xs font-mono font-bold text-kumo-strong">{r.host}</span>
                         </div>
-                        <span className="text-[10px] font-semibold text-kumo-subtle">2048-Bit RSA Signature</span>
+                        <span className="text-xs font-semibold text-kumo-subtle">2048-Bit RSA Signature</span>
                       </div>
                       <div className="flex items-center justify-between gap-2 bg-kumo-base p-2 rounded-lg border border-kumo-hairline">
-                        <code className="text-[11px] font-mono text-kumo-default truncate select-all">{r.value}</code>
+                        <code className="text-xs font-mono text-kumo-default truncate select-all">{r.value}</code>
                         <button
                           type="button"
                           onClick={() => handleCopy(r.value, `dkim-${i}`)}
@@ -569,15 +569,15 @@ export function OnboardingModal({ isOpen, onClose, onCompleted }: OnboardingModa
                     <div key={`spf-${i}`} className="p-3 rounded-xl bg-kumo-control border border-kumo-line space-y-1.5">
                       <div className="flex items-center justify-between flex-wrap gap-1">
                         <div className="flex items-center gap-2">
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-cf-chart-blue/15 text-cf-chart-blue border border-cf-chart-blue/25">
+                          <span className="px-1.5 py-0.5 rounded text-xs font-mono font-bold bg-cf-chart-blue/15 text-cf-chart-blue border border-cf-chart-blue/25">
                             TXT
                           </span>
                           <span className="text-xs font-mono font-bold text-kumo-strong">{r.host}</span>
                         </div>
-                        <span className="text-[10px] font-semibold text-kumo-subtle">Return-Path SPF Alignment</span>
+                        <span className="text-xs font-semibold text-kumo-subtle">Return-Path SPF Alignment</span>
                       </div>
                       <div className="flex items-center justify-between gap-2 bg-kumo-base p-2 rounded-lg border border-kumo-hairline">
-                        <code className="text-[11px] font-mono text-kumo-default truncate select-all">{r.value}</code>
+                        <code className="text-xs font-mono text-kumo-default truncate select-all">{r.value}</code>
                         <button
                           type="button"
                           onClick={() => handleCopy(r.value, `spf-${i}`)}
@@ -594,15 +594,15 @@ export function OnboardingModal({ isOpen, onClose, onCompleted }: OnboardingModa
                 <div className="p-3 rounded-xl bg-kumo-control border border-kumo-line space-y-1.5">
                   <div className="flex items-center justify-between flex-wrap gap-1">
                     <div className="flex items-center gap-2">
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-cf-chart-blue/15 text-cf-chart-blue border border-cf-chart-blue/25">
+                      <span className="px-1.5 py-0.5 rounded text-xs font-mono font-bold bg-cf-chart-blue/15 text-cf-chart-blue border border-cf-chart-blue/25">
                         TXT
                       </span>
                       <span className="text-xs font-mono font-bold text-kumo-strong">{spfDomain || `_spf.${createdDomain.domainName}`}</span>
                     </div>
-                    <span className="text-[10px] font-semibold text-kumo-subtle">Server IP Authorization</span>
+                    <span className="text-xs font-semibold text-kumo-subtle">Server IP Authorization</span>
                   </div>
                   <div className="flex items-center justify-between gap-2 bg-kumo-base p-2 rounded-lg border border-kumo-hairline">
-                    <code className="text-[11px] font-mono text-kumo-default truncate select-all">v=spf1 ip4:{vpsIp} -all</code>
+                    <code className="text-xs font-mono text-kumo-default truncate select-all">v=spf1 ip4:{vpsIp} -all</code>
                     <button
                       type="button"
                       onClick={() => handleCopy(`v=spf1 ip4:${vpsIp} -all`, "master-spf")}
@@ -621,15 +621,15 @@ export function OnboardingModal({ isOpen, onClose, onCompleted }: OnboardingModa
                     <div key={`dmarc-${i}`} className="p-3 rounded-xl bg-kumo-control border border-kumo-line space-y-1.5">
                       <div className="flex items-center justify-between flex-wrap gap-1">
                         <div className="flex items-center gap-2">
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-cf-chart-purple/15 text-cf-chart-purple border border-cf-chart-purple/25">
+                          <span className="px-1.5 py-0.5 rounded text-xs font-mono font-bold bg-cf-chart-purple/15 text-cf-chart-purple border border-cf-chart-purple/25">
                             TXT
                           </span>
                           <span className="text-xs font-mono font-bold text-kumo-strong">{r.host}</span>
                         </div>
-                        <span className="text-[10px] font-semibold text-kumo-subtle">Strict Spoofing Defense</span>
+                        <span className="text-xs font-semibold text-kumo-subtle">Strict Spoofing Defense</span>
                       </div>
                       <div className="flex items-center justify-between gap-2 bg-kumo-base p-2 rounded-lg border border-kumo-hairline">
-                        <code className="text-[11px] font-mono text-kumo-default truncate select-all">{r.value}</code>
+                        <code className="text-xs font-mono text-kumo-default truncate select-all">{r.value}</code>
                         <button
                           type="button"
                           onClick={() => handleCopy(r.value, `dmarc-${i}`)}
@@ -646,15 +646,15 @@ export function OnboardingModal({ isOpen, onClose, onCompleted }: OnboardingModa
                 <div className="p-3 rounded-xl bg-kumo-control border border-kumo-line space-y-1.5">
                   <div className="flex items-center justify-between flex-wrap gap-1">
                     <div className="flex items-center gap-2">
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-cf-chart-green/15 text-cf-chart-green border border-cf-chart-green/25">
+                      <span className="px-1.5 py-0.5 rounded text-xs font-mono font-bold bg-cf-chart-green/15 text-cf-chart-green border border-cf-chart-green/25">
                         A Record
                       </span>
                       <span className="text-xs font-mono font-bold text-kumo-strong">{mailHostname || `mail.${createdDomain.domainName}`}</span>
                     </div>
-                    <span className="text-[10px] font-semibold text-kumo-subtle">Points to VPS IPv4</span>
+                    <span className="text-xs font-semibold text-kumo-subtle">Points to VPS IPv4</span>
                   </div>
                   <div className="flex items-center justify-between gap-2 bg-kumo-base p-2 rounded-lg border border-kumo-hairline">
-                    <code className="text-[11px] font-mono text-kumo-default truncate select-all">{vpsIp}</code>
+                    <code className="text-xs font-mono text-kumo-default truncate select-all">{vpsIp}</code>
                     <button
                       type="button"
                       onClick={() => handleCopy(vpsIp, "a-record")}
@@ -670,16 +670,16 @@ export function OnboardingModal({ isOpen, onClose, onCompleted }: OnboardingModa
                 <div className="p-3 rounded-xl bg-kumo-control border border-kumo-line space-y-1.5">
                   <div className="flex items-center justify-between flex-wrap gap-1">
                     <div className="flex items-center gap-2">
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-cf-orange-tint text-cf-orange border border-cf-orange-border inline-flex items-center gap-1">
+                      <span className="px-1.5 py-0.5 rounded text-xs font-mono font-bold bg-cf-orange-tint text-cf-orange border border-cf-orange-border inline-flex items-center gap-1">
                         <span>MX</span>
                         <span className="bg-cf-orange/20 text-cf-orange px-1 rounded font-bold">(Priority 10)</span>
                       </span>
                       <span className="text-xs font-mono font-bold text-kumo-strong">@</span>
                     </div>
-                    <span className="text-[10px] font-semibold text-kumo-subtle">Inbound Mailboxes</span>
+                    <span className="text-xs font-semibold text-kumo-subtle">Inbound Mailboxes</span>
                   </div>
                   <div className="flex items-center justify-between gap-2 bg-kumo-base p-2 rounded-lg border border-kumo-hairline">
-                    <code className="text-[11px] font-mono text-kumo-default truncate select-all">{mailHostname || `mail.${createdDomain.domainName}`}</code>
+                    <code className="text-xs font-mono text-kumo-default truncate select-all">{mailHostname || `mail.${createdDomain.domainName}`}</code>
                     <button
                       type="button"
                       onClick={() => handleCopy(mailHostname || `mail.${createdDomain.domainName}`, "mx-record")}
@@ -694,7 +694,7 @@ export function OnboardingModal({ isOpen, onClose, onCompleted }: OnboardingModa
                 {/* 7. Reverse DNS (PTR) Callout */}
                 <div className="p-3 rounded-xl bg-kumo-recessed border border-kumo-hairline flex items-start gap-2.5">
                   <Info size={16} className="text-cf-orange shrink-0 mt-0.5" />
-                  <div className="space-y-0.5 text-[11px] text-kumo-subtle">
+                  <div className="space-y-0.5 text-xs text-kumo-subtle">
                     <span className="font-semibold text-kumo-strong block">Reverse DNS (PTR) Step</span>
                     <span>
                       In your VPS host control panel (DigitalOcean, Hetzner, AWS, Linode), set the PTR of{" "}
@@ -738,7 +738,7 @@ export function OnboardingModal({ isOpen, onClose, onCompleted }: OnboardingModa
                       onClick={handleFinish}
                       disabled={!isDomainConfirmed}
                       title={isDomainConfirmed ? "Proceed to Dashboard" : undefined}
-                      className={`inline-flex items-center gap-1.5 px-5 py-2 text-xs font-bold bg-cf-orange hover:bg-cf-orange-hover text-white rounded-xl transition-all shadow-sm active:scale-95 ${
+                      className={`inline-flex items-center gap-1.5 px-5 py-2 text-xs font-bold bg-cf-orange hover:bg-cf-orange-hover text-white rounded-xl transition-all shadow-sm active-press ${
                         !isDomainConfirmed
                           ? "opacity-40 pointer-events-none"
                           : "cursor-pointer"

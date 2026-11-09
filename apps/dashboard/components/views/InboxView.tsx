@@ -138,10 +138,10 @@ export function InboxView() {
       {/* 1. Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
         <div>
-          <h1 className="text-[20px] sm:text-[22px] font-semibold tracking-tight text-kumo-strong leading-tight">
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-kumo-strong leading-tight">
             Inbox
           </h1>
-          <p className="text-[13px] text-kumo-subtle mt-0.5 font-normal leading-relaxed">
+          <p className="text-sm text-kumo-subtle mt-0.5 font-normal leading-relaxed">
             Manage custom inbound mailboxes, aliases, and incoming email routing.
           </p>
         </div>
@@ -190,7 +190,7 @@ export function InboxView() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by mailbox alias or address..."
-            className="w-full h-9 pl-8 pr-7 text-[13px] bg-kumo-control hover:bg-kumo-elevated/50 border border-kumo-line rounded-lg text-kumo-strong placeholder:text-kumo-muted focus:outline-none focus:border-cf-blue/80 focus:ring-1 focus:ring-cf-blue/30 transition-colors shadow-2xs"
+            className="w-full h-9 pl-8 pr-7 text-sm bg-kumo-control hover:bg-kumo-elevated/50 border border-kumo-line rounded-lg text-kumo-strong placeholder:text-kumo-muted focus:outline-none focus:border-cf-blue/80 focus:ring-1 focus:ring-cf-blue/30 transition-colors shadow-2xs"
           />
           {searchQuery && (
             <button
@@ -205,7 +205,7 @@ export function InboxView() {
           )}
         </div>
 
-        <div className="text-[12px] sm:text-[13px] text-kumo-subtle self-end sm:self-auto select-none">
+        <div className="text-xs sm:text-sm text-kumo-subtle self-end sm:self-auto select-none">
           <span className="font-mono font-medium text-kumo-strong">{filteredMailboxes.length}</span>{" "}
           {filteredMailboxes.length === 1 ? "mailbox" : "mailboxes"} registered
           {domains.length > 0 && (
@@ -224,10 +224,10 @@ export function InboxView() {
             <div className="w-9 h-9 rounded-xl bg-cf-blue/10 border border-cf-blue/20 flex items-center justify-center text-cf-blue mb-2.5 shadow-2xs">
               <Tray size={18} weight="bold" />
             </div>
-            <h3 className="text-[14px] font-medium text-kumo-strong">
+            <h3 className="text-sm font-medium text-kumo-strong">
               {searchQuery ? "No matching mailboxes found" : "No mailboxes created yet"}
             </h3>
-            <p className="text-[12px] sm:text-[13px] text-kumo-subtle mt-1 mb-4 leading-relaxed font-normal">
+            <p className="text-xs sm:text-sm text-kumo-subtle mt-1 mb-4 leading-relaxed font-normal">
               {searchQuery
                 ? `No mailboxes matched "${searchQuery}".`
                 : `Create custom mailbox aliases (e.g. support@${domains[0]?.domainName || "yourdomain.com"}) to receive emails directly into EmitMail.`}
@@ -244,7 +244,7 @@ export function InboxView() {
               !isViewer && (
                 <Link
                   href="/inbox/add"
-                  className="btn-cf-primary flex items-center gap-1.5 text-[13px] shadow-2xs"
+                  className="btn-cf-primary flex items-center gap-1.5 text-sm shadow-2xs"
                 >
                   <Plus size={14} weight="bold" />
                   <span>Create your first mailbox</span>
@@ -256,7 +256,7 @@ export function InboxView() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-kumo-hairline bg-kumo-recessed/40 text-kumo-subtle font-medium text-[13px]">
+                <tr className="border-b border-kumo-hairline bg-kumo-recessed/40 text-kumo-subtle font-medium text-sm">
                   <th className="py-2.5 px-4 font-medium">Mailbox Address</th>
                   <th className="py-2.5 px-4 font-medium hidden sm:table-cell">Domain</th>
                   <th className="py-2.5 px-4 font-medium">Unread Emails</th>
@@ -265,7 +265,7 @@ export function InboxView() {
                   {!isViewer && <th className="py-2.5 px-4 font-medium text-right">Actions</th>}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-kumo-hairline text-[13px]">
+              <tbody className="divide-y divide-kumo-hairline text-sm">
                 {filteredMailboxes.map((mb) => {
                   const domainName = mb.domain?.domainName || mb.emailAddress.split("@")[1] || "domain";
 
@@ -276,17 +276,17 @@ export function InboxView() {
                       className="hover:bg-kumo-elevated/40 transition-colors cursor-pointer group"
                     >
                       {/* Mailbox Address & Display Name */}
-                      <td className="py-3 px-4 max-w-[260px] lg:max-w-[320px] align-middle">
+                      <td className="py-3 px-4 max-w-65 lg:max-w-xs align-middle">
                         <div className="flex items-center gap-2.5 min-w-0">
                           <div className="w-7 h-7 rounded-lg bg-cf-blue/10 border border-cf-blue/20 flex items-center justify-center text-cf-blue shrink-0 shadow-2xs group-hover:bg-cf-blue group-hover:text-white transition-colors duration-150">
                             <Tray size={14} weight="bold" />
                           </div>
                           <div className="min-w-0">
-                            <span className="font-mono text-[13px] font-medium block text-kumo-strong group-hover:text-cf-blue transition-colors truncate">
+                            <span className="font-mono text-sm font-medium block text-kumo-strong group-hover:text-cf-blue transition-colors truncate">
                               {mb.emailAddress}
                             </span>
                             {mb.displayName && (
-                              <span className="text-[12px] text-kumo-subtle font-sans block truncate font-normal mt-0.5">
+                              <span className="text-xs text-kumo-subtle font-sans block truncate font-normal mt-0.5">
                                 {mb.displayName}
                               </span>
                             )}
@@ -295,8 +295,8 @@ export function InboxView() {
                       </td>
 
                       {/* Domain */}
-                      <td className="py-3 px-4 text-kumo-subtle hidden sm:table-cell font-mono text-[12px] align-middle">
-                        <div className="flex items-center gap-1.5 truncate max-w-[180px]">
+                      <td className="py-3 px-4 text-kumo-subtle hidden sm:table-cell font-mono text-xs align-middle">
+                        <div className="flex items-center gap-1.5 truncate max-w-45">
                           <Globe size={13} className="text-kumo-muted shrink-0" />
                           <span className="truncate">{domainName}</span>
                         </div>
@@ -305,30 +305,30 @@ export function InboxView() {
                       {/* Unread Count Badge */}
                       <td className="py-3 px-4 align-middle whitespace-nowrap">
                         {mb.unreadCount > 0 ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#0066FF] text-white shadow-2xs">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-cf-blue text-white shadow-2xs">
                             {mb.unreadCount} unread
                           </span>
                         ) : (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-kumo-control border border-kumo-line text-kumo-subtle">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-kumo-control border border-kumo-line text-kumo-subtle">
                             0 unread
                           </span>
                         )}
                       </td>
 
                       {/* Total Messages */}
-                      <td className="py-3 px-4 text-kumo-default hidden md:table-cell font-mono text-[12px] align-middle">
+                      <td className="py-3 px-4 text-kumo-default hidden md:table-cell font-mono text-xs align-middle">
                         {mb.totalMessages ?? 0}
                       </td>
 
                       {/* Status */}
                       <td className="py-3 px-4 hidden sm:table-cell align-middle whitespace-nowrap">
                         {mb.isActive ? (
-                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                             <span>Active</span>
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-zinc-500/10 border border-zinc-500/20 text-zinc-400">
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-zinc-500/10 border border-zinc-500/20 text-zinc-400">
                             <span className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
                             <span>Disabled</span>
                           </span>

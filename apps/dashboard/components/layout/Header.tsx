@@ -109,7 +109,7 @@ export function Header({
             />
             <span className="truncate">Search domains, mailboxes, keys...</span>
           </div>
-          <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-mono text-kumo-muted bg-kumo-recessed border border-kumo-hairline rounded">
+          <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-2xs font-mono text-kumo-muted bg-kumo-recessed border border-kumo-hairline rounded">
             Ctrl K
           </kbd>
         </button>
@@ -125,7 +125,7 @@ export function Header({
             title={`EmitMail v${versionData.latestVersion} is available`}
           >
             <Sparkle size={13} weight="fill" className="animate-pulse" />
-            <span className="font-mono text-[11px] font-bold">Update v{versionData.latestVersion}</span>
+            <span className="font-mono text-xs font-bold">Update v{versionData.latestVersion}</span>
           </button>
         )}
 
@@ -180,11 +180,11 @@ export function Header({
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-1.5">
-                    <span className="font-semibold text-kumo-strong truncate max-w-[95px]">
+                    <span className="font-semibold text-kumo-strong truncate max-w-24">
                       {currentUser?.fullName || currentUser?.username || "admin"}
                     </span>
                     <span
-                      className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded tracking-wide uppercase ${
+                      className={`text-2xs font-mono font-bold px-1.5 py-0.5 rounded tracking-wide uppercase ${
                         currentUser?.role === "ADMIN"
                           ? "bg-cf-orange/10 text-cf-orange border border-cf-orange/20"
                           : currentUser?.role === "MEMBER"
@@ -195,7 +195,7 @@ export function Header({
                       {currentUser?.role === "VIEWER" ? "VIEW ONLY" : (currentUser?.role || "ADMIN")}
                     </span>
                   </div>
-                  <div className="text-[10px] text-kumo-muted font-mono truncate mt-0.5">
+                  <div className="text-2xs text-kumo-muted font-mono truncate mt-0.5">
                     {currentUser?.email || `@${currentUser?.username || "admin"}`}
                   </div>
                 </div>

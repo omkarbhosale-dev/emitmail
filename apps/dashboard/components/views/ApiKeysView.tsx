@@ -181,10 +181,10 @@ export function ApiKeysView() {
       {/* 1. Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-[22px] sm:text-[24px] font-semibold tracking-tight text-kumo-strong leading-tight">
+          <h1 className="text-2xl font-semibold tracking-tight text-kumo-strong leading-tight">
             API Keys
           </h1>
-          <p className="text-[13px] sm:text-[14px] text-kumo-subtle mt-0.5 sm:mt-1 font-normal leading-relaxed">
+          <p className="text-sm text-kumo-subtle mt-0.5 sm:mt-1 font-normal leading-relaxed">
             Manage cryptographic authentication tokens for programmatic email dispatch and SDK integrations.
           </p>
         </div>
@@ -195,7 +195,7 @@ export function ApiKeysView() {
             type="button"
             onClick={handleRefresh}
             disabled={isRefreshing || isLoading}
-            className="btn-cf-secondary h-8 px-3 text-[13px] font-medium flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            className="btn-cf-secondary h-8 px-3 text-sm font-medium flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             title="Refresh API keys"
           >
             <ArrowsClockwise
@@ -209,7 +209,7 @@ export function ApiKeysView() {
           {!isViewer && (
             <Link
               href="/api-keys/add"
-              className="btn-cf-primary h-8 px-3.5 flex items-center gap-1.5 text-[13px] font-medium cursor-pointer"
+              className="btn-cf-primary h-8 px-3.5 flex items-center gap-1.5 text-sm font-medium cursor-pointer"
             >
               <Plus size={15} weight="bold" />
               <span>Create API key</span>
@@ -227,13 +227,13 @@ export function ApiKeysView() {
         <div className="p-2 rounded-lg bg-cf-blue/10 text-cf-blue shrink-0 mt-0.5">
           <ShieldCheck size={20} weight="fill" />
         </div>
-        <div className="text-[13px] sm:text-[14px] leading-relaxed">
-          <span className="text-[14px] sm:text-[15px] font-medium text-kumo-strong block mb-0.5">
+        <div className="text-sm leading-relaxed">
+          <span className="text-base font-medium text-kumo-strong block mb-0.5">
             End-to-End Cryptographic Authentication
           </span>
           <span className="text-kumo-subtle">
             EmitMail API keys authenticate requests via the{" "}
-            <code className="font-mono text-[12px] sm:text-[13px] font-medium text-cf-blue bg-cf-blue/10 px-1.5 py-0.5 rounded border border-cf-blue/20 break-all sm:break-normal inline-block align-middle">
+            <code className="font-mono text-xs sm:text-sm font-medium text-cf-blue bg-cf-blue/10 px-1.5 py-0.5 rounded border border-cf-blue/20 break-all sm:break-normal inline-block align-middle">
               Authorization: Bearer em_live_...
             </code>{" "}
             header and Resend-compatible SDK endpoints. Restrict keys by domain to enforce tenancy boundaries.
@@ -251,16 +251,16 @@ export function ApiKeysView() {
             <div className="w-12 h-12 rounded-2xl bg-kumo-control border border-kumo-line flex items-center justify-center text-kumo-muted mb-3.5">
               <Key size={24} weight="duotone" className="text-kumo-strong/80" />
             </div>
-            <h3 className="text-[15px] sm:text-[16px] font-semibold text-kumo-strong mb-1.5">
+            <h3 className="text-base font-semibold text-kumo-strong mb-1.5">
               No API keys created yet
             </h3>
-            <p className="text-[13px] sm:text-[14px] text-kumo-subtle mb-5 leading-relaxed max-w-sm">
+            <p className="text-sm text-kumo-subtle mb-5 leading-relaxed max-w-sm">
               Create an API key to dispatch transactional emails using our REST endpoints or official Resend SDKs.
             </p>
             {!isViewer && (
               <Link
                 href="/api-keys/add"
-                className="btn-cf-primary h-8 px-3.5 flex items-center gap-1.5 text-[13px] font-medium"
+                className="btn-cf-primary h-8 px-3.5 flex items-center gap-1.5 text-sm font-medium"
               >
                 <Plus size={15} weight="bold" />
                 <span>Create your first API key</span>
@@ -271,7 +271,7 @@ export function ApiKeysView() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-kumo-hairline bg-kumo-recessed/50 text-kumo-subtle text-[13px] font-medium">
+                <tr className="border-b border-kumo-hairline bg-kumo-recessed/50 text-kumo-subtle text-sm font-medium">
                   <th className="py-3 px-4 font-medium">Key Name</th>
                   <th className="py-3 px-4 font-medium">Token Prefix</th>
                   <th className="py-3 px-4 font-medium hidden sm:table-cell">Domain</th>
@@ -297,38 +297,38 @@ export function ApiKeysView() {
                           <div className="w-7 h-7 rounded-lg bg-cf-blue/10 border border-cf-blue/20 flex items-center justify-center text-cf-blue shrink-0">
                             <Key size={14} weight="bold" />
                           </div>
-                          <span className="truncate max-w-[200px] text-[13px] sm:text-[14px] font-medium text-kumo-strong">{k.name}</span>
+                          <span className="truncate max-w-50 text-sm font-medium text-kumo-strong">{k.name}</span>
                         </div>
                       </td>
 
                       {/* Token Prefix with masked value (no copy button) */}
                       <td className="py-3.5 px-4">
-                        <span className="inline-block px-2.5 py-1 rounded bg-kumo-recessed border border-kumo-hairline font-mono text-[12px] sm:text-[13px] text-kumo-strong select-all">
+                        <span className="inline-block px-2.5 py-1 rounded bg-kumo-recessed border border-kumo-hairline font-mono text-xs sm:text-sm text-kumo-strong select-all">
                           {maskedToken}
                         </span>
                       </td>
 
                       {/* Domain */}
                       <td className="py-3.5 px-4 text-kumo-subtle hidden sm:table-cell">
-                        <div className="flex items-center gap-1.5 font-mono text-[12px] sm:text-[13px]">
+                        <div className="flex items-center gap-1.5 font-mono text-xs sm:text-sm">
                           <Globe size={14} className="text-kumo-muted shrink-0" />
                           <span>{domainLabel}</span>
                         </div>
                       </td>
 
                       {/* Last Used */}
-                      <td className="py-3.5 px-4 text-kumo-subtle hidden md:table-cell font-mono text-[12px] sm:text-[13px]">
+                      <td className="py-3.5 px-4 text-kumo-subtle hidden md:table-cell font-mono text-xs sm:text-sm">
                         {formatLastUsed(k.lastUsedAt)}
                       </td>
 
                       {/* Created */}
-                      <td className="py-3.5 px-4 text-kumo-subtle hidden lg:table-cell font-mono text-[12px] sm:text-[13px]">
+                      <td className="py-3.5 px-4 text-kumo-subtle hidden lg:table-cell font-mono text-xs sm:text-sm">
                         {formatCreatedAt(k.createdAt)}
                       </td>
 
                       {/* Status Badge */}
                       <td className="py-3.5 px-4">
-                        <StatusBadge variant={k.isActive ? "success" : "neutral"} className="text-[11px] sm:text-[12px]">
+                        <StatusBadge variant={k.isActive ? "success" : "neutral"} className="text-xs">
                           {k.isActive ? "Active" : "Paused"}
                         </StatusBadge>
                       </td>

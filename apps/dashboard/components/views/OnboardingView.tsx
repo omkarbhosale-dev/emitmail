@@ -323,7 +323,7 @@ export function OnboardingView() {
         <div className="flex items-center gap-2 sm:gap-3">
           <Link
             href="/settings"
-            className="btn-cf-secondary h-8 px-3 text-[13px] font-medium inline-flex items-center gap-1.5 cursor-pointer"
+            className="btn-cf-secondary h-8 px-3 text-sm font-medium inline-flex items-center gap-1.5 cursor-pointer"
             title="Go to Settings"
           >
             <Gear size={14} />
@@ -333,7 +333,7 @@ export function OnboardingView() {
           <button
             type="button"
             onClick={handleSignOut}
-            className="h-8 px-3 text-[13px] font-medium text-kumo-subtle hover:text-kumo-danger hover:bg-kumo-danger-tint rounded-lg border border-transparent hover:border-kumo-danger/25 transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+            className="h-8 px-3 text-sm font-medium text-kumo-subtle hover:text-kumo-danger hover:bg-kumo-danger-tint rounded-lg border border-transparent hover:border-kumo-danger/25 transition-colors inline-flex items-center gap-1.5 cursor-pointer"
             title="Sign Out"
           >
             <SignOut size={14} />
@@ -344,7 +344,7 @@ export function OnboardingView() {
 
       {/* Main Centered Setup Card Container */}
       <main className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8 my-auto">
-        <div className={`w-full ${step === 2 ? "max-w-4xl" : "max-w-[680px]"} bg-kumo-base border border-kumo-line rounded-2xl shadow-xl overflow-hidden animate-in fade-in duration-200 transition-all`}>
+        <div className={`w-full ${step === 2 ? "max-w-4xl" : "max-w-2xl"} bg-kumo-base border border-kumo-line rounded-2xl shadow-xl overflow-hidden animate-in fade-in duration-200 transition-all`}>
           {/* Horizontal Stepper Progress Indicator */}
           <div className="border-b border-kumo-hairline bg-kumo-recessed/30 px-5 sm:px-6 py-3">
             <div className="flex items-center justify-between gap-3 sm:gap-4">
@@ -360,7 +360,7 @@ export function OnboardingView() {
                 }`}
               >
                 <span
-                  className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 transition-colors ${
+                  className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-colors ${
                     step === 1
                       ? "bg-cf-orange text-white shadow-2xs"
                       : createdDomain
@@ -370,7 +370,7 @@ export function OnboardingView() {
                 >
                   {createdDomain && step !== 1 ? <Check size={12} weight="bold" /> : "1"}
                 </span>
-                <span className="text-[13px] sm:text-[14px]">Connect Primary Sending Domain</span>
+                <span className="text-sm">Connect Primary Sending Domain</span>
               </div>
 
               {/* Connector Divider Line */}
@@ -388,7 +388,7 @@ export function OnboardingView() {
                 }`}
               >
                 <span
-                  className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 transition-colors ${
+                  className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-colors ${
                     step === 2
                       ? "bg-cf-orange text-white shadow-2xs"
                       : createdDomain && createdDomain.status === "VERIFIED"
@@ -402,7 +402,7 @@ export function OnboardingView() {
                     "2"
                   )}
                 </span>
-                <span className="text-[13px] sm:text-[14px]">Configure DNS Records</span>
+                <span className="text-sm">Configure DNS Records</span>
               </div>
             </div>
           </div>
@@ -418,18 +418,18 @@ export function OnboardingView() {
                     <div className="w-7 h-7 rounded-lg bg-kumo-control border border-kumo-line/80 flex items-center justify-center text-kumo-muted shrink-0">
                       <Globe size={16} weight="bold" />
                     </div>
-                    <h1 className="text-[20px] sm:text-[22px] font-semibold text-kumo-strong tracking-tight leading-tight">
+                    <h1 className="text-xl sm:text-2xl font-semibold text-kumo-strong tracking-tight leading-tight">
                       Connect Primary Sending Domain
                     </h1>
                   </div>
-                  <p className="text-[13px] sm:text-[14px] text-kumo-subtle leading-relaxed">
+                  <p className="text-sm text-kumo-subtle leading-relaxed">
                     Enter your root domain and VPS outbound IPv4 address to auto-generate 2048-bit RSA signing keys and SPF/DMARC records.
                   </p>
                 </div>
 
                 {/* Primary Domain Name Input */}
                 <div>
-                  <label className="block text-[13px] sm:text-[14px] font-medium text-kumo-strong mb-1.5">
+                  <label className="block text-sm font-medium text-kumo-strong mb-1.5">
                     Primary Sending Domain <span className="text-cf-orange">*</span>
                   </label>
                   <div className="relative">
@@ -443,10 +443,10 @@ export function OnboardingView() {
                       placeholder="e.g. yourcompany.com"
                       value={domainName}
                       onChange={(e) => handleDomainChange(e.target.value)}
-                      className="w-full h-11 pl-10 pr-4 bg-kumo-control hover:bg-kumo-elevated/50 border border-kumo-line focus:border-cf-orange rounded-xl text-[14px] sm:text-[15px] font-mono text-kumo-strong placeholder:text-kumo-muted focus:outline-none transition-colors"
+                      className="w-full h-11 pl-10 pr-4 bg-kumo-control hover:bg-kumo-elevated/50 border border-kumo-line focus:border-cf-orange rounded-xl text-sm sm:text-base font-mono text-kumo-strong placeholder:text-kumo-muted focus:outline-none transition-colors"
                     />
                   </div>
-                  <p className="text-[12px] text-kumo-subtle mt-1.5 leading-normal">
+                  <p className="text-xs text-kumo-subtle mt-1.5 leading-normal">
                     Enter the apex or subdomain you will send emails from.
                   </p>
                 </div>
@@ -454,14 +454,14 @@ export function OnboardingView() {
                 {/* VPS Public IPv4 Input */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-[13px] sm:text-[14px] font-medium text-kumo-strong">
+                    <label className="block text-sm font-medium text-kumo-strong">
                       VPS Public IPv4 Address <span className="text-cf-orange">*</span>
                     </label>
                     <button
                       type="button"
                       onClick={handleDetectIp}
                       disabled={isDetectingIp}
-                      className="inline-flex items-center gap-1.5 text-[12px] text-cf-blue hover:text-cf-blue/80 hover:underline cursor-pointer disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 text-xs text-cf-blue hover:text-cf-blue/80 hover:underline cursor-pointer disabled:opacity-50"
                     >
                       <ArrowsClockwise size={12} className={isDetectingIp ? "animate-spin" : ""} />
                       <span>{isDetectingIp ? "Detecting..." : "Auto-detect VPS IP"}</span>
@@ -478,10 +478,10 @@ export function OnboardingView() {
                       placeholder="e.g. 198.51.100.1"
                       value={vpsIp}
                       onChange={(e) => setVpsIp(e.target.value.trim())}
-                      className="w-full h-11 pl-10 pr-4 bg-kumo-control hover:bg-kumo-elevated/50 border border-kumo-line focus:border-cf-orange rounded-xl text-[14px] sm:text-[15px] font-mono text-kumo-strong placeholder:text-kumo-muted focus:outline-none transition-colors"
+                      className="w-full h-11 pl-10 pr-4 bg-kumo-control hover:bg-kumo-elevated/50 border border-kumo-line focus:border-cf-orange rounded-xl text-sm sm:text-base font-mono text-kumo-strong placeholder:text-kumo-muted focus:outline-none transition-colors"
                     />
                   </div>
-                  <p className="text-[12px] text-kumo-subtle mt-1.5 leading-normal">
+                  <p className="text-xs text-kumo-subtle mt-1.5 leading-normal">
                     Your server&apos;s public static IPv4 address. Used for SPF authorization and MTA identification.
                   </p>
                 </div>
@@ -490,35 +490,35 @@ export function OnboardingView() {
                 {domainName && (
                   <div className="p-3 sm:p-3.5 rounded-xl bg-kumo-recessed/40 border border-kumo-line/50 space-y-2 animate-in fade-in duration-150">
                     <div className="flex items-center justify-between">
-                      <span className="text-[12px] font-medium text-kumo-subtle uppercase tracking-wider block">
+                      <span className="text-xs font-medium text-kumo-subtle uppercase tracking-wider block">
                         Auto-Configured Cluster Records Preview
                       </span>
-                      <span className="text-[11px] font-mono text-kumo-muted">
+                      <span className="text-xs font-mono text-kumo-muted">
                         Dynamic DNS
                       </span>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                       <div className="p-2.5 rounded-lg bg-kumo-base border border-kumo-hairline space-y-0.5">
-                        <span className="text-[11px] font-medium text-kumo-subtle block">
+                        <span className="text-xs font-medium text-kumo-subtle block">
                           Mail Server EHLO
                         </span>
-                        <span className="font-mono text-[13px] sm:text-[14px] font-semibold text-cf-orange truncate block" title={mailHostname || `mail.${domainName}`}>
+                        <span className="font-mono text-sm font-semibold text-cf-orange truncate block" title={mailHostname || `mail.${domainName}`}>
                           {mailHostname || `mail.${domainName}`}
                         </span>
                       </div>
                       <div className="p-2.5 rounded-lg bg-kumo-base border border-kumo-hairline space-y-0.5">
-                        <span className="text-[11px] font-medium text-kumo-subtle block">
+                        <span className="text-xs font-medium text-kumo-subtle block">
                           Return-Path Subdomain
                         </span>
-                        <span className="font-mono text-[13px] sm:text-[14px] font-semibold text-cf-blue truncate block" title={`send.${domainName}`}>
+                        <span className="font-mono text-sm font-semibold text-cf-blue truncate block" title={`send.${domainName}`}>
                           send.{domainName}
                         </span>
                       </div>
                       <div className="p-2.5 rounded-lg bg-kumo-base border border-kumo-hairline space-y-0.5">
-                        <span className="text-[11px] font-medium text-kumo-subtle block">
+                        <span className="text-xs font-medium text-kumo-subtle block">
                           Master SPF Host
                         </span>
-                        <span className="font-mono text-[13px] sm:text-[14px] font-semibold text-kumo-strong truncate block" title={spfDomain || `_spf.${domainName}`}>
+                        <span className="font-mono text-sm font-semibold text-kumo-strong truncate block" title={spfDomain || `_spf.${domainName}`}>
                           {spfDomain || `_spf.${domainName}`}
                         </span>
                       </div>
@@ -530,14 +530,14 @@ export function OnboardingView() {
                 <div className="pt-3.5 border-t border-kumo-hairline flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3">
                   <Link
                     href="/settings"
-                    className="btn-cf-secondary h-9 sm:h-10 px-3.5 text-[13px] font-medium inline-flex items-center justify-center gap-1.5 cursor-pointer text-center"
+                    className="btn-cf-secondary h-9 sm:h-10 px-3.5 text-sm font-medium inline-flex items-center justify-center gap-1.5 cursor-pointer text-center"
                   >
                     Configure in Settings
                   </Link>
                   <button
                     type="submit"
                     disabled={isSubmitting || !domainName.trim() || !vpsIp.trim()}
-                    className="btn-cf-primary h-9 sm:h-10 px-5 text-[13px] sm:text-[14px] font-medium inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-sm active:scale-[0.99] transition-all"
+                    className="btn-cf-primary h-9 sm:h-10 px-5 text-sm font-medium inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-sm active-press transition-all"
                   >
                     {isSubmitting ? (
                       <>
@@ -562,11 +562,11 @@ export function OnboardingView() {
                     <div className="w-7 h-7 rounded-lg bg-kumo-control border border-kumo-line/80 flex items-center justify-center text-kumo-muted shrink-0">
                       <ShieldCheck size={16} weight="bold" />
                     </div>
-                    <h1 className="text-[20px] sm:text-[22px] font-semibold text-kumo-strong tracking-tight leading-tight">
+                    <h1 className="text-xl sm:text-2xl font-semibold text-kumo-strong tracking-tight leading-tight">
                       Master DNS Verification Checklist
                     </h1>
                   </div>
-                  <p className="text-[13px] sm:text-[14px] text-kumo-subtle leading-relaxed">
+                  <p className="text-sm text-kumo-subtle leading-relaxed">
                     Add the generated DNS records into your DNS provider (Cloudflare, AWS Route 53, Namecheap, etc.) to complete verification.
                   </p>
                 </div>
@@ -575,11 +575,11 @@ export function OnboardingView() {
                 <div className="p-3 sm:p-3.5 rounded-xl bg-kumo-control/80 border border-kumo-line flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2.5 flex-wrap">
-                      <span className="text-[14px] sm:text-[15px] font-mono font-semibold text-kumo-strong truncate">
+                      <span className="text-sm sm:text-base font-mono font-semibold text-kumo-strong truncate">
                         {createdDomain?.domainName || domainName}
                       </span>
                       <span
-                        className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] sm:text-[12px] font-medium font-mono ${
+                        className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium font-mono ${
                           createdDomain?.status === "VERIFIED"
                             ? "bg-cf-success/10 text-cf-success/90"
                             : "bg-cf-amber/10 text-cf-amber/90"
@@ -597,7 +597,7 @@ export function OnboardingView() {
                         </span>
                       </span>
                     </div>
-                    <p className="text-[12px] sm:text-[13px] text-kumo-subtle mt-0.5 leading-normal">
+                    <p className="text-xs sm:text-sm text-kumo-subtle mt-0.5 leading-normal">
                       Add the DNS records below in Cloudflare, AWS Route 53, or your registrar console.
                     </p>
                   </div>
@@ -606,7 +606,7 @@ export function OnboardingView() {
                     type="button"
                     onClick={handleVerifyDns}
                     disabled={isVerifying}
-                    className="btn-cf-secondary h-8.5 px-3 text-[13px] font-medium inline-flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0 w-full sm:w-auto"
+                    className="btn-cf-secondary h-8.5 px-3 text-sm font-medium inline-flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0 w-full sm:w-auto"
                   >
                     <ArrowsClockwise size={13} className={isVerifying ? "animate-spin text-cf-orange" : ""} />
                     <span>{isVerifying ? "Checking Nameservers..." : "Check Propagation"}</span>
@@ -708,12 +708,12 @@ export function OnboardingView() {
                       <div className="overflow-x-auto">
                         <table className="w-full table-fixed text-left border-collapse">
                           <colgroup>
-                            <col className="w-[20%]" />
-                            <col className="w-[26%]" />
-                            <col className="w-[54%]" />
+                            <col className="w-1/5" />
+                            <col className="w-1/4" />
+                            <col className="w-7/12" />
                           </colgroup>
                           <thead>
-                            <tr className="bg-kumo-recessed/60 border-b border-kumo-line text-[11px] sm:text-[12px] font-medium text-kumo-subtle uppercase tracking-wider select-none">
+                            <tr className="bg-kumo-recessed/60 border-b border-kumo-line text-xs font-medium text-kumo-subtle uppercase tracking-wider select-none">
                               <th className="py-2.5 px-4 text-left font-medium">Type</th>
                               <th className="py-2.5 px-4 text-left font-medium">Host / Name</th>
                               <th className="py-2.5 px-4 text-left font-medium">Value / Content</th>
@@ -733,17 +733,17 @@ export function OnboardingView() {
                                 >
                                   <div className="flex items-center justify-between gap-2 min-w-0">
                                     <div className="flex items-center gap-1.5 min-w-0">
-                                      <span className="font-mono text-[12px] sm:text-[13px] font-medium text-kumo-strong truncate block group-hover/cell:text-kumo-strong transition-colors">
+                                      <span className="font-mono text-xs sm:text-sm font-medium text-kumo-strong truncate block group-hover/cell:text-kumo-strong transition-colors">
                                         {row.type}
                                       </span>
                                       {row.badge && (
-                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-mono font-semibold bg-cf-orange-tint text-cf-orange border border-cf-orange-border shrink-0 shadow-2xs">
+                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-mono font-semibold bg-cf-orange-tint text-cf-orange border border-cf-orange-border shrink-0 shadow-2xs">
                                           {row.badge}
                                         </span>
                                       )}
                                     </div>
                                     {copiedKey === `${row.keyPrefix}-type` && (
-                                      <span className="inline-flex items-center gap-1 text-cf-success text-[11px] font-semibold shrink-0 bg-cf-success/10 px-1.5 py-0.5 rounded transition-all animate-in fade-in duration-150">
+                                      <span className="inline-flex items-center gap-1 text-cf-success text-xs font-semibold shrink-0 bg-cf-success/10 px-1.5 py-0.5 rounded transition-all animate-in fade-in duration-150">
                                         <Check size={11} weight="bold" />
                                         <span>Copied</span>
                                       </span>
@@ -758,11 +758,11 @@ export function OnboardingView() {
                                   title={`Click to copy: ${row.host}`}
                                 >
                                   <div className="flex items-center justify-between gap-2 min-w-0">
-                                    <span className="font-mono text-[13px] font-medium text-kumo-strong truncate block group-hover/cell:text-kumo-strong transition-colors">
+                                    <span className="font-mono text-sm font-medium text-kumo-strong truncate block group-hover/cell:text-kumo-strong transition-colors">
                                       {row.host}
                                     </span>
                                     {copiedKey === `${row.keyPrefix}-host` && (
-                                      <span className="inline-flex items-center gap-1 text-cf-success text-[11px] font-semibold shrink-0 bg-cf-success/10 px-1.5 py-0.5 rounded transition-all animate-in fade-in duration-150">
+                                      <span className="inline-flex items-center gap-1 text-cf-success text-xs font-semibold shrink-0 bg-cf-success/10 px-1.5 py-0.5 rounded transition-all animate-in fade-in duration-150">
                                         <Check size={11} weight="bold" />
                                         <span>Copied</span>
                                       </span>
@@ -777,11 +777,11 @@ export function OnboardingView() {
                                   title={`Click to copy: ${row.copyValue}`}
                                 >
                                   <div className="flex items-center justify-between gap-2 min-w-0">
-                                    <span className="font-mono text-[12px] sm:text-[13px] text-kumo-default truncate block group-hover/cell:text-kumo-strong transition-colors">
+                                    <span className="font-mono text-xs sm:text-sm text-kumo-default truncate block group-hover/cell:text-kumo-strong transition-colors">
                                       {row.value}
                                     </span>
                                     {copiedKey === `${row.keyPrefix}-value` && (
-                                      <span className="inline-flex items-center gap-1 text-cf-success text-[11px] font-semibold shrink-0 bg-cf-success/10 px-1.5 py-0.5 rounded transition-all animate-in fade-in duration-150">
+                                      <span className="inline-flex items-center gap-1 text-cf-success text-xs font-semibold shrink-0 bg-cf-success/10 px-1.5 py-0.5 rounded transition-all animate-in fade-in duration-150">
                                         <Check size={11} weight="bold" />
                                         <span>Copied</span>
                                       </span>
@@ -800,7 +800,7 @@ export function OnboardingView() {
                 {/* Reverse DNS (PTR) Callout */}
                 <div className="p-3 sm:p-3.5 rounded-xl bg-cf-blue-tint/15 border border-cf-blue-border/30 flex items-start gap-2.5 shadow-2xs">
                   <Info size={15} className="text-cf-blue shrink-0 mt-0.5" />
-                  <div className="space-y-0.5 text-[12px] leading-relaxed">
+                  <div className="space-y-0.5 text-xs leading-relaxed">
                     <span className="font-semibold text-kumo-strong block">
                       Reverse DNS (PTR) Requirement
                     </span>
@@ -823,7 +823,7 @@ export function OnboardingView() {
                   <button
                     type="button"
                     onClick={() => setStep(1)}
-                    className="btn-cf-secondary h-9 sm:h-10 px-4 text-[13px] font-medium inline-flex items-center justify-center gap-1.5 cursor-pointer text-center"
+                    className="btn-cf-secondary h-9 sm:h-10 px-4 text-sm font-medium inline-flex items-center justify-center gap-1.5 cursor-pointer text-center"
                   >
                     <span>&larr; Back to Domain Details</span>
                   </button>
@@ -851,7 +851,7 @@ export function OnboardingView() {
                       onClick={handleFinish}
                       disabled={!isDomainConfirmed}
                       title={isDomainConfirmed ? "Proceed to Dashboard" : undefined}
-                      className={`btn-cf-primary h-9 sm:h-10 px-5 text-[13px] sm:text-[14px] font-medium inline-flex items-center justify-center gap-2 shadow-sm active:scale-[0.99] transition-all text-center ${
+                      className={`btn-cf-primary h-9 sm:h-10 px-5 text-sm font-medium inline-flex items-center justify-center gap-2 shadow-sm active-press transition-all text-center ${
                         !isDomainConfirmed
                           ? "opacity-40 pointer-events-none"
                           : "cursor-pointer"

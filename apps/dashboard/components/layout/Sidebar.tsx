@@ -301,7 +301,7 @@ export function Sidebar({
             className={cn("shrink-0 transition-colors", isActive ? "text-cf-orange" : "")}
           />
           {showInboxBadge && (
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#0066FF] ring-2 ring-kumo-canvas" />
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-cf-blue ring-2 ring-kumo-canvas" />
           )}
         </>
       );
@@ -309,7 +309,7 @@ export function Sidebar({
       const collapsedClassName = cn(
         "w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-150 relative select-none mx-auto cursor-pointer",
         isActive
-          ? "bg-[var(--cf-sidebar-active)] text-cf-orange shadow-2xs font-medium"
+          ? "bg-cf-sidebar-active text-cf-orange shadow-2xs font-medium"
           : "text-kumo-subtle hover:bg-kumo-tint hover:text-kumo-strong"
       );
 
@@ -346,9 +346,9 @@ export function Sidebar({
     }
 
     const expandedClassName = cn(
-      "w-full flex items-center justify-between px-3 py-2 transition-all duration-150 rounded-lg group select-none text-[13px] relative cursor-pointer",
+      "w-full flex items-center justify-between px-3 py-2 transition-all duration-150 rounded-lg group select-none text-sm relative cursor-pointer",
       isActive
-        ? "bg-[var(--cf-sidebar-active)] text-kumo-strong font-medium shadow-2xs"
+        ? "bg-cf-sidebar-active text-kumo-strong font-medium shadow-2xs"
         : "text-kumo-default hover:bg-kumo-tint hover:text-kumo-strong"
     );
 
@@ -367,12 +367,12 @@ export function Sidebar({
         </div>
 
         {showInboxBadge ? (
-          <span className="min-w-5 h-5 px-1 rounded-full bg-[#0066FF] text-white text-[11px] font-bold flex items-center justify-center shrink-0 leading-none shadow-xs">
+          <span className="min-w-5 h-5 px-1 rounded-full bg-cf-blue text-kumo-strong text-xs font-bold flex items-center justify-center shrink-0 leading-none shadow-xs">
             {unreadCount}
           </span>
         ) : (
           item.badge && (
-            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-cf-orange-tint text-cf-orange border border-cf-orange-border/40">
+            <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full bg-cf-orange-tint text-cf-orange border border-cf-orange-border/40">
               {item.badge}
             </span>
           )
@@ -464,7 +464,7 @@ export function Sidebar({
               title={activeDomainName ? `Active domain: ${activeDomainName}` : "Add domain"}
             >
               <div className="flex items-center gap-2 min-w-0">
-                <span className="w-5 h-5 rounded-md bg-cf-orange/15 text-cf-orange font-bold text-[11px] flex items-center justify-center shrink-0">
+                <span className="w-5 h-5 rounded-md bg-cf-orange/15 text-cf-orange font-bold text-xs flex items-center justify-center shrink-0">
                   {activeDomainName ? activeDomainName.charAt(0).toUpperCase() : <Plus size={12} weight="bold" />}
                 </span>
                 <span className="truncate font-semibold text-kumo-strong">
@@ -499,7 +499,7 @@ export function Sidebar({
                     ))}
                   </div>
                 ) : (
-                  <div className="px-3 py-2 text-kumo-muted text-[11px]">No domains configured yet</div>
+                  <div className="px-3 py-2 text-kumo-muted text-xs">No domains configured yet</div>
                 )}
                 <div className="border-t border-kumo-hairline/60 pt-1 mt-1">
                   <Link
@@ -529,7 +529,7 @@ export function Sidebar({
               <MagnifyingGlass size={15} className="text-kumo-muted" />
               <span className="truncate">Quick search...</span>
             </div>
-            <kbd className="px-1.5 py-0.5 text-[10px] bg-kumo-recessed border border-kumo-line rounded text-kumo-muted font-mono">
+            <kbd className="px-1.5 py-0.5 text-2xs bg-kumo-recessed border border-kumo-line rounded text-kumo-muted font-mono">
               Ctrl K
             </kbd>
           </button>
@@ -710,7 +710,7 @@ export function Sidebar({
                   title={activeDomainName ? `Active domain: ${activeDomainName}` : "Add domain"}
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="w-5 h-5 rounded-md bg-cf-orange/15 text-cf-orange font-bold text-[11px] flex items-center justify-center shrink-0">
+                    <span className="w-5 h-5 rounded-md bg-cf-orange/15 text-cf-orange font-bold text-xs flex items-center justify-center shrink-0">
                       {activeDomainName ? (
                         activeDomainName.charAt(0).toUpperCase()
                       ) : (
@@ -763,7 +763,7 @@ export function Sidebar({
                       ))}
                     </div>
                   ) : (
-                    <div className="px-3 py-2 text-kumo-muted text-[11px]">
+                    <div className="px-3 py-2 text-kumo-muted text-xs">
                       No domains configured yet
                     </div>
                   )}
@@ -808,7 +808,7 @@ export function Sidebar({
                   />
                   <span className="truncate">Quick search...</span>
                 </div>
-                <kbd className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-mono text-kumo-muted bg-kumo-recessed border border-kumo-hairline rounded shrink-0">
+                <kbd className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-2xs font-mono text-kumo-muted bg-kumo-recessed border border-kumo-hairline rounded shrink-0">
                   Ctrl K
                 </kbd>
               </button>
@@ -957,12 +957,12 @@ export function Sidebar({
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-1.5">
-                        <span className="font-semibold text-kumo-strong truncate max-w-[100px]">
+                        <span className="font-semibold text-kumo-strong truncate max-w-25">
                           {displayName}
                         </span>
                         <span
                           className={cn(
-                            "text-[9px] font-mono font-bold px-1.5 py-0.2 rounded tracking-wide uppercase",
+                            "text-2xs font-mono font-bold px-1.5 py-0.5 rounded tracking-wide uppercase",
                             currentUser?.role === "ADMIN"
                               ? "bg-cf-orange/10 text-cf-orange border border-cf-orange/20"
                               : currentUser?.role === "MEMBER"
@@ -973,7 +973,7 @@ export function Sidebar({
                           {currentUser?.role === "VIEWER" ? "VIEW ONLY" : (currentUser?.role || "ADMIN")}
                         </span>
                       </div>
-                      <div className="text-[10px] text-kumo-muted font-mono truncate mt-0.5">
+                      <div className="text-2xs text-kumo-muted font-mono truncate mt-0.5">
                         {currentUser?.email || `@${displayUsername}`}
                       </div>
                     </div>
@@ -1009,7 +1009,7 @@ export function Sidebar({
                         )}
                         <span>Theme Mode</span>
                       </div>
-                      <span className="text-[11px] font-mono text-kumo-muted capitalize">
+                      <span className="text-xs font-mono text-kumo-muted capitalize">
                         {themeMode}
                       </span>
                     </button>

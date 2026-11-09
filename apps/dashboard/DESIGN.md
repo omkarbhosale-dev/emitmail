@@ -19,7 +19,11 @@ Key visual signatures:
 1. **Use Kumo Semantic Tokens + Cloudflare Tokens:** Always use Kumo semantic utility classes (`bg-kumo-canvas`, `bg-kumo-base`, `text-kumo-default`, `border-kumo-hairline`) alongside registered Cloudflare theme tokens (`bg-cf-orange`, `text-cf-orange`, `text-cf-blue`, `btn-cf-primary`, `btn-cf-secondary`, `bg-cf-sidebar-active`).
 2. **NEVER Use Raw Tailwind Grayscale/Blue Classes:** Avoid hardcoded classes like `bg-zinc-900` or `text-gray-500` in layout markup so that switching `data-mode="dark"` and `data-mode="light"` works automatically without manual theme overrides.
 3. **Theme Switching Via Data Attributes:** Theme mode is controlled at the root element level via `data-mode="dark"` and `data-mode="light"` powered by CSS custom properties.
-4. **Strict Linear Typography Scale (No Hardcoded Values):** All typography must use standard Tailwind utility classes (`text-xs`, `text-sm`, `text-base`, `text-lg`, `text-xl`, `text-2xl`, `text-3xl`). Never use arbitrary pixel classes (such as `text-[13px]`), hardcoded rem values (such as `0.8125rem`), or custom non-standard utilities (such as `text-2xs`). All text must remain strictly linear across the entire platform.
+4. **Tailwind-First Styling (Conservative Approach):**
+   - **Prefer Standard Tailwind Classes by Default:** Use existing Tailwind utility classes whenever they provide an acceptable match for the design (`text-xs`, `text-sm`, `text-base`, `text-lg`, `text-xl`, `text-2xl`, `text-3xl`, `p-4`, `gap-4`, `rounded-lg`, `max-w-xl`, etc.).
+   - **No Arbitrary Pixel Typography or Spacing:** Never use arbitrary pixel classes (such as `text-[13px]`, `text-[11px]`, or `p-[13px]`) when standard Tailwind scale utilities (`text-sm`, `text-xs`, `p-3.5`) serve the layout cleanly.
+   - **Custom Utilities Only When Genuinely Necessary:** Add a reusable utility to `globals.css` only when the existing design requires a value meaningfully different from available utilities, using the nearest utility would noticeably alter the UI, and a reusable class is beneficial.
+   - **Dynamic Inline Styling:** Retain inline `style={{ ... }}` when values genuinely depend on runtime calculations or dynamic data (e.g. Cartesian chart points, progress percentages). Do not force dynamic values into static classes.
 5. **Always Use `cn()` for Class Composition:** Import `cn` from `@/lib/utils` to merge conditional Tailwind classes safely.
 6. **Root Portal Isolation:** Floating overlays (Dialogs, Popovers, Select menus, Dropdowns, Command Palettes) portal to `document.body`. The application root container (`AppShell`) preserves `className="isolate"` (`isolation: isolate`).
 7. **Application Implementation is the Source of Truth:** Documentation strictly describes what exists in the active codebase. Never document hypothetical, planned, or unverified features as implemented reality.
@@ -214,51 +218,104 @@ Key visual signatures:
   font-family: var(--font-bricolage), system-ui, sans-serif;
 }
 
+/* Reusable Semantic Utilities for High-Density UI Elements */
+@utility text-2xs {
+  font-size: 0.625rem;
+  line-height: 0.875rem;
+}
+
+@utility active-press {
+  &:active {
+    transform: scale(0.99);
+  }
+}
+
 /* Explicit Cloudflare Button System - Linear Tailwind Scale */
 .btn-cf-primary {
-  background-color: var(--cf-blue) !important;
-  color: #FFFFFF !important;
-  font-weight: 500 !important;
-  border: 1px solid transparent !important;
-  border-radius: 0.375rem !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 0.375rem !important;
-  padding: 0.45rem 0.95rem !important;
-  font-size: 0.875rem !important;
-  line-height: 1.25rem !important;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.25) !important;
-  transition: all 120ms ease !important;
-  cursor: pointer !important;
-  user-select: none !important;
+  background-color: var(--cf-blue);
+  color: #FFFFFF;
+  font-weight: 500;
+  border: 1px solid transparent;
+  border-radius: 0.375rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0.45rem 0.95rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.25);
+  transition: all 120ms ease;
+  cursor: pointer;
+  user-select: none;
 }
 .btn-cf-primary:hover {
-  background-color: var(--cf-blue-hover) !important;
+  background-color: var(--cf-blue-hover);
+}
+.btn-cf-primary:active {
+  transform: scale(0.99);
+}
+.btn-cf-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-cf-primary:focus-visible {
+  outline: 2px solid var(--cf-blue);
+  outline-offset: 1px;
 }
 
 .btn-cf-secondary {
-  background-color: var(--kumo-elevated) !important;
-  color: var(--kumo-strong) !important;
-  border: 1px solid var(--kumo-line) !important;
-  font-weight: 500 !important;
-  border-radius: 0.375rem !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 0.375rem !important;
-  padding: 0.45rem 0.95rem !important;
-  font-size: 0.875rem !important;
-  line-height: 1.25rem !important;
-  transition: all 120ms ease !important;
-  cursor: pointer !important;
-  user-select: none !important;
+  background-color: var(--kumo-elevated);
+  color: var(--kumo-strong);
+  border: 1px solid var(--kumo-line);
+  font-weight: 500;
+  border-radius: 0.375rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0.45rem 0.95rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  transition: all 120ms ease;
+  cursor: pointer;
+  user-select: none;
 }
 .btn-cf-secondary:hover {
-  background-color: var(--kumo-interact) !important;
-  border-color: var(--kumo-line) !important;
+  background-color: var(--kumo-interact);
+  border-color: var(--kumo-line);
+}
+.btn-cf-secondary:active {
+  transform: scale(0.99);
+}
+.btn-cf-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-cf-secondary:focus-visible {
+  outline: 2px solid var(--kumo-line);
+  outline-offset: 1px;
 }
 ```
+
+### 4.1 Custom Utilities in `globals.css` & Justifications
+
+Only reusable utilities that meet strict architectural criteria are defined in `globals.css`:
+
+1. **`.btn-cf-primary`:** Standard Cloudflare Action Blue primary action button. Encapsulates hover (`--cf-blue-hover`), active press (`scale(0.99)`), focus-visible ring, disabled state, and elevation shadow for primary calls to action.
+2. **`.btn-cf-secondary`:** Elevated surface neutral secondary button with theme-adaptive border (`--kumo-line`), hover surface (`--kumo-interact`), active press, and focus ring.
+3. **`.font-logo`:** Encapsulates the Bricolage / system brand font declaration for the EmitMail navigation brand mark.
+4. **`.text-2xs` (`0.625rem` / 10px):** Reusable micro-scale typography utility for `<kbd>` keyboard shortcuts (`Ctrl K`, `ESC`) and compact uppercase role tags (`ADMIN`, `MEMBER`, `VIEW ONLY`) where standard `text-xs` (12px) causes visual crowding and boundary clipping.
+5. **`.active-press`:** Reusable micro-interaction utility for tactile 1% click compression (`transform: scale(0.99)`), replacing aggressive and bouncy 5% scaling (`active:scale-95`) without reintroducing arbitrary bracket classes into TSX markup.
+
+### 4.2 Guidelines for Introducing Future Custom Utilities
+
+To prevent design system fragmentation and avoid overengineering, developers must adhere to the following checklist before adding any new utility to `globals.css`:
+
+1. **Standard Tailwind Check:** Can an existing Tailwind utility (e.g. `text-sm`, `p-4`, `max-w-xl`, `rounded-lg`) satisfy the design requirement without noticeable visual divergence? If yes, always use the standard Tailwind class.
+2. **Meaningful Difference:** Does the design strictly require a value that differs meaningfully from available Tailwind utilities? If using the nearest class causes an unacceptable layout or visual mismatch, a utility may be considered.
+3. **Reusability Across Views:** Is this utility required across multiple views or components? Single-use or one-off values should not be added as global utility classes.
+4. **No Specificity Bloat:** Never declare `!important` inside custom utilities. All custom classes must remain safely overrideable by standard Tailwind utilities.
 
 ---
 

@@ -57,7 +57,7 @@ export function RawHeadersModal({
               <h3 className="text-sm font-semibold text-kumo-strong">
                 Raw Email Headers
               </h3>
-              <span className="text-[11px] text-kumo-subtle font-mono">
+              <span className="text-xs text-kumo-subtle font-mono">
                 {messageId}
               </span>
             </div>
@@ -80,7 +80,7 @@ export function RawHeadersModal({
 
         {/* Footer */}
         <div className="px-5 py-3.5 bg-kumo-elevated border-t border-kumo-hairline flex items-center justify-between">
-          <span className="text-[11px] text-kumo-subtle">
+          <span className="text-xs text-kumo-subtle">
             Full MIME headers including SPF, DKIM, and ARC trace signatures.
           </span>
           <div className="flex items-center gap-2">

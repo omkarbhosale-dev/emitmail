@@ -434,10 +434,10 @@ export function SettingsView() {
       {/* 1. Header with View Tabs */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-kumo-hairline">
         <div>
-          <h1 className="text-[22px] sm:text-[24px] font-semibold tracking-tight text-kumo-strong">
+          <h1 className="text-2xl font-semibold tracking-tight text-kumo-strong">
             Settings & Access Control
           </h1>
-          <p className="text-[13px] sm:text-[14px] text-kumo-subtle mt-1 leading-normal">
+          <p className="text-sm text-kumo-subtle mt-1 leading-normal">
             Manage account security, inspect infrastructure diagnostics, and configure team access control.
           </p>
         </div>
@@ -447,7 +447,7 @@ export function SettingsView() {
           <button
             type="button"
             onClick={() => setActiveTab("overview")}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-[13px] font-medium transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${
               activeTab === "overview"
                 ? "bg-kumo-base text-kumo-strong shadow-2xs border border-kumo-hairline"
                 : "text-kumo-subtle hover:text-kumo-strong"
@@ -460,7 +460,7 @@ export function SettingsView() {
           <button
             type="button"
             onClick={() => setActiveTab("team")}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-[13px] font-medium transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${
               activeTab === "team"
                 ? "bg-kumo-base text-kumo-strong shadow-2xs border border-kumo-hairline"
                 : "text-kumo-subtle hover:text-kumo-strong"
@@ -469,7 +469,7 @@ export function SettingsView() {
             <Users size={15} weight={activeTab === "team" ? "bold" : "regular"} />
             <span>Team & Roles</span>
             {teamMembers.length > 0 && (
-              <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-cf-orange/10 text-cf-orange border border-cf-orange/20 font-medium">
+              <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-cf-orange/10 text-cf-orange border border-cf-orange/20 font-medium">
                 {teamMembers.length}
               </span>
             )}
@@ -486,14 +486,14 @@ export function SettingsView() {
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h4 className="text-[13px] sm:text-[14px] font-semibold text-kumo-strong">
+                <h4 className="text-sm font-semibold text-kumo-strong">
                   Security Recommendation: Initial Password Still Active
                 </h4>
-                <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-cf-amber/10 text-cf-amber border border-cf-amber/25 font-medium">
+                <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-cf-amber/10 text-cf-amber border border-cf-amber/25 font-medium">
                   Action Required
                 </span>
               </div>
-              <p className="text-[12px] sm:text-[13px] text-kumo-subtle mt-0.5 leading-normal">
+              <p className="text-xs sm:text-sm text-kumo-subtle mt-0.5 leading-normal">
                 Your account still uses its one-time initial password. Change it below before using protected features.
               </p>
             </div>
@@ -506,7 +506,7 @@ export function SettingsView() {
                 document.getElementById("change-password-card")?.scrollIntoView({ behavior: "smooth" });
               }, 50);
             }}
-            className="px-3.5 py-1.5 rounded-lg text-[13px] font-medium bg-cf-amber text-black hover:bg-cf-amber/90 transition-colors shrink-0 shadow-xs cursor-pointer self-start sm:self-auto"
+            className="px-3.5 py-1.5 rounded-lg text-sm font-medium bg-cf-amber text-black hover:bg-cf-amber/90 transition-colors shrink-0 shadow-xs cursor-pointer self-start sm:self-auto"
           >
             Change Password Now
           </button>
@@ -533,10 +533,10 @@ export function SettingsView() {
                   <LockKey size={18} weight="bold" />
                 </div>
                 <div>
-                  <h3 className="text-[15px] sm:text-[16px] font-semibold text-kumo-strong leading-tight">
+                  <h3 className="text-base font-semibold text-kumo-strong leading-tight">
                     Account Security & Credentials
                   </h3>
-                  <p className="text-[12px] sm:text-[13px] text-kumo-subtle mt-0.5 leading-normal">
+                  <p className="text-xs sm:text-sm text-kumo-subtle mt-0.5 leading-normal">
                     Update your master login password and manage administrative access to EmitMail
                   </p>
                 </div>
@@ -544,7 +544,7 @@ export function SettingsView() {
 
               {/* Status Badge */}
               {isDefaultPassword && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono font-medium bg-cf-amber/10 text-cf-amber border border-cf-amber/20">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-mono font-medium bg-cf-amber/10 text-cf-amber border border-cf-amber/20">
                   <Lock size={12} weight="bold" />
                   <span>Default Password In Use</span>
                 </span>
@@ -563,11 +563,11 @@ export function SettingsView() {
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-[14px] font-semibold text-kumo-strong truncate">
+                  <span className="text-sm font-semibold text-kumo-strong truncate">
                     {currentUser?.fullName || "EmitMail Administrator"}
                   </span>
                 </div>
-                <span className="text-[12px] text-kumo-subtle font-mono block mt-0.5">
+                <span className="text-xs text-kumo-subtle font-mono block mt-0.5">
                   Logged in as @{currentUser?.username || "admin"}
                 </span>
               </div>
@@ -575,14 +575,14 @@ export function SettingsView() {
 
             {/* Password Form Messages */}
             {passwordError && (
-              <div className="p-3.5 rounded-xl bg-kumo-danger-tint border border-kumo-danger/20 text-kumo-danger text-[12px] sm:text-[13px] flex items-center gap-2.5 animate-in fade-in duration-150">
+              <div className="p-3.5 rounded-xl bg-kumo-danger-tint border border-kumo-danger/20 text-kumo-danger text-xs sm:text-sm flex items-center gap-2.5 animate-in fade-in duration-150">
                 <Warning size={16} weight="fill" className="shrink-0" />
                 <span>{passwordError}</span>
               </div>
             )}
 
             {passwordSuccess && (
-              <div className="p-3.5 rounded-xl bg-cf-success/10 border border-cf-success/20 text-cf-success text-[12px] sm:text-[13px] flex items-center gap-2.5 animate-in fade-in duration-150">
+              <div className="p-3.5 rounded-xl bg-cf-success/10 border border-cf-success/20 text-cf-success text-xs sm:text-sm flex items-center gap-2.5 animate-in fade-in duration-150">
                 <CheckCircle size={16} weight="fill" className="shrink-0" />
                 <span>{passwordSuccess}</span>
               </div>
@@ -593,7 +593,7 @@ export function SettingsView() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Current Password */}
                 <div>
-                  <label className="block text-[13px] font-medium text-kumo-strong mb-1.5">
+                  <label className="block text-sm font-medium text-kumo-strong mb-1.5">
                     Current Password
                   </label>
                   <div className="relative">
@@ -604,7 +604,7 @@ export function SettingsView() {
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
                       placeholder="Enter initial password"
-                      className="w-full h-10 bg-kumo-control border border-kumo-line rounded-lg px-3.5 py-2 pr-10 text-[13px] sm:text-[14px] text-kumo-strong placeholder:text-kumo-muted focus:outline-none focus:border-cf-orange disabled:opacity-60 disabled:cursor-not-allowed font-mono transition-colors"
+                      className="w-full h-10 bg-kumo-control border border-kumo-line rounded-lg px-3.5 py-2 pr-10 text-sm text-kumo-strong placeholder:text-kumo-muted focus:outline-none focus:border-cf-orange disabled:opacity-60 disabled:cursor-not-allowed font-mono transition-colors"
                     />
                     <button
                       type="button"
@@ -618,7 +618,7 @@ export function SettingsView() {
 
                 {/* New Password */}
                 <div>
-                  <label className="block text-[13px] font-medium text-kumo-strong mb-1.5">
+                  <label className="block text-sm font-medium text-kumo-strong mb-1.5">
                     New Password
                   </label>
                   <div className="relative">
@@ -630,7 +630,7 @@ export function SettingsView() {
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       placeholder="Min. 8 characters"
-                      className="w-full h-10 bg-kumo-control border border-kumo-line rounded-lg px-3.5 py-2 pr-10 text-[13px] sm:text-[14px] text-kumo-strong placeholder:text-kumo-muted focus:outline-none focus:border-cf-orange disabled:opacity-60 disabled:cursor-not-allowed font-mono transition-colors"
+                      className="w-full h-10 bg-kumo-control border border-kumo-line rounded-lg px-3.5 py-2 pr-10 text-sm text-kumo-strong placeholder:text-kumo-muted focus:outline-none focus:border-cf-orange disabled:opacity-60 disabled:cursor-not-allowed font-mono transition-colors"
                     />
                     <button
                       type="button"
@@ -644,7 +644,7 @@ export function SettingsView() {
 
                 {/* Confirm New Password */}
                 <div>
-                  <label className="block text-[13px] font-medium text-kumo-strong mb-1.5">
+                  <label className="block text-sm font-medium text-kumo-strong mb-1.5">
                     Confirm New Password
                   </label>
                   <div className="relative">
@@ -656,7 +656,7 @@ export function SettingsView() {
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="Re-enter new password"
-                      className="w-full h-10 bg-kumo-control border border-kumo-line rounded-lg px-3.5 py-2 pr-10 text-[13px] sm:text-[14px] text-kumo-strong placeholder:text-kumo-muted focus:outline-none focus:border-cf-orange disabled:opacity-60 disabled:cursor-not-allowed font-mono transition-colors"
+                      className="w-full h-10 bg-kumo-control border border-kumo-line rounded-lg px-3.5 py-2 pr-10 text-sm text-kumo-strong placeholder:text-kumo-muted focus:outline-none focus:border-cf-orange disabled:opacity-60 disabled:cursor-not-allowed font-mono transition-colors"
                     />
                     <button
                       type="button"
@@ -670,14 +670,14 @@ export function SettingsView() {
               </div>
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
-                <p className="text-[12px] sm:text-[13px] text-kumo-subtle leading-normal max-w-xl">
+                <p className="text-xs sm:text-sm text-kumo-subtle leading-normal max-w-xl">
                   Passwords must contain at least 8 characters. Once updated, you will use this password for all future sessions.
                 </p>
 
                 <button
                   type="submit"
                   disabled={isViewer || isChangingPassword || !currentPassword || !newPassword}
-                  className="btn-cf-primary flex items-center justify-center gap-2 shrink-0 px-4 py-2 text-[13px] font-medium disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-xs"
+                  className="btn-cf-primary flex items-center justify-center gap-2 shrink-0 px-4 py-2 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-xs"
                 >
                   {isChangingPassword ? (
                     <>
@@ -703,10 +703,10 @@ export function SettingsView() {
                   <Cpu size={18} weight="bold" />
                 </div>
                 <div>
-                  <h3 className="text-[15px] sm:text-[16px] font-semibold text-kumo-strong leading-tight">
+                  <h3 className="text-base font-semibold text-kumo-strong leading-tight">
                     Infrastructure Diagnostics & Architecture
                   </h3>
-                  <p className="text-[12px] sm:text-[13px] text-kumo-subtle mt-0.5 leading-normal">
+                  <p className="text-xs sm:text-sm text-kumo-subtle mt-0.5 leading-normal">
                     Live telemetry for the decoupled mail transport agent, queue broker, and signing keys
                   </p>
                 </div>
@@ -717,7 +717,7 @@ export function SettingsView() {
                   type="button"
                   onClick={loadDiagnostics}
                   disabled={isLoadingHealth}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium text-kumo-default hover:text-kumo-strong hover:bg-kumo-elevated border border-kumo-hairline transition-colors cursor-pointer disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-kumo-default hover:text-kumo-strong hover:bg-kumo-elevated border border-kumo-hairline transition-colors cursor-pointer disabled:opacity-50"
                 >
                   <ArrowsClockwise size={14} className={isLoadingHealth ? "animate-spin" : ""} />
                   <span>Refresh Diagnostics</span>
@@ -730,15 +730,15 @@ export function SettingsView() {
               {/* Tile 1: Outbound MTA */}
               <div className="p-4 rounded-xl bg-kumo-recessed border border-kumo-hairline flex flex-col justify-between space-y-2">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[11px] sm:text-[12px] text-kumo-subtle uppercase tracking-wider font-semibold font-mono truncate">
+                  <span className="text-xs text-kumo-subtle uppercase tracking-wider font-semibold font-mono truncate">
                     Outbound Dispatcher (MTA)
                   </span>
                 </div>
                 <div>
-                  <span className="text-[13px] sm:text-[14px] font-mono font-semibold text-kumo-strong block truncate">
+                  <span className="text-sm font-mono font-semibold text-kumo-strong block truncate">
                     {serverHostname}
                   </span>
-                  <span className="text-[11px] sm:text-[12px] text-kumo-subtle block leading-normal mt-0.5">
+                  <span className="text-xs text-kumo-subtle block leading-normal mt-0.5">
                     EHLO hostname & direct MX dispatch
                   </span>
                 </div>
@@ -747,15 +747,15 @@ export function SettingsView() {
               {/* Tile 2: Outbound Port 25 */}
               <div className="p-4 rounded-xl bg-kumo-recessed border border-kumo-hairline flex flex-col justify-between space-y-2">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[11px] sm:text-[12px] text-kumo-subtle uppercase tracking-wider font-semibold font-mono truncate">
+                  <span className="text-xs text-kumo-subtle uppercase tracking-wider font-semibold font-mono truncate">
                     Outbound Port 25
                   </span>
                 </div>
                 <div>
-                  <span className="text-[13px] sm:text-[14px] font-mono font-semibold text-kumo-strong block truncate">
+                  <span className="text-sm font-mono font-semibold text-kumo-strong block truncate">
                     {serverIp || "Direct IP Dispatch"}
                   </span>
-                  <span className="text-[11px] sm:text-[12px] text-kumo-subtle block leading-normal mt-0.5">
+                  <span className="text-xs text-kumo-subtle block leading-normal mt-0.5">
                     Bypasses third-party SMTP relay limits
                   </span>
                 </div>
@@ -764,15 +764,15 @@ export function SettingsView() {
               {/* Tile 3: Inbound SMTP Daemon */}
               <div className="p-4 rounded-xl bg-kumo-recessed border border-kumo-hairline flex flex-col justify-between space-y-2">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[11px] sm:text-[12px] text-kumo-subtle uppercase tracking-wider font-semibold font-mono truncate">
+                  <span className="text-xs text-kumo-subtle uppercase tracking-wider font-semibold font-mono truncate">
                     Inbound Daemon
                   </span>
                 </div>
                 <div>
-                  <span className="text-[13px] sm:text-[14px] font-mono font-semibold text-kumo-strong block truncate">
+                  <span className="text-sm font-mono font-semibold text-kumo-strong block truncate">
                     iptables PREROUTING :25 &rarr; :2525
                   </span>
-                  <span className="text-[11px] sm:text-[12px] text-kumo-subtle block leading-normal mt-0.5">
+                  <span className="text-xs text-kumo-subtle block leading-normal mt-0.5">
                     RFC 5321 recipient gate with mailparser
                   </span>
                 </div>
@@ -781,15 +781,15 @@ export function SettingsView() {
               {/* Tile 4: Cryptographic DKIM */}
               <div className="p-4 rounded-xl bg-kumo-recessed border border-kumo-hairline flex flex-col justify-between space-y-2">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[11px] sm:text-[12px] text-kumo-subtle uppercase tracking-wider font-semibold font-mono truncate">
+                  <span className="text-xs text-kumo-subtle uppercase tracking-wider font-semibold font-mono truncate">
                     DKIM Cryptography
                   </span>
                 </div>
                 <div>
-                  <span className="text-[13px] sm:text-[14px] font-mono font-semibold text-kumo-strong block truncate">
+                  <span className="text-sm font-mono font-semibold text-kumo-strong block truncate">
                     esp._domainkey
                   </span>
-                  <span className="text-[11px] sm:text-[12px] text-kumo-subtle block leading-normal mt-0.5">
+                  <span className="text-xs text-kumo-subtle block leading-normal mt-0.5">
                     Canonicalized rsa-sha256 header signing
                   </span>
                 </div>
@@ -798,15 +798,15 @@ export function SettingsView() {
               {/* Tile 5: BullMQ Queue Engine */}
               <div className="p-4 rounded-xl bg-kumo-recessed border border-kumo-hairline flex flex-col justify-between space-y-2">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[11px] sm:text-[12px] text-kumo-subtle uppercase tracking-wider font-semibold font-mono truncate">
+                  <span className="text-xs text-kumo-subtle uppercase tracking-wider font-semibold font-mono truncate">
                     Queue Engine (BullMQ)
                   </span>
                 </div>
                 <div>
-                  <span className="text-[13px] sm:text-[14px] font-mono font-semibold text-kumo-strong block truncate">
+                  <span className="text-sm font-mono font-semibold text-kumo-strong block truncate">
                     Redis Cluster Pipeline
                   </span>
-                  <span className="text-[11px] sm:text-[12px] text-kumo-subtle block leading-normal mt-0.5">
+                  <span className="text-xs text-kumo-subtle block leading-normal mt-0.5">
                     Automated retries with exponential backoff
                   </span>
                 </div>
@@ -815,15 +815,15 @@ export function SettingsView() {
               {/* Tile 6: Database Persistence */}
               <div className="p-4 rounded-xl bg-kumo-recessed border border-kumo-hairline flex flex-col justify-between space-y-2">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[11px] sm:text-[12px] text-kumo-subtle uppercase tracking-wider font-semibold font-mono truncate">
+                  <span className="text-xs text-kumo-subtle uppercase tracking-wider font-semibold font-mono truncate">
                     Database (PostgreSQL 16)
                   </span>
                 </div>
                 <div>
-                  <span className="text-[13px] sm:text-[14px] font-mono font-semibold text-kumo-strong block truncate">
+                  <span className="text-sm font-mono font-semibold text-kumo-strong block truncate">
                     Prisma Connection Pool
                   </span>
-                  <span className="text-[11px] sm:text-[12px] text-kumo-subtle block leading-normal mt-0.5">
+                  <span className="text-xs text-kumo-subtle block leading-normal mt-0.5">
                     ACID-compliant audit trail & event logs
                   </span>
                 </div>
@@ -838,10 +838,10 @@ export function SettingsView() {
                 <TerminalWindow size={18} weight="bold" />
               </div>
               <div>
-                <h3 className="text-[15px] sm:text-[16px] font-semibold text-kumo-strong leading-tight">
+                <h3 className="text-base font-semibold text-kumo-strong leading-tight">
                   API Endpoints & Integration Gateways
                 </h3>
-                <p className="text-[12px] sm:text-[13px] text-kumo-subtle mt-0.5 leading-normal">
+                <p className="text-xs sm:text-sm text-kumo-subtle mt-0.5 leading-normal">
                   Official Resend SDK drop-in compatibility layer and native REST endpoints
                 </p>
               </div>
@@ -852,21 +852,21 @@ export function SettingsView() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-kumo-recessed border border-kumo-hairline">
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[13px] sm:text-[14px] font-medium text-kumo-strong">
+                    <span className="text-sm font-medium text-kumo-strong">
                       Resend SDK Drop-in Endpoint
                     </span>
-                    <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-cf-orange/10 text-cf-orange border border-cf-orange/20 font-medium">
+                    <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-cf-orange/10 text-cf-orange border border-cf-orange/20 font-medium">
                       POST /emails
                     </span>
                   </div>
-                  <p className="text-[12px] sm:text-[13px] text-kumo-default mt-1 font-mono">
+                  <p className="text-xs sm:text-sm text-kumo-default mt-1 font-mono">
                     POST http://localhost:4000/emails
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => handleCopy("http://localhost:4000/emails", "resend")}
-                  className="px-3 py-1.5 text-[12px] font-medium rounded-lg text-kumo-default hover:text-kumo-strong bg-kumo-control hover:bg-kumo-elevated border border-kumo-hairline transition-colors flex items-center gap-1.5 cursor-pointer self-start sm:self-auto shrink-0 shadow-2xs"
+                  className="px-3 py-1.5 text-xs font-medium rounded-lg text-kumo-default hover:text-kumo-strong bg-kumo-control hover:bg-kumo-elevated border border-kumo-hairline transition-colors flex items-center gap-1.5 cursor-pointer self-start sm:self-auto shrink-0 shadow-2xs"
                 >
                   {copiedKey === "resend" ? (
                     <>
@@ -886,21 +886,21 @@ export function SettingsView() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-kumo-recessed border border-kumo-hairline">
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[13px] sm:text-[14px] font-medium text-kumo-strong">
+                    <span className="text-sm font-medium text-kumo-strong">
                       Native REST API Base URL
                     </span>
-                    <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-kumo-elevated text-kumo-subtle border border-kumo-hairline font-medium">
+                    <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-kumo-elevated text-kumo-subtle border border-kumo-hairline font-medium">
                       /api/v1
                     </span>
                   </div>
-                  <p className="text-[12px] sm:text-[13px] text-kumo-default mt-1 font-mono">
+                  <p className="text-xs sm:text-sm text-kumo-default mt-1 font-mono">
                     http://localhost:4000/api/v1
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => handleCopy("http://localhost:4000/api/v1", "native")}
-                  className="px-3 py-1.5 text-[12px] font-medium rounded-lg text-kumo-default hover:text-kumo-strong bg-kumo-control hover:bg-kumo-elevated border border-kumo-hairline transition-colors flex items-center gap-1.5 cursor-pointer self-start sm:self-auto shrink-0 shadow-2xs"
+                  className="px-3 py-1.5 text-xs font-medium rounded-lg text-kumo-default hover:text-kumo-strong bg-kumo-control hover:bg-kumo-elevated border border-kumo-hairline transition-colors flex items-center gap-1.5 cursor-pointer self-start sm:self-auto shrink-0 shadow-2xs"
                 >
                   {copiedKey === "native" ? (
                     <>
@@ -919,28 +919,28 @@ export function SettingsView() {
               {/* Row 3: API Specification Parameters */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-1">
                 <div className="p-3.5 rounded-xl bg-kumo-control border border-kumo-hairline">
-                  <span className="text-[11px] text-kumo-subtle uppercase tracking-wider font-semibold font-mono block">
+                  <span className="text-xs text-kumo-subtle uppercase tracking-wider font-semibold font-mono block">
                     Authentication Scheme
                   </span>
-                  <span className="text-[13px] sm:text-[14px] font-mono font-semibold text-kumo-strong mt-1.5 block">
+                  <span className="text-sm font-mono font-semibold text-kumo-strong mt-1.5 block">
                     Bearer em_live_...
                   </span>
                 </div>
 
                 <div className="p-3.5 rounded-xl bg-kumo-control border border-kumo-hairline">
-                  <span className="text-[11px] text-kumo-subtle uppercase tracking-wider font-semibold font-mono block">
+                  <span className="text-xs text-kumo-subtle uppercase tracking-wider font-semibold font-mono block">
                     Default Rate Limit
                   </span>
-                  <span className="text-[13px] sm:text-[14px] font-mono font-semibold text-kumo-strong mt-1.5 block">
+                  <span className="text-sm font-mono font-semibold text-kumo-strong mt-1.5 block">
                     10,000 req / hour
                   </span>
                 </div>
 
                 <div className="p-3.5 rounded-xl bg-kumo-control border border-kumo-hairline">
-                  <span className="text-[11px] text-kumo-subtle uppercase tracking-wider font-semibold font-mono block">
+                  <span className="text-xs text-kumo-subtle uppercase tracking-wider font-semibold font-mono block">
                     JWT Session Expiry
                   </span>
-                  <span className="text-[13px] sm:text-[14px] font-mono font-semibold text-kumo-strong mt-1.5 block">
+                  <span className="text-sm font-mono font-semibold text-kumo-strong mt-1.5 block">
                     7 Days (Rolling)
                   </span>
                 </div>
@@ -955,10 +955,10 @@ export function SettingsView() {
                 <PaintBrush size={18} weight="bold" />
               </div>
               <div>
-                <h3 className="text-[15px] sm:text-[16px] font-semibold text-kumo-strong leading-tight">
+                <h3 className="text-base font-semibold text-kumo-strong leading-tight">
                   Appearance Preference
                 </h3>
-                <p className="text-[12px] sm:text-[13px] text-kumo-subtle mt-0.5 leading-normal">
+                <p className="text-xs sm:text-sm text-kumo-subtle mt-0.5 leading-normal">
                   Toggle between Cloudflare Pitch-Black Dark Mode and Crisp Light Mode
                 </p>
               </div>
@@ -975,17 +975,17 @@ export function SettingsView() {
                 }`}
               >
                 <div className="flex items-center justify-between mb-3">
-                  <div className="w-8 h-8 rounded-lg bg-[#0C0C0C] border border-[#1E1E1E] flex items-center justify-center text-[#E5E5E5] shadow-2xs">
+                  <div className="w-8 h-8 rounded-lg bg-neutral-900 border border-neutral-800 flex items-center justify-center text-neutral-200 shadow-2xs">
                     <Moon size={16} weight="bold" />
                   </div>
                   {themeMode === "dark" && (
-                    <span className="w-5 h-5 rounded-full bg-cf-orange text-white flex items-center justify-center text-[10px] shadow-2xs">
+                    <span className="w-5 h-5 rounded-full bg-cf-orange text-white flex items-center justify-center text-xs shadow-2xs">
                       <Check size={12} weight="bold" />
                     </span>
                   )}
                 </div>
-                <span className="text-[13px] sm:text-[14px] font-semibold text-kumo-strong block">Dark Mode</span>
-                <span className="text-[12px] text-kumo-subtle block mt-1 leading-normal">
+                <span className="text-sm font-semibold text-kumo-strong block">Dark Mode</span>
+                <span className="text-xs text-kumo-subtle block mt-1 leading-normal">
                   Pitch black canvas (#050505) with dark charcoal cards
                 </span>
               </button>
@@ -1000,17 +1000,17 @@ export function SettingsView() {
                 }`}
               >
                 <div className="flex items-center justify-between mb-3">
-                  <div className="w-8 h-8 rounded-lg bg-[#FFFFFF] border border-[#E5E5E5] flex items-center justify-center text-[#111111] shadow-2xs">
+                  <div className="w-8 h-8 rounded-lg bg-white border border-neutral-200 flex items-center justify-center text-neutral-900 shadow-2xs">
                     <Sun size={16} weight="bold" />
                   </div>
                   {themeMode === "light" && (
-                    <span className="w-5 h-5 rounded-full bg-cf-orange text-white flex items-center justify-center text-[10px] shadow-2xs">
+                    <span className="w-5 h-5 rounded-full bg-cf-orange text-white flex items-center justify-center text-xs shadow-2xs">
                       <Check size={12} weight="bold" />
                     </span>
                   )}
                 </div>
-                <span className="text-[13px] sm:text-[14px] font-semibold text-kumo-strong block">Light Mode</span>
-                <span className="text-[12px] text-kumo-subtle block mt-1 leading-normal">
+                <span className="text-sm font-semibold text-kumo-strong block">Light Mode</span>
+                <span className="text-xs text-kumo-subtle block mt-1 leading-normal">
                   Crisp off-white canvas (#FBFBFB) with pure white cards
                 </span>
               </button>
@@ -1029,13 +1029,13 @@ export function SettingsView() {
                     <Desktop size={16} weight="bold" />
                   </div>
                   {themeMode === "system" && (
-                    <span className="w-5 h-5 rounded-full bg-cf-orange text-white flex items-center justify-center text-[10px] shadow-2xs">
+                    <span className="w-5 h-5 rounded-full bg-cf-orange text-white flex items-center justify-center text-xs shadow-2xs">
                       <Check size={12} weight="bold" />
                     </span>
                   )}
                 </div>
-                <span className="text-[13px] sm:text-[14px] font-semibold text-kumo-strong block">System Preference</span>
-                <span className="text-[12px] text-kumo-subtle block mt-1 leading-normal">
+                <span className="text-sm font-semibold text-kumo-strong block">System Preference</span>
+                <span className="text-xs text-kumo-subtle block mt-1 leading-normal">
                   Automatically synchronize with OS color scheme
                 </span>
               </button>
@@ -1050,10 +1050,10 @@ export function SettingsView() {
                   <RocketLaunch size={18} weight="bold" />
                 </div>
                 <div>
-                  <h3 className="text-[15px] sm:text-[16px] font-semibold text-kumo-strong leading-tight">
+                  <h3 className="text-base font-semibold text-kumo-strong leading-tight">
                     System Version & Updates
                   </h3>
-                  <p className="text-[12px] sm:text-[13px] text-kumo-subtle mt-0.5 leading-normal">
+                  <p className="text-xs sm:text-sm text-kumo-subtle mt-0.5 leading-normal">
                     Self-hosted release telemetry, semver comparison, and Docker upgrade pipeline
                   </p>
                 </div>
@@ -1063,7 +1063,7 @@ export function SettingsView() {
                   type="button"
                   onClick={() => refresh(true)}
                   disabled={isChecking}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[13px] font-medium text-kumo-default hover:text-kumo-strong hover:bg-kumo-elevated border border-kumo-hairline transition-colors cursor-pointer disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-medium text-kumo-default hover:text-kumo-strong hover:bg-kumo-elevated border border-kumo-hairline transition-colors cursor-pointer disabled:opacity-50"
                 >
                   <ArrowsClockwise
                     size={14}
@@ -1074,7 +1074,7 @@ export function SettingsView() {
                 <button
                   type="button"
                   onClick={() => setIsUpgradeModalOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[13px] font-medium bg-cf-orange text-white hover:bg-cf-orange-hover transition-colors shadow-xs cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-medium bg-cf-orange text-white hover:bg-cf-orange-hover transition-colors shadow-xs cursor-pointer"
                 >
                   <span>View Changelog</span>
                 </button>
@@ -1083,24 +1083,24 @@ export function SettingsView() {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-1">
               <div className="p-4 rounded-xl bg-kumo-recessed border border-kumo-hairline">
-                <span className="text-[11px] sm:text-[12px] text-kumo-subtle block uppercase tracking-wider font-semibold font-mono">
+                <span className="text-xs text-kumo-subtle block uppercase tracking-wider font-semibold font-mono">
                   Installed Version
                 </span>
-                <span className="text-[14px] sm:text-[15px] font-mono font-semibold text-kumo-strong mt-1 block">
+                <span className="text-sm sm:text-base font-mono font-semibold text-kumo-strong mt-1 block">
                   v{versionData?.currentVersion || "1.0.0"}
                 </span>
               </div>
 
               <div className="p-4 rounded-xl bg-kumo-recessed border border-kumo-hairline">
-                <span className="text-[11px] sm:text-[12px] text-kumo-subtle block uppercase tracking-wider font-semibold font-mono">
+                <span className="text-xs text-kumo-subtle block uppercase tracking-wider font-semibold font-mono">
                   Latest GitHub Release
                 </span>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="text-[14px] sm:text-[15px] font-mono font-semibold text-kumo-strong">
+                  <span className="text-sm sm:text-base font-mono font-semibold text-kumo-strong">
                     v{versionData?.latestVersion || "1.0.0"}
                   </span>
                   {versionData?.isUpdateAvailable && (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-cf-orange-tint text-cf-orange border border-cf-orange-border/40 font-mono">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-cf-orange-tint text-cf-orange border border-cf-orange-border/40 font-mono">
                       <span className="w-1.5 h-1.5 rounded-full bg-cf-orange animate-pulse" />
                       Update Available
                     </span>
@@ -1109,10 +1109,10 @@ export function SettingsView() {
               </div>
 
               <div className="p-4 rounded-xl bg-kumo-recessed border border-kumo-hairline">
-                <span className="text-[11px] sm:text-[12px] text-kumo-subtle block uppercase tracking-wider font-semibold font-mono">
+                <span className="text-xs text-kumo-subtle block uppercase tracking-wider font-semibold font-mono">
                   Last Telemetry Sync
                 </span>
-                <span className="text-[12px] sm:text-[13px] text-kumo-default mt-1 block font-mono">
+                <span className="text-xs sm:text-sm text-kumo-default mt-1 block font-mono">
                   {versionData?.checkedAt
                     ? new Date(versionData.checkedAt).toLocaleTimeString([], {
                         hour: "2-digit",
@@ -1132,8 +1132,8 @@ export function SettingsView() {
                 <Warning size={18} weight="bold" />
               </div>
               <div>
-                <h3 className="text-[15px] sm:text-[16px] font-semibold text-kumo-danger leading-tight">Danger Zone</h3>
-                <p className="text-[12px] sm:text-[13px] text-kumo-subtle mt-0.5 leading-normal">
+                <h3 className="text-base font-semibold text-kumo-danger leading-tight">Danger Zone</h3>
+                <p className="text-xs sm:text-sm text-kumo-subtle mt-0.5 leading-normal">
                   Destructive maintenance actions affecting queues and credentials
                 </p>
               </div>
@@ -1142,10 +1142,10 @@ export function SettingsView() {
             <div className="space-y-3.5 pt-1">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl bg-kumo-base border border-kumo-hairline">
                 <div>
-                  <span className="text-[13px] sm:text-[14px] font-semibold text-kumo-strong block">
+                  <span className="text-sm font-semibold text-kumo-strong block">
                     Purge Dead Letter Queue (DLQ)
                   </span>
-                  <span className="text-[12px] sm:text-[13px] text-kumo-subtle block mt-0.5 leading-normal">
+                  <span className="text-xs sm:text-sm text-kumo-subtle block mt-0.5 leading-normal">
                     Permanently purge failed transmission jobs from Redis without triggering retries.
                   </span>
                 </div>
@@ -1159,7 +1159,7 @@ export function SettingsView() {
                     });
                   }}
                   disabled={!isAdmin}
-                  className="px-3.5 py-1.5 rounded-lg text-[13px] font-medium text-kumo-danger hover:bg-kumo-danger-tint border border-kumo-danger/30 transition-colors shrink-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="px-3.5 py-1.5 rounded-lg text-sm font-medium text-kumo-danger hover:bg-kumo-danger-tint border border-kumo-danger/30 transition-colors shrink-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Purge Failed Jobs
                 </button>
@@ -1167,10 +1167,10 @@ export function SettingsView() {
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl bg-kumo-base border border-kumo-hairline">
                 <div>
-                  <span className="text-[13px] sm:text-[14px] font-semibold text-kumo-strong block">
+                  <span className="text-sm font-semibold text-kumo-strong block">
                     Invalidate Active Sessions
                   </span>
-                  <span className="text-[12px] sm:text-[13px] text-kumo-subtle block mt-0.5 leading-normal">
+                  <span className="text-xs sm:text-sm text-kumo-subtle block mt-0.5 leading-normal">
                     Invalidates active operator sessions and requires all users to re-authenticate.
                   </span>
                 </div>
@@ -1184,7 +1184,7 @@ export function SettingsView() {
                     });
                   }}
                   disabled={!isAdmin}
-                  className="px-3.5 py-1.5 rounded-lg text-[13px] font-medium text-kumo-danger hover:bg-kumo-danger-tint border border-kumo-danger/30 transition-colors shrink-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="px-3.5 py-1.5 rounded-lg text-sm font-medium text-kumo-danger hover:bg-kumo-danger-tint border border-kumo-danger/30 transition-colors shrink-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Rotate Sessions
                 </button>
@@ -1203,11 +1203,11 @@ export function SettingsView() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6 bg-kumo-base border border-kumo-hairline rounded-xl shadow-2xs">
             <div className="space-y-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[15px] sm:text-[16px] font-semibold text-kumo-strong">
+                <span className="text-base font-semibold text-kumo-strong">
                   Team Members & Role Access
                 </span>
               </div>
-              <p className="text-[13px] text-kumo-subtle max-w-xl leading-relaxed mt-1">
+              <p className="text-sm text-kumo-subtle max-w-xl leading-relaxed mt-1">
                 Only Administrators can provision users, assign roles, or reset credentials. A unique one-time password is generated for each account and shown once.
               </p>
             </div>
@@ -1219,13 +1219,13 @@ export function SettingsView() {
                   setFormError(null);
                   setIsAddModalOpen(true);
                 }}
-                className="btn-cf-primary flex items-center gap-2 self-start sm:self-auto shrink-0 shadow-xs cursor-pointer px-4 py-2 text-[13px] font-medium"
+                className="btn-cf-primary flex items-center gap-2 self-start sm:self-auto shrink-0 shadow-xs cursor-pointer px-4 py-2 text-sm font-medium"
               >
                 <UserPlus size={16} weight="bold" />
                 <span>Add Member</span>
               </button>
             ) : (
-              <div className="flex items-center gap-1.5 text-[12px] text-kumo-muted bg-kumo-elevated px-3 py-1.5 rounded-lg border border-kumo-hairline">
+              <div className="flex items-center gap-1.5 text-xs text-kumo-muted bg-kumo-elevated px-3 py-1.5 rounded-lg border border-kumo-hairline">
                 <Info size={15} />
                 <span>Admin required to add users</span>
               </div>
@@ -1241,12 +1241,12 @@ export function SettingsView() {
                   <div className="w-7 h-7 rounded-lg bg-cf-orange/10 border border-cf-orange/20 flex items-center justify-center text-cf-orange shrink-0">
                     <ShieldCheck size={16} weight="fill" />
                   </div>
-                  <span className="text-[14px] sm:text-[15px] font-semibold text-kumo-strong font-mono">
+                  <span className="text-sm sm:text-base font-semibold text-kumo-strong font-mono">
                     Admin
                   </span>
                 </div>
               </div>
-              <p className="text-[13px] text-kumo-subtle leading-relaxed">
+              <p className="text-sm text-kumo-subtle leading-relaxed">
                 Complete control over workspace parameters, team provisioning, domain verification, and API key management.
               </p>
             </div>
@@ -1258,12 +1258,12 @@ export function SettingsView() {
                   <div className="w-7 h-7 rounded-lg bg-cf-chart-blue/10 border border-cf-chart-blue/20 flex items-center justify-center text-cf-chart-blue shrink-0">
                     <User size={16} weight="bold" />
                   </div>
-                  <span className="text-[14px] sm:text-[15px] font-semibold text-kumo-strong font-mono">
+                  <span className="text-sm sm:text-base font-semibold text-kumo-strong font-mono">
                     Member
                   </span>
                 </div>
               </div>
-              <p className="text-[13px] text-kumo-subtle leading-relaxed">
+              <p className="text-sm text-kumo-subtle leading-relaxed">
                 Authorized to dispatch emails, configure mailboxes, inspect analytics, and create domain-scoped API keys.
               </p>
             </div>
@@ -1275,12 +1275,12 @@ export function SettingsView() {
                   <div className="w-7 h-7 rounded-lg bg-kumo-elevated border border-kumo-hairline flex items-center justify-center text-kumo-subtle shrink-0">
                     <IdentificationCard size={16} weight="bold" />
                   </div>
-                  <span className="text-[14px] sm:text-[15px] font-semibold text-kumo-strong font-mono">
+                  <span className="text-sm sm:text-base font-semibold text-kumo-strong font-mono">
                     Viewer
                   </span>
                 </div>
               </div>
-              <p className="text-[13px] text-kumo-subtle leading-relaxed">
+              <p className="text-sm text-kumo-subtle leading-relaxed">
                 Read-only observability over delivery telemetry, inbound logs, and domain health without write permissions.
               </p>
             </div>
@@ -1290,7 +1290,7 @@ export function SettingsView() {
           <div className="bg-kumo-base border border-kumo-hairline rounded-xl overflow-hidden shadow-2xs">
             <div className="p-4 sm:p-4.5 border-b border-kumo-hairline flex items-center justify-between">
               <div>
-                <h3 className="text-[12px] sm:text-[13px] font-semibold text-kumo-strong uppercase tracking-wider font-mono">
+                <h3 className="text-xs sm:text-sm font-semibold text-kumo-strong uppercase tracking-wider font-mono">
                   Active Team Members ({teamMembers.length})
                 </h3>
               </div>
@@ -1298,7 +1298,7 @@ export function SettingsView() {
                 type="button"
                 onClick={loadTeamMembers}
                 disabled={isLoadingTeam}
-                className="text-[12px] text-kumo-subtle hover:text-kumo-strong flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-kumo-elevated border border-transparent hover:border-kumo-hairline transition-colors cursor-pointer"
+                className="text-xs text-kumo-subtle hover:text-kumo-strong flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-kumo-elevated border border-transparent hover:border-kumo-hairline transition-colors cursor-pointer"
                 title="Refresh team roster"
               >
                 <ArrowsClockwise size={14} className={isLoadingTeam ? "animate-spin" : ""} />
@@ -1315,7 +1315,7 @@ export function SettingsView() {
               <div className="p-12 text-center space-y-2">
                 <Users size={32} className="text-kumo-muted mx-auto" />
                 <p className="text-xs text-kumo-strong font-medium">No team members found</p>
-                <p className="text-[11px] text-kumo-subtle">Provision team members to grant workspace access.</p>
+                <p className="text-xs text-kumo-subtle">Provision team members to grant workspace access.</p>
               </div>
             ) : (
               <div className="divide-y divide-kumo-hairline">
@@ -1344,17 +1344,17 @@ export function SettingsView() {
 
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-[13px] sm:text-[14px] font-semibold text-kumo-strong truncate">
+                            <span className="text-sm font-semibold text-kumo-strong truncate">
                               {member.fullName || member.username}
                             </span>
                             {isSelf && (
-                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cf-orange/10 text-cf-orange border border-cf-orange/20 font-medium">
+                              <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-cf-orange/10 text-cf-orange border border-cf-orange/20 font-medium">
                                 You
                               </span>
                             )}
                             {displayRole !== "ADMIN" && !isMainAdmin && (
                               <span
-                                className={`text-[11px] font-mono font-medium px-2 py-0.5 rounded-full tracking-wide uppercase ${
+                                className={`text-xs font-mono font-medium px-2 py-0.5 rounded-full tracking-wide uppercase ${
                                   displayRole === "MEMBER"
                                     ? "bg-cf-chart-blue/10 text-cf-chart-blue border border-cf-chart-blue/20"
                                     : "bg-kumo-elevated text-kumo-subtle border border-kumo-hairline"
@@ -1365,9 +1365,9 @@ export function SettingsView() {
                             )}
                           </div>
 
-                          <div className="flex items-center gap-2.5 text-[12px] text-kumo-subtle mt-1 font-mono">
+                          <div className="flex items-center gap-2.5 text-xs text-kumo-subtle mt-1 font-mono">
                             <span className="truncate">{member.email || "No email assigned"}</span>
-                            <span className="text-kumo-muted text-[10px]">•</span>
+                            <span className="text-kumo-muted text-xs">•</span>
                             <span className="text-kumo-muted">@{member.username}</span>
                           </div>
                         </div>
@@ -1378,7 +1378,7 @@ export function SettingsView() {
                         {/* First-login flag */}
                         {member.mustChangePassword && (
                           <span
-                            className="inline-flex items-center gap-1.5 text-[11px] font-mono font-medium text-cf-amber bg-cf-amber/10 border border-cf-amber/20 px-2.5 py-0.5 rounded-full"
+                            className="inline-flex items-center gap-1.5 text-xs font-mono font-medium text-cf-amber bg-cf-amber/10 border border-cf-amber/20 px-2.5 py-0.5 rounded-full"
                             title="User must change default password on first login"
                           >
                             <span className="w-1.5 h-1.5 rounded-full bg-cf-amber" />
@@ -1397,7 +1397,7 @@ export function SettingsView() {
                                   setRoleChangeTarget(member);
                                   setSelectedRole(member.role);
                                 }}
-                                className="px-2.5 py-1 text-[12px] font-medium rounded-lg text-kumo-default hover:text-kumo-strong bg-kumo-elevated hover:bg-kumo-line/40 border border-kumo-hairline transition-colors cursor-pointer shadow-2xs"
+                                className="px-2.5 py-1 text-xs font-medium rounded-lg text-kumo-default hover:text-kumo-strong bg-kumo-elevated hover:bg-kumo-line/40 border border-kumo-hairline transition-colors cursor-pointer shadow-2xs"
                                 title="Modify Role"
                               >
                                 Role
@@ -1408,7 +1408,7 @@ export function SettingsView() {
                             <button
                               type="button"
                               onClick={() => setResetTargetUser(member)}
-                              className="px-2.5 py-1 text-[12px] font-medium rounded-lg text-kumo-default hover:text-cf-orange bg-kumo-elevated hover:bg-kumo-line/40 border border-kumo-hairline transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                              className="px-2.5 py-1 text-xs font-medium rounded-lg text-kumo-default hover:text-cf-orange bg-kumo-elevated hover:bg-kumo-line/40 border border-kumo-hairline transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
                               title="Generate a one-time password"
                             >
                               <Key size={13} />
@@ -1456,8 +1456,8 @@ export function SettingsView() {
                   <UserPlus size={18} weight="bold" />
                 </div>
                 <div>
-                  <h3 className="text-[16px] sm:text-[17px] font-semibold text-kumo-strong">Provision Team Member</h3>
-                  <p className="text-[12px] sm:text-[13px] text-kumo-subtle mt-0.5 leading-normal">
+                  <h3 className="text-base sm:text-lg font-semibold text-kumo-strong">Provision Team Member</h3>
+                  <p className="text-xs sm:text-sm text-kumo-subtle mt-0.5 leading-normal">
                     Add an operator to your EmitMail workspace and assign their permission role.
                   </p>
                 </div>
@@ -1473,7 +1473,7 @@ export function SettingsView() {
 
             {/* Error Banner */}
             {formError && (
-              <div className="p-3.5 rounded-xl bg-kumo-danger-tint border border-kumo-danger/20 text-kumo-danger text-[12px] sm:text-[13px] flex items-center gap-2.5 animate-in fade-in duration-100">
+              <div className="p-3.5 rounded-xl bg-kumo-danger-tint border border-kumo-danger/20 text-kumo-danger text-xs sm:text-sm flex items-center gap-2.5 animate-in fade-in duration-100">
                 <Warning size={16} weight="fill" className="shrink-0" />
                 <span>{formError}</span>
               </div>
@@ -1498,14 +1498,14 @@ export function SettingsView() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[13px] sm:text-[14px] font-semibold text-kumo-strong truncate">
+                    <span className="text-sm font-semibold text-kumo-strong truncate">
                       {newFullName.trim() || "New Member"}
                     </span>
-                    <span className="text-[11px] font-mono text-cf-orange bg-cf-orange/10 px-2 py-0.5 rounded-full border border-cf-orange/20 font-medium">
+                    <span className="text-xs font-mono text-cf-orange bg-cf-orange/10 px-2 py-0.5 rounded-full border border-cf-orange/20 font-medium">
                       {newRole}
                     </span>
                   </div>
-                  <span className="text-[12px] text-kumo-subtle font-mono truncate block mt-0.5">
+                  <span className="text-xs text-kumo-subtle font-mono truncate block mt-0.5">
                     Default profile picture generated via Facehash.dev
                   </span>
                 </div>
@@ -1513,7 +1513,7 @@ export function SettingsView() {
 
               {/* Full Name */}
               <div className="space-y-1.5">
-                <label className="text-[13px] font-medium text-kumo-strong flex items-center gap-1.5">
+                <label className="text-sm font-medium text-kumo-strong flex items-center gap-1.5">
                   <IdentificationCard size={15} className="text-kumo-muted" />
                   <span>Full Name</span>
                   <span className="text-cf-orange">*</span>
@@ -1524,13 +1524,13 @@ export function SettingsView() {
                   value={newFullName}
                   onChange={(e) => setNewFullName(e.target.value)}
                   placeholder="e.g. Alex Henderson"
-                  className="w-full h-10 bg-kumo-control border border-kumo-line hover:border-kumo-line-hover focus:border-cf-orange text-kumo-strong rounded-lg px-3.5 py-2 text-[13px] sm:text-[14px] focus:outline-none focus:ring-1 focus:ring-cf-orange transition-all placeholder:text-kumo-muted"
+                  className="w-full h-10 bg-kumo-control border border-kumo-line hover:border-kumo-line-hover focus:border-cf-orange text-kumo-strong rounded-lg px-3.5 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-cf-orange transition-all placeholder:text-kumo-muted"
                 />
               </div>
 
               {/* Email Address */}
               <div className="space-y-1.5">
-                <label className="text-[13px] font-medium text-kumo-strong flex items-center gap-1.5">
+                <label className="text-sm font-medium text-kumo-strong flex items-center gap-1.5">
                   <EnvelopeSimple size={15} className="text-kumo-muted" />
                   <span>Email Address</span>
                   <span className="text-cf-orange">*</span>
@@ -1541,31 +1541,31 @@ export function SettingsView() {
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
                   placeholder="alex@company.com"
-                  className="w-full h-10 bg-kumo-control border border-kumo-line hover:border-kumo-line-hover focus:border-cf-orange text-kumo-strong rounded-lg px-3.5 py-2 text-[13px] sm:text-[14px] focus:outline-none focus:ring-1 focus:ring-cf-orange transition-all placeholder:text-kumo-muted font-mono"
+                  className="w-full h-10 bg-kumo-control border border-kumo-line hover:border-kumo-line-hover focus:border-cf-orange text-kumo-strong rounded-lg px-3.5 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-cf-orange transition-all placeholder:text-kumo-muted font-mono"
                 />
               </div>
 
               {/* Optional Custom Username */}
               <div className="space-y-1.5">
-                <label className="text-[13px] font-medium text-kumo-strong flex items-center justify-between">
+                <label className="text-sm font-medium text-kumo-strong flex items-center justify-between">
                   <span className="flex items-center gap-1.5">
                     <User size={15} className="text-kumo-muted" />
                     <span>Username</span>
                   </span>
-                  <span className="text-[11px] text-kumo-muted font-mono">Optional (auto-derived)</span>
+                  <span className="text-xs text-kumo-muted font-mono">Optional (auto-derived)</span>
                 </label>
                 <input
                   type="text"
                   value={newUsername}
                   onChange={(e) => setNewUsername(e.target.value)}
                   placeholder="e.g. ahenderson"
-                  className="w-full h-10 bg-kumo-control border border-kumo-line hover:border-kumo-line-hover focus:border-cf-orange text-kumo-strong rounded-lg px-3.5 py-2 text-[13px] sm:text-[14px] focus:outline-none focus:ring-1 focus:ring-cf-orange transition-all placeholder:text-kumo-muted font-mono"
+                  className="w-full h-10 bg-kumo-control border border-kumo-line hover:border-kumo-line-hover focus:border-cf-orange text-kumo-strong rounded-lg px-3.5 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-cf-orange transition-all placeholder:text-kumo-muted font-mono"
                 />
               </div>
 
               {/* Role Selection */}
               <div className="space-y-2">
-                <label className="text-[13px] font-medium text-kumo-strong flex items-center gap-1.5">
+                <label className="text-sm font-medium text-kumo-strong flex items-center gap-1.5">
                   <ShieldCheck size={15} className="text-kumo-muted" />
                   <span>Permission Role</span>
                 </label>
@@ -1586,7 +1586,7 @@ export function SettingsView() {
                       >
                         <div className="flex items-center justify-between mb-1">
                           <span
-                            className={`text-[12px] sm:text-[13px] font-semibold font-mono ${
+                            className={`text-xs sm:text-sm font-semibold font-mono ${
                               isSelected ? "text-cf-orange" : "text-kumo-default"
                             }`}
                           >
@@ -1594,7 +1594,7 @@ export function SettingsView() {
                           </span>
                           {isSelected && <Check size={13} weight="bold" className="text-cf-orange" />}
                         </div>
-                        <span className="text-[11px] text-kumo-muted block leading-normal">
+                        <span className="text-xs text-kumo-muted block leading-normal">
                           {roleOption === "ADMIN"
                             ? "Full workspace control"
                             : roleOption === "MEMBER"
@@ -1608,7 +1608,7 @@ export function SettingsView() {
               </div>
 
               {/* Default Password Notice */}
-              <div className="p-3.5 rounded-xl bg-kumo-elevated border border-kumo-hairline text-[12px] sm:text-[13px] text-kumo-subtle flex items-start gap-2.5">
+              <div className="p-3.5 rounded-xl bg-kumo-elevated border border-kumo-hairline text-xs sm:text-sm text-kumo-subtle flex items-start gap-2.5">
                 <Info size={16} className="text-cf-orange shrink-0 mt-0.5" />
                 <div className="space-y-0.5 leading-normal">
                   <p className="font-semibold text-kumo-strong">One-Time Initial Password</p>
@@ -1621,14 +1621,14 @@ export function SettingsView() {
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2 rounded-lg text-[13px] font-medium text-kumo-default hover:bg-kumo-tint transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-lg text-sm font-medium text-kumo-default hover:bg-kumo-tint transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingUser}
-                  className="btn-cf-primary flex items-center gap-2 px-4 py-2 text-[13px] font-medium cursor-pointer shadow-xs"
+                  className="btn-cf-primary flex items-center gap-2 px-4 py-2 text-sm font-medium cursor-pointer shadow-xs"
                 >
                   {isSubmittingUser ? (
                     <>
@@ -1656,8 +1656,8 @@ export function SettingsView() {
           <div className="bg-kumo-base border border-kumo-hairline rounded-2xl w-full max-w-md shadow-2xl p-6 relative animate-in zoom-in-95 duration-150 space-y-5">
             <div className="flex items-center justify-between pb-3.5 border-b border-kumo-hairline">
               <div>
-                <h3 className="text-[16px] sm:text-[17px] font-semibold text-kumo-strong">Modify Permission Role</h3>
-                <p className="text-[12px] sm:text-[13px] text-kumo-subtle mt-0.5 leading-normal">
+                <h3 className="text-base sm:text-lg font-semibold text-kumo-strong">Modify Permission Role</h3>
+                <p className="text-xs sm:text-sm text-kumo-subtle mt-0.5 leading-normal">
                   Update role for{" "}
                   <span className="font-semibold text-kumo-strong font-mono">
                     @{roleChangeTarget.username}
@@ -1690,19 +1690,19 @@ export function SettingsView() {
                     <div>
                       <div className="flex items-center gap-2">
                         <span
-                          className={`text-[13px] font-semibold font-mono ${
+                          className={`text-sm font-semibold font-mono ${
                             isSelected ? "text-cf-orange" : "text-kumo-strong"
                           }`}
                         >
                           {roleOption}
                         </span>
                         {roleOption === "ADMIN" && (
-                          <span className="text-[10px] bg-cf-orange/10 text-cf-orange px-2 py-0.5 rounded-full font-mono font-medium border border-cf-orange/20">
+                          <span className="text-xs bg-cf-orange/10 text-cf-orange px-2 py-0.5 rounded-full font-mono font-medium border border-cf-orange/20">
                             Full Control
                           </span>
                         )}
                       </div>
-                      <p className="text-[12px] text-kumo-subtle mt-1 leading-normal">
+                      <p className="text-xs text-kumo-subtle mt-1 leading-normal">
                         {roleOption === "ADMIN"
                           ? "Full workspace settings & user administration privileges."
                           : roleOption === "MEMBER"
@@ -1724,7 +1724,7 @@ export function SettingsView() {
               <button
                 type="button"
                 onClick={() => setRoleChangeTarget(null)}
-                className="px-4 py-2 rounded-lg text-[13px] font-medium text-kumo-default hover:bg-kumo-tint cursor-pointer"
+                className="px-4 py-2 rounded-lg text-sm font-medium text-kumo-default hover:bg-kumo-tint cursor-pointer"
               >
                 Cancel
               </button>
@@ -1732,7 +1732,7 @@ export function SettingsView() {
                 type="button"
                 onClick={handleConfirmRoleUpdate}
                 disabled={isUpdatingRole}
-                className="btn-cf-primary flex items-center gap-2 px-4 py-2 text-[13px] font-medium cursor-pointer shadow-xs"
+                className="btn-cf-primary flex items-center gap-2 px-4 py-2 text-sm font-medium cursor-pointer shadow-xs"
               >
                 {isUpdatingRole ? (
                   <>
@@ -1759,8 +1759,8 @@ export function SettingsView() {
             </div>
 
             <div className="text-center space-y-1">
-              <h3 className="text-[16px] sm:text-[17px] font-semibold text-kumo-strong">Reset Password</h3>
-              <p className="text-[13px] text-kumo-subtle leading-normal">
+              <h3 className="text-base sm:text-lg font-semibold text-kumo-strong">Reset Password</h3>
+              <p className="text-sm text-kumo-subtle leading-normal">
                 Are you sure you want to reset the password for{" "}
                 <span className="font-semibold text-kumo-strong font-mono">
                   {resetTargetUser.fullName || resetTargetUser.username}
@@ -1769,7 +1769,7 @@ export function SettingsView() {
               </p>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-kumo-elevated border border-kumo-hairline text-[12px] sm:text-[13px] text-kumo-subtle text-center leading-normal">
+            <div className="p-3.5 rounded-xl bg-kumo-elevated border border-kumo-hairline text-xs sm:text-sm text-kumo-subtle text-center leading-normal">
               A new one-time password will be generated and shown once. The user must change it after signing in.
             </div>
 
@@ -1777,7 +1777,7 @@ export function SettingsView() {
               <button
                 type="button"
                 onClick={() => setResetTargetUser(null)}
-                className="px-4 py-2 rounded-lg text-[13px] font-medium text-kumo-default hover:bg-kumo-tint cursor-pointer"
+                className="px-4 py-2 rounded-lg text-sm font-medium text-kumo-default hover:bg-kumo-tint cursor-pointer"
               >
                 Cancel
               </button>
@@ -1785,7 +1785,7 @@ export function SettingsView() {
                 type="button"
                 onClick={handleConfirmResetPassword}
                 disabled={isResetting}
-                className="btn-cf-primary flex items-center gap-2 px-4 py-2 text-[13px] font-medium cursor-pointer shadow-xs"
+                className="btn-cf-primary flex items-center gap-2 px-4 py-2 text-sm font-medium cursor-pointer shadow-xs"
               >
                 {isResetting ? (
                   <>
@@ -1812,8 +1812,8 @@ export function SettingsView() {
             </div>
 
             <div className="text-center space-y-1">
-              <h3 className="text-[16px] sm:text-[17px] font-semibold text-kumo-danger">Delete User Account</h3>
-              <p className="text-[13px] text-kumo-subtle leading-normal">
+              <h3 className="text-base sm:text-lg font-semibold text-kumo-danger">Delete User Account</h3>
+              <p className="text-sm text-kumo-subtle leading-normal">
                 Are you sure you want to remove{" "}
                 <span className="font-semibold text-kumo-strong font-mono">
                   @{deleteTargetUser.username}
@@ -1822,7 +1822,7 @@ export function SettingsView() {
               </p>
             </div>
 
-            <p className="text-[12px] text-kumo-muted text-center leading-normal">
+            <p className="text-xs text-kumo-muted text-center leading-normal">
               This action cannot be undone. Active sessions and credentials belonging to this operator will immediately be terminated.
             </p>
 
@@ -1830,7 +1830,7 @@ export function SettingsView() {
               <button
                 type="button"
                 onClick={() => setDeleteTargetUser(null)}
-                className="px-4 py-2 rounded-lg text-[13px] font-medium text-kumo-default hover:bg-kumo-tint cursor-pointer"
+                className="px-4 py-2 rounded-lg text-sm font-medium text-kumo-default hover:bg-kumo-tint cursor-pointer"
               >
                 Cancel
               </button>
@@ -1838,7 +1838,7 @@ export function SettingsView() {
                 type="button"
                 onClick={handleConfirmDeleteUser}
                 disabled={isDeleting}
-                className="px-4 py-2 rounded-lg text-[13px] font-medium bg-kumo-danger hover:bg-kumo-danger/90 text-white shadow-xs transition-all flex items-center gap-2 cursor-pointer"
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-kumo-danger hover:bg-kumo-danger/90 text-white shadow-xs transition-all flex items-center gap-2 cursor-pointer"
               >
                 {isDeleting ? (
                   <>

@@ -354,7 +354,7 @@ export function MailboxEmailsView({ mailboxId }: MailboxEmailsViewProps) {
               {mailbox?.emailAddress || "Mailbox"}
             </h1>
             {totalUnreadCount > 0 && (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#0066FF] text-white">
+              <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-cf-blue text-white">
                 {totalUnreadCount} unread
               </span>
             )}
@@ -404,7 +404,7 @@ export function MailboxEmailsView({ mailboxId }: MailboxEmailsViewProps) {
                 <span className="font-semibold text-kumo-strong block text-xs">
                   Inbound MX Configuration Required for {domain.domainName}
                 </span>
-                <span className="text-kumo-subtle text-[11px]">
+                <span className="text-kumo-subtle text-xs">
                   Add this root-domain MX record to your DNS provider to begin receiving emails.
                 </span>
               </div>
@@ -441,13 +441,13 @@ export function MailboxEmailsView({ mailboxId }: MailboxEmailsViewProps) {
             </div>
 
             {/* Record Pill Spec */}
-            <div className="bg-kumo-control border border-kumo-line rounded-lg p-2.5 grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono text-[11px]">
+            <div className="bg-kumo-control border border-kumo-line rounded-lg p-2.5 grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono text-xs">
               <div>
-                <span className="text-[10px] text-kumo-subtle font-sans block">Type</span>
+                <span className="text-xs text-kumo-subtle font-sans block">Type</span>
                 <span className="font-semibold text-cf-orange">MX</span>
               </div>
               <div>
-                <span className="text-[10px] text-kumo-subtle font-sans block">Host</span>
+                <span className="text-xs text-kumo-subtle font-sans block">Host</span>
                 <div className="flex items-center gap-1">
                   <span>@</span>
                   <button
@@ -461,7 +461,7 @@ export function MailboxEmailsView({ mailboxId }: MailboxEmailsViewProps) {
                 </div>
               </div>
               <div>
-                <span className="text-[10px] text-kumo-subtle font-sans block">Target Value</span>
+                <span className="text-xs text-kumo-subtle font-sans block">Target Value</span>
                 <div className="flex items-center gap-1">
                   <span className="truncate">{domain.requiredMxRecord?.value || domain.mxHost || (domain.domainName ? `mail.${domain.domainName}` : "mail.yourdomain.com")}</span>
                   <button
@@ -475,7 +475,7 @@ export function MailboxEmailsView({ mailboxId }: MailboxEmailsViewProps) {
                 </div>
               </div>
               <div>
-                <span className="text-[10px] text-kumo-subtle font-sans block">Priority</span>
+                <span className="text-xs text-kumo-subtle font-sans block">Priority</span>
                 <span className="font-semibold text-kumo-strong">{domain.requiredMxRecord?.priority || domain.mxPriority || 10}</span>
               </div>
             </div>
@@ -629,7 +629,7 @@ export function MailboxEmailsView({ mailboxId }: MailboxEmailsViewProps) {
                   onClick={() => router.push(`/inbox/${mailboxId}/${item.id}`)}
                   className={`flex items-center justify-between gap-3 px-4 py-3.5 transition-colors cursor-pointer group select-none relative ${
                     !item.isRead
-                      ? "bg-kumo-base hover:bg-kumo-tint/60 border-l-2 border-l-[#0066FF]"
+                      ? "bg-kumo-base hover:bg-kumo-tint/60 border-l-2 border-l-cf-blue"
                       : "bg-kumo-base/40 hover:bg-kumo-tint/60 border-l-2 border-l-transparent text-kumo-subtle"
                   } ${isSelected ? "bg-cf-blue/5" : ""}`}
                 >
@@ -659,7 +659,7 @@ export function MailboxEmailsView({ mailboxId }: MailboxEmailsViewProps) {
                     {/* Unread Orange Dot */}
                     <span
                       className={`w-2 h-2 rounded-full shrink-0 ${
-                        !item.isRead ? "bg-[#0066FF]" : "bg-transparent"
+                        !item.isRead ? "bg-cf-blue" : "bg-transparent"
                       }`}
                     />
 
@@ -680,7 +680,7 @@ export function MailboxEmailsView({ mailboxId }: MailboxEmailsViewProps) {
                   {/* Middle: Subject Line + Snippet + Attachments */}
                   <div className="flex-1 min-w-0 flex items-baseline gap-1.5 truncate text-xs">
                     <span
-                      className={`truncate shrink-0 max-w-[280px] sm:max-w-[380px] md:max-w-[460px] ${
+                      className={`truncate shrink-0 max-w-70 sm:max-w-96 md:max-w-xl ${
                         !item.isRead
                           ? "font-semibold text-kumo-strong"
                           : "font-normal text-kumo-default"
