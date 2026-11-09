@@ -67,7 +67,6 @@ export function OnboardingModal({ isOpen, onClose, onCompleted }: OnboardingModa
               res.config.mailServerHostname &&
               !res.config.mailServerHostname.includes("yourdomain.com") &&
               !res.config.mailServerHostname.includes("example.com") &&
-              !res.config.mailServerHostname.includes("omkarbhosale.dev") &&
               res.config.mailServerHostname !== "localhost"
             ) {
               setMailHostname(res.config.mailServerHostname);

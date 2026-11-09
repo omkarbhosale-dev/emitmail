@@ -4,7 +4,7 @@
   /* Use installed system fonts so production builds never depend on Google Fonts. */
   --font-bricolage: "Arial", "Helvetica Neue", sans-serif;
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  
+
   /* Surfaces & Backgrounds */
   --color-kumo-canvas: var(--kumo-canvas);
   --color-kumo-base: var(--kumo-base);
@@ -13,13 +13,13 @@
   --color-kumo-tint: var(--kumo-tint);
   --color-kumo-control: var(--kumo-control);
   --color-kumo-interact: var(--kumo-interact);
-  
+
   /* Typography & Foreground */
   --color-kumo-strong: var(--kumo-strong);
   --color-kumo-default: var(--kumo-default);
   --color-kumo-subtle: var(--kumo-subtle);
   --color-kumo-muted: var(--kumo-muted);
-  
+
   /* Hairlines & Borders */
   --color-kumo-hairline: var(--kumo-hairline);
   --color-kumo-line: var(--kumo-line);
@@ -37,19 +37,21 @@
   --color-cf-orange-border: var(--cf-orange-border);
   --color-cf-chart-blue: var(--cf-chart-blue);
   --color-cf-success: var(--cf-success);
-  --color-cf-sidebar-active: var(--cf-sidebar-active);
-  --color-cf-banner-outer-bg: var(--cf-banner-outer-bg);
-  --color-cf-banner-outer-border: var(--cf-banner-outer-border);
 
   @keyframes skeleton {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
+    0% {
+      transform: translateX(-100%);
+    }
+
+    100% {
+      transform: translateX(100%);
+    }
   }
 }
 
 :root {
   color-scheme: dark;
-  
+
   /* EmitMail Surfaces (Default Dark Mode - Pitch Black & Charcoal) */
   --kumo-canvas: #050505;
   --kumo-base: #0C0C0C;
@@ -58,13 +60,13 @@
   --kumo-tint: #161616;
   --kumo-control: #0F0F0F;
   --kumo-interact: #262626;
-  
+
   /* Typography */
   --kumo-strong: #FFFFFF;
   --kumo-default: #E5E5E5;
   --kumo-subtle: #8E8E93;
   --kumo-muted: #52525B;
-  
+
   /* Borders */
   --kumo-hairline: #1E1E1E;
   --kumo-line: #262626;
@@ -94,7 +96,7 @@
 html[data-mode="light"],
 [data-mode="light"] {
   color-scheme: light;
-  
+
   /* EmitMail Surfaces (Light Mode) */
   --kumo-canvas: #FBFBFB;
   --kumo-base: #FFFFFF;
@@ -103,13 +105,13 @@ html[data-mode="light"],
   --kumo-tint: #F5F5F5;
   --kumo-control: #FFFFFF;
   --kumo-interact: #E4E4E7;
-  
+
   /* Typography (Light Mode) */
   --kumo-strong: #111111;
   --kumo-default: #1F1F1F;
   --kumo-subtle: #686868;
   --kumo-muted: #9CA3AF;
-  
+
   /* Borders (Light Mode) */
   --kumo-hairline: #E5E5E5;
   --kumo-line: #D4D4D8;
@@ -139,7 +141,7 @@ html[data-mode="light"],
 html[data-mode="dark"],
 [data-mode="dark"] {
   color-scheme: dark;
-  
+
   /* EmitMail Surfaces (Dark Mode - Pitch Black & Charcoal) */
   --kumo-canvas: #050505;
   --kumo-base: #0C0C0C;
@@ -148,13 +150,13 @@ html[data-mode="dark"],
   --kumo-tint: #161616;
   --kumo-control: #0F0F0F;
   --kumo-interact: #262626;
-  
+
   /* Typography (Dark Mode) */
   --kumo-strong: #FFFFFF;
   --kumo-default: #E5E5E5;
   --kumo-subtle: #8E8E93;
   --kumo-muted: #52525B;
-  
+
   /* Borders (Dark Mode) */
   --kumo-hairline: #1E1E1E;
   --kumo-line: #262626;
@@ -182,8 +184,10 @@ html[data-mode="dark"],
 }
 
 @layer base {
-  html, body {
-    @apply bg-kumo-canvas text-kumo-default antialiased selection:bg-cf-blue/20 selection:text-cf-blue;
+
+  html,
+  body {
+    @apply bg-kumo-canvas text-kumo-default antialiased selection:bg-[#0066FF]/20 selection:text-[#0066FF];
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 }
@@ -223,16 +227,20 @@ html[data-mode="dark"],
   cursor: pointer;
   user-select: none;
 }
+
 .btn-cf-primary:hover {
   background-color: var(--cf-blue-hover);
 }
+
 .btn-cf-primary:active {
   transform: scale(0.99);
 }
+
 .btn-cf-primary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
 .btn-cf-primary:focus-visible {
   outline: 2px solid var(--cf-blue);
   outline-offset: 1px;
@@ -255,17 +263,21 @@ html[data-mode="dark"],
   cursor: pointer;
   user-select: none;
 }
+
 .btn-cf-secondary:hover {
   background-color: var(--kumo-interact);
   border-color: var(--kumo-line);
 }
+
 .btn-cf-secondary:active {
   transform: scale(0.99);
 }
+
 .btn-cf-secondary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
 .btn-cf-secondary:focus-visible {
   outline: 2px solid var(--kumo-line);
   outline-offset: 1px;

@@ -59,7 +59,6 @@ export function OnboardingView() {
             res.config.mailServerHostname &&
             !res.config.mailServerHostname.includes("yourdomain.com") &&
             !res.config.mailServerHostname.includes("example.com") &&
-            !res.config.mailServerHostname.includes("omkarbhosale.dev") &&
             res.config.mailServerHostname !== "localhost"
           ) {
             setMailHostname(res.config.mailServerHostname);
@@ -289,17 +288,32 @@ export function OnboardingView() {
     });
   }, [toast]);
 
-  const handleFinish = () => {
+  const handleFinish = async () => {
     if (!isDomainConfirmed) {
       notifyDomainUnconfirmed();
       return;
     }
+
+    try {
+      const activeDomain = createdDomain?.domainName || domainName;
+      if (activeDomain) {
+        const cleanDom = activeDomain.trim().toLowerCase();
+        await api.serverConfig.update({
+          mailServerHostname: mailHostname || `mail.${cleanDom}`,
+          vpsPublicIpv4: vpsIp || "0.0.0.0",
+          spfIncludeDomain: spfDomain || `_spf.${cleanDom}`,
+        });
+      }
+    } catch (e) {
+      console.warn("Could not sync serverConfig on finish:", e);
+    }
+
     toast({
       title: "Setup Complete!",
       description: "Welcome to your EmitMail dashboard. You are ready to dispatch emails.",
       type: "success",
     });
-    router.replace("/");
+    window.location.assign("/");
   };
 
   const handleSignOut = () => {
