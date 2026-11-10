@@ -167,16 +167,16 @@ export class ServerConfigService {
       let modified = false;
 
       const refreshedRecords = records.map((record) => {
-        // Refresh SPF TXT record value
+        // Refresh SPF TXT record value (strict -all HardFail)
         if (record.type === 'TXT' && record.host === domain.returnPathSubdomain) {
           modified = true;
           return {
             ...record,
-            value: `v=spf1 include:${spfIncludeDomain} ~all`,
+            value: `v=spf1 include:${spfIncludeDomain} -all`,
           };
         }
-        // Refresh MX record value
-        if (record.type === 'MX' && record.host === domain.returnPathSubdomain) {
+        // Refresh Return-Path and Inbound MX record values
+        if (record.type === 'MX' && (record.host === domain.returnPathSubdomain || record.host === '@')) {
           modified = true;
           return {
             ...record,

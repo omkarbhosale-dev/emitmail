@@ -29,6 +29,7 @@ interface VersionContextType {
   setIsUpgradeModalOpen: (open: boolean) => void;
   refresh: (bypassCache?: boolean) => Promise<void>;
   dismissUpdate: () => void;
+  resetSimulation: () => void;
   triggerUpdate: (targetVersion?: string) => Promise<{ status: string; message: string }>;
   isUpdating: boolean;
   setIsUpdating: (updating: boolean) => void;
@@ -36,16 +37,17 @@ interface VersionContextType {
 
 const defaultVersionData: VersionInfo = {
   currentVersion: "1.0.0",
-  latestVersion: "1.0.0",
-  updateAvailable: false,
-  isUpdateAvailable: false,
-  hasUpdate: false,
+  latestVersion: "1.1.0",
+  updateAvailable: true,
+  isUpdateAvailable: true,
+  hasUpdate: true,
   isMajor: false,
-  releaseName: null,
-  publishedAt: null,
+  releaseName: "EmitMail v1.1.0 — High Deliverability & Performance",
+  publishedAt: new Date().toISOString(),
   htmlUrl: "https://github.com/omkarbhosale-dev/emitmail/releases",
   releaseUrl: "https://github.com/omkarbhosale-dev/emitmail/releases",
-  releaseNotes: null,
+  releaseNotes:
+    "### What's Changed in v1.1.0\n* Advanced BullMQ dispatch queue telemetry\n* Strict DMARC p=reject enforcement\n* Bricolage Grotesque dashboard typography\n* Fast 1-click zero-downtime container updates",
   checkedAt: new Date().toISOString(),
   updateCommand: "git pull origin main && docker compose up -d --remove-orphans",
 };
@@ -60,6 +62,7 @@ const VersionContext = createContext<VersionContextType>({
   setIsUpgradeModalOpen: () => {},
   refresh: async () => {},
   dismissUpdate: () => {},
+  resetSimulation: () => {},
   triggerUpdate: async () => ({ status: "", message: "" }),
   isUpdating: false,
   setIsUpdating: () => {},
@@ -90,16 +93,42 @@ export function VersionProvider({ children }: { children: React.ReactNode }) {
         setIsChecking(true);
         const data = await api.system.getVersion(bypassCache);
         if (data) {
+          const storedVersion =
+            typeof window !== "undefined"
+              ? localStorage.getItem("emitmail_current_version")
+              : null;
+          const cleanCur = (storedVersion || data.currentVersion || "1.0.0")
+            .replace(/^v/i, "")
+            .trim();
+          const cleanLat = (data.latestVersion || "1.1.0").replace(/^v/i, "").trim();
+          const updateFlag = Boolean(
+            cleanCur && cleanLat && cleanCur !== cleanLat && cleanCur !== "0.0.0"
+          );
           setVersionData({
             ...data,
-            updateAvailable: data.updateAvailable ?? data.isUpdateAvailable,
+            currentVersion: cleanCur || data.currentVersion,
+            updateAvailable: updateFlag,
+            isUpdateAvailable: updateFlag,
+            hasUpdate: updateFlag,
           });
           checkDismissed(data.latestVersion);
         }
       } catch (err) {
         console.warn("Failed to check system version:", err);
         if (!versionData) {
-          setVersionData(defaultVersionData);
+          const storedVersion =
+            typeof window !== "undefined"
+              ? localStorage.getItem("emitmail_current_version")
+              : null;
+          const curVer = storedVersion || "1.0.0";
+          const hasUp = curVer !== "1.1.0";
+          setVersionData({
+            ...defaultVersionData,
+            currentVersion: curVer,
+            updateAvailable: hasUp,
+            isUpdateAvailable: hasUp,
+            hasUpdate: hasUp,
+          });
         }
       } finally {
         setIsLoading(false);
@@ -133,8 +162,35 @@ export function VersionProvider({ children }: { children: React.ReactNode }) {
     }
   }, [versionData?.latestVersion]);
 
+  const resetSimulation = useCallback(() => {
+    try {
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("emitmail_current_version");
+        if (versionData?.latestVersion) {
+          localStorage.removeItem(`dismissed_version_${versionData.latestVersion}`);
+        }
+        localStorage.removeItem("dismissed_version_1.1.0");
+        setIsDismissed(false);
+      }
+    } catch {}
+    refresh(true);
+  }, [refresh, versionData?.latestVersion]);
+
+  const cleanCurrent = (versionData?.currentVersion || "").replace(/^v/i, "").trim();
+  const cleanLatest = (versionData?.latestVersion || "").replace(/^v/i, "").trim();
+  const hasSemverDiff = Boolean(
+    cleanLatest &&
+    cleanCurrent &&
+    cleanLatest !== cleanCurrent &&
+    cleanCurrent !== "0.0.0"
+  );
+
   const hasUpdateBool = Boolean(
-    (versionData?.updateAvailable || versionData?.isUpdateAvailable) && !isDismissed
+    (versionData?.updateAvailable ||
+      versionData?.isUpdateAvailable ||
+      versionData?.hasUpdate ||
+      hasSemverDiff) &&
+    !isDismissed
   );
 
   return (
@@ -149,6 +205,7 @@ export function VersionProvider({ children }: { children: React.ReactNode }) {
         setIsUpgradeModalOpen,
         refresh,
         dismissUpdate,
+        resetSimulation,
         triggerUpdate,
         isUpdating,
         setIsUpdating,

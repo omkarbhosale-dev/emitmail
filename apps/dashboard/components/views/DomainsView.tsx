@@ -322,15 +322,15 @@ export function DomainsView() {
         <ViewOnlyBanner message="You have view-only access. You can inspect domain records and DKIM status, but cannot add, verify, rotate, or delete domains." />
       )}
 
-      {/* 1. Header (Cloudflare Account Home Layout) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* 1. Header */}
+      <div className="border-b border-zinc-800/80 pb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-semibold tracking-tight text-kumo-strong leading-tight">
+            <h1 className="text-2xl md:text-[26px] font-semibold tracking-tight text-zinc-100">
               Domains
             </h1>
           </div>
-          <p className="text-sm text-kumo-subtle mt-0.5 font-normal leading-relaxed">
+          <p className="text-sm md:text-[15px] text-zinc-400 mt-1">
             Manage authenticated sending domains, DKIM keys, SPF return-paths, and DMARC compliance
           </p>
         </div>
@@ -341,19 +341,19 @@ export function DomainsView() {
             type="button"
             onClick={fetchDomains}
             disabled={isLoading}
-            className="btn-cf-secondary flex items-center gap-1.5 shadow-2xs text-sm"
+            className="btn-cf-secondary px-3"
             title="Refresh domains list"
             aria-label="Refresh domains list"
           >
-            <ArrowsClockwise size={14} className={isLoading ? "animate-spin text-cf-blue" : ""} />
+            <ArrowsClockwise size={15} className={isLoading ? "animate-spin text-zinc-400" : "text-zinc-400"} />
             <span>Refresh</span>
           </button>
           {!isViewer && (
             <Link
               href="/domains/add"
-              className="btn-cf-primary flex items-center gap-1.5 shadow-2xs text-sm"
+              className="btn-cf-primary"
             >
-              <Plus size={14} weight="bold" />
+              <Plus size={15} weight="bold" />
               <span>Add domain</span>
             </Link>
           )}
@@ -417,74 +417,74 @@ export function DomainsView() {
         <>
           {/* Full-Width Search Bar */}
           <div className="relative w-full">
-            <div className="flex items-center bg-kumo-control hover:bg-kumo-elevated/50 border border-kumo-line rounded-lg px-3 h-9 text-sm text-kumo-strong focus-within:border-cf-blue/80 focus-within:ring-1 focus-within:ring-cf-blue/30 transition-colors shadow-2xs">
+            <div className="flex items-center bg-zinc-900 border border-zinc-800 rounded-md px-3 h-10 text-sm text-zinc-200 focus-within:border-zinc-700 transition-colors">
               <MagnifyingGlass
-                size={15}
-                className="text-kumo-muted shrink-0 pointer-events-none"
+                size={16}
+                className="text-zinc-500 shrink-0 pointer-events-none"
               />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by domain name..."
-                className="w-full bg-transparent border-0 outline-none pl-2.5 pr-6 text-sm text-kumo-strong placeholder:text-kumo-muted"
+                className="w-full bg-transparent border-0 outline-none pl-2.5 pr-6 text-sm text-zinc-200 placeholder:text-zinc-500"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery("")}
-                  className="text-kumo-muted hover:text-kumo-strong mr-1 cursor-pointer p-0.5 rounded transition-colors"
+                  className="text-zinc-500 hover:text-zinc-200 mr-1 cursor-pointer p-0.5 rounded transition-colors"
                   title="Clear search"
                   aria-label="Clear search"
                 >
-                  <X size={13} />
+                  <X size={14} />
                 </button>
               )}
             </div>
           </div>
 
-          {/* Authentic Cloudflare Domains Table */}
-          <div className="bg-kumo-base border border-kumo-hairline rounded-xl overflow-hidden shadow-2xs">
+          {/* Authentic Domains Table */}
+          <div className="border border-zinc-800/80 rounded-lg overflow-hidden bg-zinc-900/40">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-kumo-hairline bg-kumo-recessed/40 text-kumo-subtle font-medium text-sm select-none">
+                  <tr className="border-b border-zinc-800/80 bg-zinc-900/60 text-zinc-400 font-semibold text-xs uppercase tracking-wider select-none">
                     {/* Domain */}
-                    <th className="py-2.5 px-4 font-medium">
-                      <div className="flex items-center gap-1 cursor-pointer hover:text-kumo-strong transition-colors">
+                    <th className="py-3.5 px-4">
+                      <div className="flex items-center gap-1.5 cursor-pointer hover:text-zinc-200 transition-colors">
                         <span>Domain</span>
-                        <CaretUpDown size={13} className="text-kumo-muted" />
+                        <CaretUpDown size={14} className="text-zinc-500" />
                       </div>
                     </th>
 
                     {/* Status */}
-                    <th className="py-2.5 px-4 font-medium">
-                      <div className="flex items-center gap-1 cursor-pointer hover:text-kumo-strong transition-colors">
+                    <th className="py-3.5 px-4">
+                      <div className="flex items-center gap-1.5 cursor-pointer hover:text-zinc-200 transition-colors">
                         <span>Status</span>
-                        <Info size={13} className="text-kumo-muted" />
+                        <Info size={14} className="text-zinc-500" />
                       </div>
                     </th>
 
                     {/* Date Created */}
-                    <th className="py-2.5 px-4 font-medium">
+                    <th className="py-3.5 px-4">
                       <span>Created</span>
                     </th>
 
                     {/* Actions */}
-                    <th className="py-2.5 px-4 text-right font-medium">
-                      <Gear size={15} className="text-kumo-muted inline-block" />
+                    <th className="py-3.5 px-4 text-right">
+                      <Gear size={15} className="text-zinc-500 inline-block" />
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-kumo-hairline text-sm">
+                <tbody className="divide-y divide-zinc-800/60 text-sm md:text-[15px]">
                   {filteredDomains.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="py-12 text-center text-kumo-subtle">
+                      <td colSpan={4} className="py-12 text-center text-zinc-400">
                         <p className="mb-2 text-sm">No domains found matching &ldquo;{searchQuery}&rdquo;.</p>
                         <button
                           type="button"
                           onClick={() => setSearchQuery("")}
-                          className="btn-cf-secondary text-xs py-1 px-2.5 shadow-2xs"
+                          className="btn-cf-secondary"
                         >
                           Clear search filter
                         </button>
@@ -494,25 +494,25 @@ export function DomainsView() {
                     filteredDomains.map((dom) => (
                       <tr
                         key={dom.id}
-                        className="hover:bg-kumo-elevated/40 transition-colors group"
+                        className="h-13 hover:bg-zinc-800/30 transition-colors group"
                       >
                         {/* Domain Name */}
-                        <td className="py-3 px-4 align-middle">
+                        <td className="py-3.5 px-4 align-middle">
                           <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="w-7 h-7 rounded-lg bg-cf-blue/10 border border-cf-blue/20 flex items-center justify-center text-cf-blue shrink-0 shadow-2xs group-hover:bg-cf-blue group-hover:text-white transition-colors duration-150">
-                              <Globe size={14} weight="bold" />
+                            <div className="w-7 h-7 rounded-md bg-zinc-800 border border-zinc-700/60 flex items-center justify-center text-zinc-300 shrink-0">
+                              <Globe size={15} />
                             </div>
                             <Link
                               href={`/domains/${dom.id}`}
-                              className="font-mono text-sm font-medium text-kumo-strong group-hover:text-cf-blue transition-colors truncate"
+                              className="font-mono text-sm md:text-[15px] font-medium text-zinc-200 group-hover:text-white transition-colors truncate"
                             >
                               {dom.domainName}
                             </Link>
                           </div>
                         </td>
 
-                        {/* Status: Active, Partially Failed, Failed, or Pending DNS */}
-                        <td className="py-3 px-4 align-middle whitespace-nowrap">
+                        {/* Status */}
+                        <td className="py-3.5 px-4 align-middle whitespace-nowrap">
                           {(() => {
                             const records = dom.dnsRecords || [];
                             const verifiedCount = records.filter((r) => r.status === "VERIFIED").length;
@@ -528,7 +528,6 @@ export function DomainsView() {
                             } else if (dom.status === "FAILED" || (records.length > 0 && failedCount === records.length)) {
                               statusType = "failed";
                             } else {
-                              // Check flags fallback
                               const flags = [dom.dkimVerified, dom.spfVerified, dom.mxVerified, dom.dmarcVerified].filter((v) => typeof v === "boolean");
                               const passed = flags.filter(Boolean).length;
                               if (passed === flags.length && flags.length > 0) statusType = "active";
@@ -538,8 +537,8 @@ export function DomainsView() {
 
                             if (statusType === "active") {
                               return (
-                                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-                                  <Check size={12} weight="bold" />
+                                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                                  <Check size={13} weight="bold" />
                                   <span>Active</span>
                                 </div>
                               );
@@ -547,8 +546,8 @@ export function DomainsView() {
 
                             if (statusType === "partially_failed") {
                               return (
-                                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 border border-amber-500/20 text-amber-400">
-                                  <WarningCircle size={12} weight="bold" />
+                                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                                  <WarningCircle size={13} weight="bold" />
                                   <span>Partially Failed</span>
                                 </div>
                               );
@@ -556,15 +555,15 @@ export function DomainsView() {
 
                             if (statusType === "failed") {
                               return (
-                                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-500/10 border border-rose-500/20 text-rose-400">
-                                  <X size={12} weight="bold" />
+                                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-rose-500/10 border border-rose-500/20 text-rose-400">
+                                  <X size={13} weight="bold" />
                                   <span>Failed</span>
                                 </div>
                               );
                             }
 
                             return (
-                              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-zinc-500/10 border border-zinc-500/20 text-zinc-400">
+                              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-zinc-500/10 border border-zinc-500/20 text-zinc-400">
                                 <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 animate-pulse" />
                                 <span>Pending DNS</span>
                               </div>

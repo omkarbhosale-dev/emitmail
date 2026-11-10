@@ -41,6 +41,21 @@ export const processDomainVerificationJob = async (
   }
 
   const serverConfig = await ServerConfigService.getActiveConfig();
+  const isPlaceholderHost = (h?: string | null) =>
+    !h || h === 'mail.yourdomain.com' || h === 'mail.example.com' || h.includes('yourdomain.com') || h === 'localhost';
+
+  const mailServerHostname = (!isPlaceholderHost(serverConfig.mailServerHostname))
+    ? serverConfig.mailServerHostname
+    : (process.env.SMTP_EHLO_HOSTNAME && !isPlaceholderHost(process.env.SMTP_EHLO_HOSTNAME))
+    ? process.env.SMTP_EHLO_HOSTNAME
+    : `mail.${domain.domainName}`;
+
+  const sendingServerIp = (serverConfig.vpsPublicIpv4 && serverConfig.vpsPublicIpv4 !== '0.0.0.0')
+    ? serverConfig.vpsPublicIpv4
+    : (process.env.SENDING_SERVER_IP && process.env.SENDING_SERVER_IP !== '0.0.0.0')
+    ? process.env.SENDING_SERVER_IP
+    : '201.18.193.73';
+
   const existingRecords = domain.dnsRecords as unknown as DnsRecordDefinition[];
 
   // Execute DNS verification against Cloudflare (1.1.1.1) and Google (8.8.8.8)
@@ -49,8 +64,9 @@ export const processDomainVerificationJob = async (
     dkimSelector: domain.dkimSelector,
     dkimPublicKey: domain.dkimPublicKey,
     returnPathSubdomain: domain.returnPathSubdomain,
-    mailServerHostname: serverConfig.mailServerHostname,
+    mailServerHostname,
     spfIncludeDomain: serverConfig.spfIncludeDomain,
+    sendingServerIp,
     existingDnsRecords: existingRecords,
   });
 
@@ -64,6 +80,7 @@ export const processDomainVerificationJob = async (
         spfVerified: result.spfVerified,
         mxVerified: result.mxVerified,
         dmarcVerified: result.dmarcVerified,
+        inboundMxVerified: result.inboundMxVerified,
         lastVerifiedAt: new Date(),
         verificationErrors: Prisma.DbNull,
         dnsRecords: result.updatedRecords as unknown as any,
@@ -95,6 +112,7 @@ export const processDomainVerificationJob = async (
         spfVerified: result.spfVerified,
         mxVerified: result.mxVerified,
         dmarcVerified: result.dmarcVerified,
+        inboundMxVerified: result.inboundMxVerified,
         verificationRetries: attempt,
         verificationErrors: failureReasons,
         dnsRecords: result.updatedRecords as unknown as any,
@@ -116,6 +134,7 @@ export const processDomainVerificationJob = async (
         spfVerified: result.spfVerified,
         mxVerified: result.mxVerified,
         dmarcVerified: result.dmarcVerified,
+        inboundMxVerified: result.inboundMxVerified,
         verificationRetries: attempt,
         verificationErrors: failureReasons,
         dnsRecords: result.updatedRecords as unknown as any,

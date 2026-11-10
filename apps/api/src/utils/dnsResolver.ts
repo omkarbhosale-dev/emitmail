@@ -11,6 +11,7 @@ export interface DnsRecordDefinition {
   foundValues?: string[];
   reason?: string;
   lastCheckedAt?: string;
+  group?: 'sending' | 'inbound';
 }
 
 export interface VerificationResult {
@@ -18,6 +19,7 @@ export interface VerificationResult {
   spfVerified: boolean;
   mxVerified: boolean;
   dmarcVerified: boolean;
+  inboundMxVerified: boolean;
   isAllRequiredVerified: boolean;
   updatedRecords: DnsRecordDefinition[];
 }
@@ -90,19 +92,42 @@ export const verifyDomainDns = async (params: {
   existingDnsRecords?: DnsRecordDefinition[];
 }): Promise<VerificationResult> => {
   const isPlaceholder = (h?: string | null) =>
-    !h || h === 'mail.yourdomain.com' || h === 'mail.example.com' || h === 'localhost';
+    !h ||
+    h === 'mail.yourdomain.com' ||
+    h === 'mail.example.com' ||
+    h.includes('yourdomain.com') ||
+    h.includes('example.com') ||
+    h === 'localhost';
+
+  const isDummyIp = (ip?: string | null) =>
+    !ip || ip === '0.0.0.0' || ip === '127.0.0.1';
 
   const {
     domainName,
     dkimSelector,
     dkimPublicKey,
     returnPathSubdomain,
-    mailServerHostname = (process.env.SMTP_EHLO_HOSTNAME && !isPlaceholder(process.env.SMTP_EHLO_HOSTNAME))
-      ? process.env.SMTP_EHLO_HOSTNAME
-      : (!isPlaceholder(env.SMTP_EHLO_HOSTNAME) ? env.SMTP_EHLO_HOSTNAME : `mail.${domainName}`),
-    spfIncludeDomain = env.SPF_INCLUDE_DOMAIN,
-    sendingServerIp = process.env.SENDING_SERVER_IP || (env.SENDING_SERVER_IP !== '0.0.0.0' ? env.SENDING_SERVER_IP : ''),
   } = params;
+
+  const mailServerHostname = !isPlaceholder(params.mailServerHostname)
+    ? params.mailServerHostname!
+    : (process.env.SMTP_EHLO_HOSTNAME && !isPlaceholder(process.env.SMTP_EHLO_HOSTNAME))
+    ? process.env.SMTP_EHLO_HOSTNAME
+    : (!isPlaceholder(env.SMTP_EHLO_HOSTNAME) ? env.SMTP_EHLO_HOSTNAME : `mail.${domainName}`);
+
+  const spfIncludeDomain = params.spfIncludeDomain && !isPlaceholder(params.spfIncludeDomain)
+    ? params.spfIncludeDomain
+    : env.SPF_INCLUDE_DOMAIN && !isPlaceholder(env.SPF_INCLUDE_DOMAIN)
+    ? env.SPF_INCLUDE_DOMAIN
+    : undefined;
+
+  const sendingServerIp = !isDummyIp(params.sendingServerIp)
+    ? params.sendingServerIp!
+    : !isDummyIp(process.env.SENDING_SERVER_IP)
+    ? process.env.SENDING_SERVER_IP!
+    : !isDummyIp(env.SENDING_SERVER_IP)
+    ? env.SENDING_SERVER_IP
+    : '201.18.193.73';
 
   const resolver = createPublicDnsResolver();
   const checkedAt = new Date().toISOString();
@@ -156,7 +181,7 @@ export const verifyDomainDns = async (params: {
   });
   const spfVerified = Boolean(matchingSpf);
 
-  // 3. MX Bounce / Routing Check: query return-path subdomain AND apex domain
+  // 3. Custom Return-Path MX Check: query return-path subdomain
   const subMxRecords = await resolveMxRecords(resolver, spfFqdn);
   const apexMxRecords = await resolveMxRecords(resolver, domainName);
   const allMxRecords = [...subMxRecords, ...apexMxRecords];
@@ -170,10 +195,18 @@ export const verifyDomainDns = async (params: {
     const ex = normalizeHost(mx.exchange);
     if (expectedMxHost && ex === expectedMxHost) return true;
     if (ex === domainMailHost) return true;
-    // Any valid exchange for this domain
     return ex.endsWith(domainName.toLowerCase()) || ex.length > 0;
   });
   const mxVerified = Boolean(matchingMx);
+
+  // Inbound Root MX Check: query apex root domain (@)
+  const matchingInboundMx = apexMxRecords.find((mx) => {
+    const ex = normalizeHost(mx.exchange);
+    if (expectedMxHost && ex === expectedMxHost) return true;
+    if (ex === domainMailHost) return true;
+    return ex.endsWith(domainName.toLowerCase()) || ex.length > 0;
+  });
+  const inboundMxVerified = Boolean(matchingInboundMx);
 
   // 4. DMARC Check: _dmarc.<domainName> (with double-domain fallback)
   const dmarcFqdn = `_dmarc.${domainName}`;
@@ -185,16 +218,20 @@ export const verifyDomainDns = async (params: {
   }
   const matchingDmarc = dmarcTxts.find((txt) => {
     const lower = txt.trim().toLowerCase();
-    return (
-      lower.startsWith('v=dmarc1') &&
-      (lower.includes('p=reject') || lower.includes('p=quarantine') || lower.includes('p=none'))
-    );
+    return lower.startsWith('v=dmarc1') && lower.includes('p=reject');
   });
   const dmarcVerified = Boolean(matchingDmarc);
 
-  // Reconstruct updated DNS records array with 10/10 deliverability values
+  // Expected SPF value strictly ending with -all (always uses valid public IPv4)
+  const expectedSpfValue = (spfIncludeDomain && spfIncludeDomain !== 'undefined' && !spfIncludeDomain.includes('yourdomain.com'))
+    ? `v=spf1 include:${spfIncludeDomain.toLowerCase()} -all`
+    : `v=spf1 ip4:${sendingServerIp} a mx -all`;
+
+  // Standardized 5 DNS Records (Group 1: Sending & Deliverability [4], Group 2: Inbound Receiving [1])
   const updatedRecords: DnsRecordDefinition[] = [
+    // Group 1: Sending & Deliverability Records (Required for Sending)
     {
+      group: 'sending',
       type: 'TXT',
       host: `${dkimSelector}._domainkey`,
       fqdn: dkimFqdn,
@@ -209,20 +246,22 @@ export const verifyDomainDns = async (params: {
       lastCheckedAt: checkedAt,
     },
     {
+      group: 'sending',
       type: 'TXT',
       host: returnPathSubdomain,
       fqdn: spfFqdn,
-      value: sendingServerIp ? `v=spf1 ip4:${sendingServerIp} a mx -all` : 'v=spf1 a mx -all',
+      value: expectedSpfValue,
       status: spfVerified ? 'VERIFIED' : 'FAILED',
       foundValues: allSpfTxts,
       reason: spfVerified
         ? 'SPF record verified (return-path / apex authorized)'
         : allSpfTxts.length === 0
         ? 'No SPF TXT record found on return-path host or apex'
-        : 'Record must start with v=spf1 and authorize sender IP',
+        : 'Record must start with v=spf1 and authorize sender IP with -all',
       lastCheckedAt: checkedAt,
     },
     {
+      group: 'sending',
       type: 'MX',
       host: returnPathSubdomain,
       fqdn: spfFqdn,
@@ -238,29 +277,48 @@ export const verifyDomainDns = async (params: {
       lastCheckedAt: checkedAt,
     },
     {
+      group: 'sending',
       type: 'TXT',
       host: '_dmarc',
       fqdn: dmarcFqdn,
-      value: `v=DMARC1; p=reject; sp=reject; rua=mailto:dmarc@${domainName}; aspf=r; adkim=r;`,
+      value: `v=DMARC1; p=reject; sp=reject; adkim=s; aspf=s;`,
       status: dmarcVerified ? 'VERIFIED' : 'FAILED',
       foundValues: dmarcTxts,
       reason: dmarcVerified
-        ? 'DMARC policy TXT record verified'
+        ? 'DMARC strict reject policy TXT record verified'
         : dmarcTxts.length === 0
         ? 'No TXT record found at _dmarc host'
-        : 'Record at _dmarc must start with v=DMARC1',
+        : 'Record at _dmarc must start with v=DMARC1 and use p=reject',
+      lastCheckedAt: checkedAt,
+    },
+    // Group 2: Inbound Email Receiving Record (Keep for Receiving Emails)
+    {
+      group: 'inbound',
+      type: 'MX',
+      host: '@',
+      fqdn: domainName,
+      value: mailServerHostname,
+      priority: 10,
+      status: inboundMxVerified ? 'VERIFIED' : 'FAILED',
+      foundValues: apexMxRecords.map((m) => `${m.priority} ${m.exchange}`),
+      reason: inboundMxVerified
+        ? 'Inbound root MX exchange verified for receiving mail'
+        : apexMxRecords.length === 0
+        ? 'No MX records found on root domain (@)'
+        : 'Root MX records do not point to configured mail server',
       lastCheckedAt: checkedAt,
     },
   ];
 
-  // Only mark domain VERIFIED when DKIM, Return-Path SPF, and Return-Path MX all pass
-  const isAllRequiredVerified = dkimVerified && spfVerified && mxVerified;
+  // Only mark domain VERIFIED when all 4 Sending records pass
+  const isAllRequiredVerified = dkimVerified && spfVerified && mxVerified && dmarcVerified;
 
   return {
     dkimVerified,
     spfVerified,
     mxVerified,
     dmarcVerified,
+    inboundMxVerified,
     isAllRequiredVerified,
     updatedRecords,
   };

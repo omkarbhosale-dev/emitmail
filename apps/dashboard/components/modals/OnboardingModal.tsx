@@ -20,6 +20,8 @@ import {
 import { api } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
 import { ApiDomain, DnsRecordItem } from "@/types";
+import { getStandardDnsRecords } from "@/lib/dnsRecords";
+import { DnsRecordsTable } from "@/components/dns/DnsRecordsTable";
 
 interface OnboardingModalProps {
   isOpen: boolean;
@@ -267,7 +269,16 @@ export function OnboardingModal({ isOpen, onClose, onCompleted }: OnboardingModa
     }
   };
 
-  const isDomainConfirmed = createdDomain?.status === "VERIFIED";
+  const standardDns = getStandardDnsRecords({
+    domain: createdDomain,
+    domainName,
+    vpsIp,
+    mailHostname,
+    spfIncludeDomain: spfDomain,
+  });
+
+  const isDomainConfirmed =
+    createdDomain?.status === "VERIFIED" || standardDns.isAllSendingVerified;
 
   const lastDisabledToastRef = useRef<number>(0);
   const notifyDomainUnconfirmed = useCallback(() => {
@@ -527,181 +538,13 @@ export function OnboardingModal({ isOpen, onClose, onCompleted }: OnboardingModa
                 </button>
               </div>
 
-              <div className="text-xs text-kumo-subtle">
-                Add these records to your DNS provider (e.g. Cloudflare, AWS Route 53, Namecheap, GoDaddy):
-              </div>
-
-              {/* Records Checklist */}
-              <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
-                {/* 1. DKIM Record */}
-                {createdDomain.dnsRecords
-                  ?.filter((r) => r.type === "TXT" && r.host.includes("_domainkey"))
-                  .map((r, i) => (
-                    <div key={`dkim-${i}`} className="p-3 rounded-xl bg-kumo-control border border-kumo-line space-y-1.5">
-                      <div className="flex items-center justify-between flex-wrap gap-1">
-                        <div className="flex items-center gap-2">
-                          <span className="px-1.5 py-0.5 rounded text-xs font-mono font-bold bg-cf-orange-tint text-cf-orange border border-cf-orange-border">
-                            TXT
-                          </span>
-                          <span className="text-xs font-mono font-bold text-kumo-strong">{r.host}</span>
-                        </div>
-                        <span className="text-xs font-semibold text-kumo-subtle">2048-Bit RSA Signature</span>
-                      </div>
-                      <div className="flex items-center justify-between gap-2 bg-kumo-base p-2 rounded-lg border border-kumo-hairline">
-                        <code className="text-xs font-mono text-kumo-default truncate select-all">{r.value}</code>
-                        <button
-                          type="button"
-                          onClick={() => handleCopy(r.value, `dkim-${i}`)}
-                          className="px-2 py-1 text-xs rounded bg-kumo-elevated hover:bg-kumo-line text-kumo-strong flex items-center gap-1 cursor-pointer shrink-0"
-                        >
-                          {copiedKey === `dkim-${i}` ? <Check size={12} className="text-cf-success" /> : <Copy size={12} />}
-                          <span>{copiedKey === `dkim-${i}` ? "Copied" : "Copy"}</span>
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-
-                {/* 2. Return-Path SPF Record */}
-                {createdDomain.dnsRecords
-                  ?.filter((r) => r.type === "TXT" && r.host === createdDomain.returnPathSubdomain)
-                  .map((r, i) => (
-                    <div key={`spf-${i}`} className="p-3 rounded-xl bg-kumo-control border border-kumo-line space-y-1.5">
-                      <div className="flex items-center justify-between flex-wrap gap-1">
-                        <div className="flex items-center gap-2">
-                          <span className="px-1.5 py-0.5 rounded text-xs font-mono font-bold bg-cf-chart-blue/15 text-cf-chart-blue border border-cf-chart-blue/25">
-                            TXT
-                          </span>
-                          <span className="text-xs font-mono font-bold text-kumo-strong">{r.host}</span>
-                        </div>
-                        <span className="text-xs font-semibold text-kumo-subtle">Return-Path SPF Alignment</span>
-                      </div>
-                      <div className="flex items-center justify-between gap-2 bg-kumo-base p-2 rounded-lg border border-kumo-hairline">
-                        <code className="text-xs font-mono text-kumo-default truncate select-all">{r.value}</code>
-                        <button
-                          type="button"
-                          onClick={() => handleCopy(r.value, `spf-${i}`)}
-                          className="px-2 py-1 text-xs rounded bg-kumo-elevated hover:bg-kumo-line text-kumo-strong flex items-center gap-1 cursor-pointer shrink-0"
-                        >
-                          {copiedKey === `spf-${i}` ? <Check size={12} className="text-cf-success" /> : <Copy size={12} />}
-                          <span>{copiedKey === `spf-${i}` ? "Copied" : "Copy"}</span>
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-
-                {/* 3. Master SPF Authority Record */}
-                <div className="p-3 rounded-xl bg-kumo-control border border-kumo-line space-y-1.5">
-                  <div className="flex items-center justify-between flex-wrap gap-1">
-                    <div className="flex items-center gap-2">
-                      <span className="px-1.5 py-0.5 rounded text-xs font-mono font-bold bg-cf-chart-blue/15 text-cf-chart-blue border border-cf-chart-blue/25">
-                        TXT
-                      </span>
-                      <span className="text-xs font-mono font-bold text-kumo-strong">{spfDomain || `_spf.${createdDomain.domainName}`}</span>
-                    </div>
-                    <span className="text-xs font-semibold text-kumo-subtle">Server IP Authorization</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-2 bg-kumo-base p-2 rounded-lg border border-kumo-hairline">
-                    <code className="text-xs font-mono text-kumo-default truncate select-all">v=spf1 ip4:{vpsIp} -all</code>
-                    <button
-                      type="button"
-                      onClick={() => handleCopy(`v=spf1 ip4:${vpsIp} -all`, "master-spf")}
-                      className="px-2 py-1 text-xs rounded bg-kumo-elevated hover:bg-kumo-line text-kumo-strong flex items-center gap-1 cursor-pointer shrink-0"
-                    >
-                      {copiedKey === "master-spf" ? <Check size={12} className="text-cf-success" /> : <Copy size={12} />}
-                      <span>{copiedKey === "master-spf" ? "Copied" : "Copy"}</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* 4. DMARC Policy Record */}
-                {createdDomain.dnsRecords
-                  ?.filter((r) => r.type === "TXT" && r.host.startsWith("_dmarc"))
-                  .map((r, i) => (
-                    <div key={`dmarc-${i}`} className="p-3 rounded-xl bg-kumo-control border border-kumo-line space-y-1.5">
-                      <div className="flex items-center justify-between flex-wrap gap-1">
-                        <div className="flex items-center gap-2">
-                          <span className="px-1.5 py-0.5 rounded text-xs font-mono font-bold bg-cf-chart-purple/15 text-cf-chart-purple border border-cf-chart-purple/25">
-                            TXT
-                          </span>
-                          <span className="text-xs font-mono font-bold text-kumo-strong">{r.host}</span>
-                        </div>
-                        <span className="text-xs font-semibold text-kumo-subtle">Strict Spoofing Defense</span>
-                      </div>
-                      <div className="flex items-center justify-between gap-2 bg-kumo-base p-2 rounded-lg border border-kumo-hairline">
-                        <code className="text-xs font-mono text-kumo-default truncate select-all">{r.value}</code>
-                        <button
-                          type="button"
-                          onClick={() => handleCopy(r.value, `dmarc-${i}`)}
-                          className="px-2 py-1 text-xs rounded bg-kumo-elevated hover:bg-kumo-line text-kumo-strong flex items-center gap-1 cursor-pointer shrink-0"
-                        >
-                          {copiedKey === `dmarc-${i}` ? <Check size={12} className="text-cf-success" /> : <Copy size={12} />}
-                          <span>{copiedKey === `dmarc-${i}` ? "Copied" : "Copy"}</span>
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-
-                {/* 5. Mail Server A Record */}
-                <div className="p-3 rounded-xl bg-kumo-control border border-kumo-line space-y-1.5">
-                  <div className="flex items-center justify-between flex-wrap gap-1">
-                    <div className="flex items-center gap-2">
-                      <span className="px-1.5 py-0.5 rounded text-xs font-mono font-bold bg-cf-chart-green/15 text-cf-chart-green border border-cf-chart-green/25">
-                        A Record
-                      </span>
-                      <span className="text-xs font-mono font-bold text-kumo-strong">{mailHostname || `mail.${createdDomain.domainName}`}</span>
-                    </div>
-                    <span className="text-xs font-semibold text-kumo-subtle">Points to VPS IPv4</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-2 bg-kumo-base p-2 rounded-lg border border-kumo-hairline">
-                    <code className="text-xs font-mono text-kumo-default truncate select-all">{vpsIp}</code>
-                    <button
-                      type="button"
-                      onClick={() => handleCopy(vpsIp, "a-record")}
-                      className="px-2 py-1 text-xs rounded bg-kumo-elevated hover:bg-kumo-line text-kumo-strong flex items-center gap-1 cursor-pointer shrink-0"
-                    >
-                      {copiedKey === "a-record" ? <Check size={12} className="text-cf-success" /> : <Copy size={12} />}
-                      <span>{copiedKey === "a-record" ? "Copied" : "Copy"}</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* 6. Inbound Mail MX Record */}
-                <div className="p-3 rounded-xl bg-kumo-control border border-kumo-line space-y-1.5">
-                  <div className="flex items-center justify-between flex-wrap gap-1">
-                    <div className="flex items-center gap-2">
-                      <span className="px-1.5 py-0.5 rounded text-xs font-mono font-bold bg-cf-orange-tint text-cf-orange border border-cf-orange-border inline-flex items-center gap-1">
-                        <span>MX</span>
-                        <span className="bg-cf-orange/20 text-cf-orange px-1 rounded font-bold">(Priority 10)</span>
-                      </span>
-                      <span className="text-xs font-mono font-bold text-kumo-strong">@</span>
-                    </div>
-                    <span className="text-xs font-semibold text-kumo-subtle">Inbound Mailboxes</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-2 bg-kumo-base p-2 rounded-lg border border-kumo-hairline">
-                    <code className="text-xs font-mono text-kumo-default truncate select-all">{mailHostname || `mail.${createdDomain.domainName}`}</code>
-                    <button
-                      type="button"
-                      onClick={() => handleCopy(mailHostname || `mail.${createdDomain.domainName}`, "mx-record")}
-                      className="px-2 py-1 text-xs rounded bg-kumo-elevated hover:bg-kumo-line text-kumo-strong flex items-center gap-1 cursor-pointer shrink-0"
-                    >
-                      {copiedKey === "mx-record" ? <Check size={12} className="text-cf-success" /> : <Copy size={12} />}
-                      <span>{copiedKey === "mx-record" ? "Copied" : "Copy"}</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* 7. Reverse DNS (PTR) Callout */}
-                <div className="p-3 rounded-xl bg-kumo-recessed border border-kumo-hairline flex items-start gap-2.5">
-                  <Info size={16} className="text-cf-orange shrink-0 mt-0.5" />
-                  <div className="space-y-0.5 text-xs text-kumo-subtle">
-                    <span className="font-semibold text-kumo-strong block">Reverse DNS (PTR) Step</span>
-                    <span>
-                      In your VPS host control panel (DigitalOcean, Hetzner, AWS, Linode), set the PTR of{" "}
-                      <code className="font-mono text-kumo-strong">{vpsIp}</code> to{" "}
-                      <code className="font-mono text-kumo-strong">{mailHostname || `mail.${createdDomain.domainName}`}</code>.
-                    </span>
-                  </div>
-                </div>
+              {/* Standardized Unified DNS Records Checklist */}
+              <div className="max-h-96 overflow-y-auto pr-1">
+                <DnsRecordsTable
+                  sendingRecords={standardDns.sendingRecords}
+                  inboundRecords={standardDns.inboundRecords}
+                  showInboundToggleNote={true}
+                />
               </div>
 
               {/* Action Buttons */}
