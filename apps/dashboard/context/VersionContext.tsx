@@ -37,17 +37,42 @@ interface VersionContextType {
 
 const defaultVersionData: VersionInfo = {
   currentVersion: "1.0.0",
-  latestVersion: "1.1.0",
-  updateAvailable: true,
-  isUpdateAvailable: true,
-  hasUpdate: true,
+  latestVersion: "1.0.0",
+  updateAvailable: false,
+  isUpdateAvailable: false,
+  hasUpdate: false,
   isMajor: false,
-  releaseName: "EmitMail v1.1.0 — High Deliverability & Performance",
-  publishedAt: new Date().toISOString(),
-  htmlUrl: "https://github.com/omkarbhosale-dev/emitmail/releases",
-  releaseUrl: "https://github.com/omkarbhosale-dev/emitmail/releases",
-  releaseNotes:
-    "### What's Changed in v1.1.0\n* Advanced BullMQ dispatch queue telemetry\n* Strict DMARC p=reject enforcement\n* Bricolage Grotesque dashboard typography\n* Fast 1-click zero-downtime container updates",
+  releaseName: "EmitMail v1.0.0 — General Availability",
+  publishedAt: "2026-11-10T12:00:00.000Z",
+  htmlUrl: "https://github.com/omkarbhosale-dev/emitmail/releases/tag/v1.0.0",
+  releaseUrl: "https://github.com/omkarbhosale-dev/emitmail/releases/tag/v1.0.0",
+  releaseNotes: `## EmitMail v1.0.0 — General Availability (GA)
+
+Self-hosted, developer-first email infrastructure engineered for high deliverability, primary inbox placement, and strict cryptographic identity.
+
+### 🚀 Outbound SMTP Delivery Engine
+* **Direct MX Dispatch:** Multi-threaded SMTP transmission worker powered by BullMQ and Redis with automatic MX discovery.
+* **Strict rDNS & EHLO Alignment:** Outbound envelopes strictly align with server FQDN (\`mail.<domain>\`) and PTR records to prevent spam box flags.
+* **Asynchronous Bounce Handling:** Dedicated return-path routing (\`send.<domain>\`) with RFC 3463 bounce code classification (5.x.x hard bounce vs 4.x.x transient retry).
+* **Exponential Retry Pipeline:** Automatic retry mechanism with jitter to prevent downstream MTA rate limiting.
+
+### 🛡️ Cryptographic Domain Identity & Deliverability
+* **2048-bit RSA DKIM Signing:** Automated per-domain 2048-bit RSA key pair generation with AES-256-GCM private key envelope encryption at rest.
+* **Custom Return-Path SPF:** Enforces strict HardFail (\`-all\`) on envelopes without degrading existing root domain SPF setups.
+* **Strict DMARC Policy:** Default alignment policy set to \`v=DMARC1; p=reject; sp=reject; adkim=s; aspf=s;\` ensuring 100% primary inbox deliverability.
+* **Live Multi-Resolver Verification:** Dual-resolver DNS verification checking records against Google DNS (\`8.8.8.8\`) and Cloudflare DNS (\`1.1.1.1\`).
+
+### 📬 Inbound Mail Processing & Webhooks
+* **Native SMTP Receiver:** Built-in inbound SMTP daemon listening on ports 25 and 2525.
+* **Streaming Multipart MIME Parser:** Extracts multipart text/plain, HTML, and binary attachments.
+* **Multi-Tenant Mailboxes:** Provision virtual mailboxes (\`support@\`, \`inquiries@\`) with thread grouping and reply-to tracking.
+* **Real-Time Webhook Engine:** Automated webhook dispatches for delivery events, bounces, spam complaints, and inbound replies with HMAC-SHA256 signature verification.
+
+### 💻 Developer Experience & Resend SDK Compatibility
+* **Scoped API Keys:** Fine-grained token permissions (\`mail:send\`, \`domains:read\`, \`inbox:read\`) prefixed with \`em_live_\`.
+* **Resend-Compatible REST API:** Drop-in compatibility for sending emails via standard JSON payloads.
+* **Zero AI Slop UI:** Clean, high-density dark UI built with Tailwind CSS, Bricolage Grotesque typography, and Cloudflare Orange accents.
+* **1-Click Self-Hosted Updater:** Non-destructive container image upgrades with automated health checks.`,
   checkedAt: new Date().toISOString(),
   updateCommand: "git pull origin main && docker compose up -d --remove-orphans",
 };
