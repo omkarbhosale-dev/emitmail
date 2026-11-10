@@ -10,6 +10,10 @@ export const getSystemVersion = async (req: Request, res: Response): Promise<voi
       req.query.force === 'true' ||
       req.query.force === '1';
 
+    if (req.query.reset === 'true' || req.query.reset === '1') {
+      SystemService.setSimulatedVersion(null);
+    }
+
     const updateInfo = await SystemService.checkSystemUpdate(refresh);
 
     sendSuccess(

@@ -7,9 +7,7 @@ import {
   ArrowLeft,
   ArrowsClockwise,
   Trash,
-  Check,
   WarningCircle,
-  CaretDown,
 } from "@phosphor-icons/react";
 import { ApiDomain } from "@/types";
 import { useToast } from "@/components/ui/Toast";
@@ -35,7 +33,6 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
   const [isRotatingDkim, setIsRotatingDkim] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isDnsCollapsed, setIsDnsCollapsed] = useState(false);
   const [serverConfig, setServerConfig] = useState<{
     mailServerHostname?: string;
     vpsPublicIpv4?: string;
@@ -56,17 +53,6 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
       if (cfg) {
         setServerConfig(cfg);
       }
-
-      // Auto-collapse if all records are properly configured and verified
-      const records = data.dnsRecords || [];
-      const verified =
-        data.status === "VERIFIED" ||
-        (records.length > 0 &&
-          records
-            .filter((r: any) => r.group !== "inbound")
-            .every((r: any) => r.status === "VERIFIED")) ||
-        (data.dkimVerified && data.spfVerified && data.mxVerified && data.dmarcVerified);
-      setIsDnsCollapsed(Boolean(verified));
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to load domain details";
       setError(msg);
@@ -105,14 +91,10 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
         summary.mxVerified &&
         summary.dmarcVerified;
 
-      if (allPassed) {
-        setIsDnsCollapsed(true);
-      }
-
       toast({
-        title: allPassed ? "Domain Fully Verified (10/10 Score)" : "DNS Verification Updated",
+        title: allPassed ? "Domain Fully Verified" : "DNS Verification Updated",
         description: allPassed
-          ? "DKIM, SPF, MX, and DMARC are all verified and active."
+          ? "DKIM, SPF, MX, and DMARC records are all verified."
           : `DKIM: ${summary.dkimVerified ? "✓" : "✗"} • SPF: ${summary.spfVerified ? "✓" : "✗"} • MX: ${summary.mxVerified ? "✓" : "✗"} • DMARC: ${summary.dmarcVerified ? "✓" : "✗"}`,
         type: allPassed ? "success" : "warning",
       });
@@ -139,7 +121,7 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
     }
     if (!domain) return;
     const confirm = window.confirm(
-      `Regenerate a brand-new 2048-bit RSA DKIM key for "${domain.domainName}"?\n\nThis will invalidate the previous key. You must update the DKIM TXT record in your DNS provider (Cloudflare) and click "Verify DNS Now".`
+      `Regenerate a brand-new 2048-bit RSA DKIM key for "${domain.domainName}"?\n\nThis will invalidate the previous key. You must update the DKIM TXT record in your DNS provider and click "Verify DNS Now".`
     );
     if (!confirm) return;
 
@@ -148,10 +130,9 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
       const res = await api.domains.rotateDkim(domain.id);
       if (res && res.domain) {
         setDomain(res.domain);
-        setIsDnsCollapsed(false);
         toast({
           title: "2048-bit DKIM Key Generated",
-          description: `New 2048-bit DKIM record created for ${domain.domainName}. Please update the TXT record in Cloudflare and verify.`,
+          description: `New 2048-bit DKIM record created for ${domain.domainName}. Please update the TXT record in your DNS provider and verify.`,
           type: "success",
         });
       }
@@ -205,7 +186,7 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="h-6 w-32 bg-kumo-line rounded animate-pulse" />
+        <div className="h-6 w-32 bg-zinc-800 rounded animate-pulse" />
         <TableSkeleton rows={6} />
       </div>
     );
@@ -214,11 +195,11 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
   if (error || !domain) {
     return (
       <div className="max-w-xl mx-auto py-16 text-center space-y-4">
-        <div className="w-12 h-12 rounded-2xl bg-kumo-danger-tint border border-kumo-danger/30 text-kumo-danger mx-auto flex items-center justify-center">
-          <WarningCircle size={28} weight="fill" />
+        <div className="w-12 h-12 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 mx-auto flex items-center justify-center">
+          <WarningCircle size={24} weight="fill" />
         </div>
-        <h2 className="text-xl font-bold text-kumo-strong">Domain Not Found</h2>
-        <p className="text-xs text-kumo-subtle">
+        <h2 className="text-xl font-semibold text-zinc-100">Domain Not Found</h2>
+        <p className="text-xs text-zinc-400">
           {error || "The requested sending domain could not be loaded or has been deleted."}
         </p>
         <div className="pt-2">
@@ -247,39 +228,39 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
       {/* Top Breadcrumb */}
-      <div className="flex items-center gap-2 text-xs text-kumo-subtle">
+      <div className="flex items-center gap-2 text-sm text-zinc-400">
         <Link
           href="/domains"
-          className="hover:text-kumo-strong transition-colors flex items-center gap-1.5"
+          className="hover:text-zinc-200 transition-colors flex items-center gap-1.5"
         >
           <ArrowLeft size={14} />
           <span>Domains</span>
         </Link>
         <span>/</span>
-        <span className="text-kumo-strong font-medium">{domain.domainName}</span>
+        <span className="text-zinc-200 font-medium">{domain.domainName}</span>
       </div>
 
       {isViewer && (
         <ViewOnlyBanner message="You have view-only access. You cannot verify DNS, rotate DKIM, or delete this domain." />
       )}
 
-      {/* Domain Top Header Card */}
-      <div className="bg-kumo-base border border-kumo-line rounded-2xl p-6 sm:p-7 shadow-sm">
+      {/* Flattened Domain Header Bar (Directly on canvas) */}
+      <div className="border-b border-zinc-800/80 pb-5">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-2">
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+              <h1 className="text-2xl md:text-[28px] font-semibold tracking-tight text-zinc-100">
                 {domain.domainName}
               </h1>
               <span
-                className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full border ${
+                className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-md border ${
                   isAllVerified
-                    ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-400"
+                    ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
                     : isPartiallyFailed
-                    ? "bg-amber-500/10 border-amber-500/25 text-amber-400"
+                    ? "bg-amber-500/10 border-amber-500/20 text-amber-400"
                     : isAllFailed
-                    ? "bg-rose-500/10 border-rose-500/25 text-rose-400"
-                    : "bg-zinc-500/10 border-zinc-500/25 text-zinc-400"
+                    ? "bg-red-500/10 border-red-500/20 text-red-400"
+                    : "bg-zinc-800/60 border-zinc-700/50 text-zinc-400"
                 }`}
               >
                 <span
@@ -289,37 +270,37 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
                       : isPartiallyFailed
                       ? "bg-amber-400 animate-pulse"
                       : isAllFailed
-                      ? "bg-rose-400"
+                      ? "bg-red-400"
                       : "bg-zinc-400 animate-pulse"
                   }`}
                 />
                 {isAllVerified
                   ? "Active"
                   : isPartiallyFailed
-                  ? `Partially Failed (${verifiedCount}/${totalSendingCount} Verified)`
+                  ? `Partially Verified (${verifiedCount}/${totalSendingCount})`
                   : isAllFailed
                   ? "Failed"
                   : "Pending DNS"}
               </span>
             </div>
 
-            <div className="flex items-center gap-4 text-xs text-kumo-subtle flex-wrap">
+            <div className="flex items-center gap-3 text-sm text-zinc-400 flex-wrap">
               <span>
-                Selector: <strong className="text-white font-mono">{domain.dkimSelector}</strong>
+                Selector: <strong className="text-zinc-200 font-mono font-medium">{domain.dkimSelector}</strong>
               </span>
               <span>•</span>
               <span>
-                Return-Path: <strong className="text-white font-mono">{domain.returnPathSubdomain}.{domain.domainName}</strong>
+                Return-Path: <strong className="text-zinc-200 font-mono font-medium">{domain.returnPathSubdomain}.{domain.domainName}</strong>
               </span>
               <span>•</span>
               <span>
-                Added on: <span className="text-kumo-default">{new Date(domain.createdAt).toLocaleDateString()}</span>
+                Added on: <span className="text-zinc-300">{new Date(domain.createdAt).toLocaleDateString()}</span>
               </span>
               {domain.lastVerifiedAt && (
                 <>
                   <span>•</span>
                   <span>
-                    Last checked: <span className="text-kumo-default">{new Date(domain.lastVerifiedAt).toLocaleTimeString()}</span>
+                    Last checked: <span className="text-zinc-300">{new Date(domain.lastVerifiedAt).toLocaleTimeString()}</span>
                   </span>
                 </>
               )}
@@ -333,34 +314,34 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
                 type="button"
                 onClick={handleRotateDkim}
                 disabled={isRotatingDkim || isVerifying}
-                className="h-9 px-3.5 rounded-md bg-kumo-elevated hover:bg-kumo-interact text-white text-xs font-medium inline-flex items-center justify-center gap-1.5 border border-kumo-line shadow-sm transition-all duration-120 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed select-none"
+                className="btn-cf-secondary text-xs"
                 title="Regenerate a brand-new 2048-bit RSA DKIM key"
               >
                 <ArrowsClockwise
                   size={14}
-                  className={isRotatingDkim ? "animate-spin text-cf-orange" : "text-kumo-subtle"}
+                  className={isRotatingDkim ? "animate-spin text-zinc-400" : "text-zinc-400"}
                 />
-                <span>{isRotatingDkim ? "Rotating DKIM..." : "Rotate DKIM (2048-bit)"}</span>
+                <span>{isRotatingDkim ? "Rotating..." : "Rotate DKIM (2048-bit)"}</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleVerifyDns}
                 disabled={isVerifying}
-                className="h-9 px-3.5 rounded-md bg-cf-blue hover:bg-cf-blue-hover text-white text-xs font-medium inline-flex items-center justify-center gap-1.5 shadow-sm transition-all duration-120 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed select-none"
+                className="btn-cf-primary text-xs"
               >
                 <ArrowsClockwise
                   size={14}
                   className={isVerifying ? "animate-spin" : ""}
                 />
-                <span>{isVerifying ? "Verifying DNS..." : "Verify DNS Now"}</span>
+                <span>{isVerifying ? "Verifying..." : "Verify DNS Now"}</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleDeleteDomain}
                 disabled={isDeleting}
-                className="h-9 px-3.5 rounded-md bg-red-600 hover:bg-red-700 active:bg-red-800 text-white text-xs font-medium inline-flex items-center justify-center gap-1.5 border border-red-500/40 shadow-sm transition-all duration-120 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed select-none"
+                className="btn-cf-danger text-xs"
                 title="Delete Domain"
               >
                 <Trash size={14} />
@@ -371,89 +352,33 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
         </div>
       </div>
 
-      {/* Main Bordered DNS Records Card (Collapsible) */}
-      <div className="bg-kumo-base border border-kumo-line rounded-2xl overflow-hidden shadow-sm">
-        {/* Card Header with Collapsible Trigger */}
-        <div
-          onClick={() => setIsDnsCollapsed(!isDnsCollapsed)}
-          className="px-6 py-4.5 border-b border-kumo-line flex items-center justify-between cursor-pointer hover:bg-kumo-recessed transition-colors select-none"
-        >
-          <div className="flex items-center gap-3 flex-wrap">
-            <h2 className="text-base font-bold text-white tracking-tight">
-              Domain Verification
-            </h2>
-            {isAllVerified ? (
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-400">
-                <Check size={12} weight="bold" />
-                <span>All Sending Records Verified</span>
-              </span>
-            ) : isPartiallyFailed ? (
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-400">
-                <WarningCircle size={12} weight="bold" />
-                <span>{verifiedCount} of {totalSendingCount} Verified</span>
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-zinc-500/10 border border-zinc-500/25 text-zinc-400">
-                <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 animate-pulse" />
-                <span>Awaiting DNS Publication</span>
-              </span>
+      {/* Warning Banner if sending is not fully verified */}
+      {!isAllVerified && (
+        <div className="p-3.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-start gap-2.5 leading-relaxed">
+          <WarningCircle size={16} weight="bold" className="text-amber-400 shrink-0 mt-0.5" />
+          <div>
+            <strong className="text-amber-200 font-medium">Sending configuration required:</strong> Publish the sending DNS records below in your DNS provider to complete verification and ensure high deliverability. {!isViewer && (
+              <>
+                Once published,{" "}
+                <button
+                  type="button"
+                  onClick={handleVerifyDns}
+                  className="underline hover:text-amber-100 font-medium cursor-pointer"
+                >
+                  verify DNS records now
+                </button>.
+              </>
             )}
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsDnsCollapsed(!isDnsCollapsed);
-              }}
-              className="btn-cf-secondary text-xs flex items-center gap-1.5 py-1 px-2.5 cursor-pointer"
-            >
-              <span>{isDnsCollapsed ? "Show Records" : "Collapse"}</span>
-              <CaretDown
-                size={14}
-                className={`transition-transform duration-200 ${isDnsCollapsed ? "" : "rotate-180"}`}
-              />
-            </button>
           </div>
         </div>
+      )}
 
-        {/* Card Body with Unified DNS Record Tables */}
-        {!isDnsCollapsed && (
-          <div className="p-6 space-y-6 animate-in fade-in duration-150">
-            {/* Warning Banner if sending is not fully verified */}
-            {!isAllVerified && (
-              <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-200 text-xs flex items-start gap-2.5">
-                <WarningCircle size={17} weight="bold" className="text-amber-400 shrink-0 mt-0.5" />
-                <div className="leading-relaxed">
-                  <strong className="text-white font-semibold">Sending is not fully configured:</strong> Add the sending DNS records below in your DNS provider (Cloudflare, AWS Route 53, etc.) to complete verification and ensure high deliverability. {!isViewer && (
-                    <>
-                      Once published,{" "}
-                      <button
-                        type="button"
-                        onClick={handleVerifyDns}
-                        className="underline hover:text-white font-medium cursor-pointer"
-                      >
-                        verify DNS records now
-                      </button>.
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Standardized Unified DNS Records (Group 1: Sending, Group 2: Inbound) */}
-            <DnsRecordsTable
-              sendingRecords={standardDns.sendingRecords}
-              inboundRecords={standardDns.inboundRecords}
-              onRotateDkim={handleRotateDkim}
-              isRotatingDkim={isRotatingDkim}
-              isViewer={isViewer}
-              showInboundToggleNote={true}
-            />
-          </div>
-        )}
-      </div>
+      {/* Standardized Unified DNS Records (Group 1: Sending, Group 2: Inbound) */}
+      <DnsRecordsTable
+        sendingRecords={standardDns.sendingRecords}
+        inboundRecords={standardDns.inboundRecords}
+        showInboundToggleNote={true}
+      />
     </div>
   );
 }

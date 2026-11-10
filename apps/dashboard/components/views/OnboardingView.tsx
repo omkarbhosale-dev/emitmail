@@ -8,7 +8,6 @@ import {
   HardDrives,
   Check,
   ArrowRight,
-  ShieldCheck,
   ArrowsClockwise,
   Info,
   Gear,
@@ -34,22 +33,11 @@ export function OnboardingView() {
   const [isDetectingIp, setIsDetectingIp] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   const [createdDomain, setCreatedDomain] = useState<ApiDomain | null>(null);
-  const [, setMasterChecklist] = useState<
-    Array<{
-      type: string;
-      host?: string;
-      value: string;
-      purpose: string;
-      instructions: string;
-    }>
-  >([]);
 
   // Load existing server config and auto-detect VPS IP on mount
   useEffect(() => {
-    // 1. Fetch server config if previously saved
     api.serverConfig
       .get()
       .then((res) => {
@@ -69,7 +57,6 @@ export function OnboardingView() {
       })
       .catch(() => {});
 
-    // 2. Auto-detect server public outbound IP
     api.system
       .detectIp()
       .then((res) => {
@@ -79,7 +66,6 @@ export function OnboardingView() {
       })
       .catch(() => {});
 
-    // 3. Check if a domain already exists (in case user landed here after partial setup)
     api.domains
       .list()
       .then((items) => {
@@ -92,7 +78,6 @@ export function OnboardingView() {
       .catch(() => {});
   }, []);
 
-  // Dynamically calculate derived hostnames as domainName changes
   const handleDomainChange = (val: string) => {
     const clean = val
       .toLowerCase()
@@ -117,11 +102,10 @@ export function OnboardingView() {
         setVpsIp(res.ip);
         toast({
           title: "Public IP Detected",
-          description: `Detected server public IP: ${res.ip}`,
+          description: `Detected server IP: ${res.ip}`,
           type: "success",
         });
       } else {
-        // Fallback to client-side public IP
         const clientRes = await fetch("https://api.ipify.org?format=json", {
           signal: AbortSignal.timeout(3000),
         });
@@ -146,25 +130,6 @@ export function OnboardingView() {
     }
   };
 
-  const handleCopy = async (text: string, key: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedKey(key);
-      toast({
-        title: "Copied to Clipboard",
-        description: text.length > 40 ? `${text.substring(0, 40)}...` : text,
-        type: "success",
-      });
-      setTimeout(() => setCopiedKey(null), 2000);
-    } catch {
-      toast({
-        title: "Copy Failed",
-        description: "Please manually select and copy the text.",
-        type: "error",
-      });
-    }
-  };
-
   const handleSubmitStep1 = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -176,7 +141,7 @@ export function OnboardingView() {
     if (!cleanDomain || !cleanDomain.includes(".")) {
       toast({
         title: "Invalid Domain",
-        description: "Please enter a valid top-level or subdomain (e.g. yourcompany.com).",
+        description: "Please enter a valid top-level domain (e.g. yourcompany.com).",
         type: "error",
       });
       return;
@@ -193,18 +158,12 @@ export function OnboardingView() {
 
     setIsSubmitting(true);
     try {
-      // 1. Update ServerConfig in database
-      const configRes = await api.serverConfig.update({
+      await api.serverConfig.update({
         mailServerHostname: finalHostname,
         vpsPublicIpv4: cleanIp,
         spfIncludeDomain: finalSpf,
       });
 
-      if (configRes?.masterDnsChecklist) {
-        setMasterChecklist(configRes.masterDnsChecklist);
-      }
-
-      // 2. Create Domain in database (generates 2048-bit RSA DKIM key & DNS records)
       let domainRes: ApiDomain;
       try {
         domainRes = await api.domains.create({
@@ -212,7 +171,6 @@ export function OnboardingView() {
           returnPathSubdomain: "send",
         });
       } catch (domErr: unknown) {
-        // If domain already exists, fetch it
         const existingList = await api.domains.list();
         const found = existingList.find((d) => d.domainName === cleanDomain);
         if (found) {
@@ -225,7 +183,7 @@ export function OnboardingView() {
       setCreatedDomain(domainRes);
       setStep(2);
       toast({
-        title: "Domain Initialized!",
+        title: "Domain Initialized",
         description: "2048-bit RSA DKIM key and DNS records generated successfully.",
         type: "success",
       });
@@ -252,14 +210,14 @@ export function OnboardingView() {
         }
         if (verifyRes.domain?.status === "VERIFIED" || verifyRes.verificationSummary?.status === "VERIFIED") {
           toast({
-            title: "Domain 100% Verified!",
-            description: "All DKIM, SPF, and MX records are verified and aligned.",
+            title: "Domain Verified",
+            description: "All sending DNS records are aligned and verified.",
             type: "success",
           });
         } else {
           toast({
             title: "DNS Propagation in Progress",
-            description: "Some DNS records are not detected yet. DNS changes can take a few minutes to propagate.",
+            description: "Some DNS records are not detected yet. Please allow a few moments for propagation.",
             type: "info",
           });
         }
@@ -293,8 +251,8 @@ export function OnboardingView() {
     if (now - lastDisabledToastRef.current < 1500) return;
     lastDisabledToastRef.current = now;
     toast({
-      title: "Confirm your domain",
-      description: "Please verify your domain's DNS records before proceeding to the dashboard.",
+      title: "Domain Verification Required",
+      description: "Please verify your sending DNS records before proceeding to the dashboard.",
       type: "warning",
     });
   }, [toast]);
@@ -320,8 +278,8 @@ export function OnboardingView() {
     }
 
     toast({
-      title: "Setup Complete!",
-      description: "Welcome to your EmitMail dashboard. You are ready to dispatch emails.",
+      title: "Setup Complete",
+      description: "Welcome to your EmitMail dashboard.",
       type: "success",
     });
     window.location.assign("/");
@@ -333,169 +291,162 @@ export function OnboardingView() {
   };
 
   return (
-    <div className="min-h-screen bg-kumo-canvas text-kumo-default flex flex-col justify-between selection:bg-cf-orange/20 selection:text-cf-orange">
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col justify-between">
       {/* Top Focused Navigation Bar */}
-      <header className="border-b border-kumo-hairline bg-kumo-base/80 backdrop-blur-md sticky top-0 z-40 px-4 sm:px-8 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-6 h-6 rounded-md bg-cf-orange flex items-center justify-center text-white shrink-0 shadow-xs">
-            <PaperPlaneTilt size={14} weight="fill" />
+      <header className="border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-md sticky top-0 z-40 px-4 sm:px-8 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="w-6 h-6 rounded-md bg-zinc-100 flex items-center justify-center text-zinc-950 shrink-0">
+            <PaperPlaneTilt size={13} weight="fill" />
           </div>
-          <span className="font-logo font-extrabold text-lg sm:text-xl tracking-tight text-cf-orange leading-none">
-            emitmail
+          <span className="font-semibold text-sm tracking-tight text-zinc-100">
+            EmitMail
           </span>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-2">
           <Link
             href="/settings"
-            className="btn-cf-secondary h-8 px-3 text-sm font-medium inline-flex items-center gap-1.5 cursor-pointer"
-            title="Go to Settings"
+            className="btn-cf-secondary text-xs h-8 px-2.5 inline-flex items-center gap-1.5"
+            title="Settings"
           >
-            <Gear size={14} />
+            <Gear size={13} />
             <span className="hidden sm:inline">Settings</span>
           </Link>
 
           <button
             type="button"
             onClick={handleSignOut}
-            className="h-8 px-3 text-sm font-medium text-kumo-subtle hover:text-kumo-danger hover:bg-kumo-danger-tint rounded-lg border border-transparent hover:border-kumo-danger/25 transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+            className="btn-cf-danger text-xs h-8 px-2.5 inline-flex items-center gap-1.5"
             title="Sign Out"
           >
-            <SignOut size={14} />
+            <SignOut size={13} />
             <span className="hidden sm:inline">Sign Out</span>
           </button>
         </div>
       </header>
 
-      {/* Main Centered Setup Card Container */}
+      {/* Main Centered Setup Container */}
       <main className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8 my-auto">
-        <div className={`w-full ${step === 2 ? "max-w-4xl" : "max-w-2xl"} bg-kumo-base border border-kumo-line rounded-2xl shadow-xl overflow-hidden animate-in fade-in duration-200 transition-all`}>
-          {/* Horizontal Stepper Progress Indicator */}
-          <div className="border-b border-kumo-hairline bg-kumo-recessed/30 px-5 sm:px-6 py-3">
+        <div className={`w-full ${step === 2 ? "max-w-4xl" : "max-w-xl"} border border-zinc-800/80 rounded-lg bg-zinc-900/40 overflow-hidden animate-in fade-in duration-200`}>
+          {/* Stepper Header */}
+          <div className="border-b border-zinc-800/80 bg-zinc-900/60 px-5 sm:px-6 py-3">
             <div className="flex items-center justify-between gap-3 sm:gap-4">
-              {/* Step 1 Indicator */}
+              {/* Step 1 */}
               <div
                 onClick={() => setStep(1)}
-                className={`flex items-center gap-2 transition-colors cursor-pointer ${
+                className={`flex items-center gap-2.5 text-xs transition-colors cursor-pointer ${
                   step === 1
-                    ? "text-cf-orange font-medium"
+                    ? "text-zinc-100 font-medium"
                     : createdDomain
-                    ? "text-kumo-strong font-medium"
-                    : "text-kumo-subtle hover:text-kumo-strong"
+                    ? "text-zinc-300"
+                    : "text-zinc-500"
                 }`}
               >
                 <span
-                  className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-colors ${
+                  className={`w-5 h-5 rounded-full flex items-center justify-center text-2xs font-semibold shrink-0 transition-colors ${
                     step === 1
-                      ? "bg-cf-orange text-white shadow-2xs"
+                      ? "bg-zinc-100 text-zinc-950"
                       : createdDomain
-                      ? "bg-cf-success/20 text-cf-success border border-cf-success/40"
-                      : "bg-kumo-elevated text-kumo-subtle border border-kumo-line"
+                      ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                      : "bg-zinc-800 text-zinc-400 border border-zinc-700/60"
                   }`}
                 >
-                  {createdDomain && step !== 1 ? <Check size={12} weight="bold" /> : "1"}
+                  {createdDomain && step !== 1 ? <Check size={11} weight="bold" /> : "1"}
                 </span>
-                <span className="text-sm">Connect Primary Sending Domain</span>
+                <span>Connect Domain</span>
               </div>
 
-              {/* Connector Divider Line */}
-              <div className="hidden sm:block flex-1 h-px bg-kumo-line/60 mx-2" />
+              <div className="hidden sm:block flex-1 h-px bg-zinc-800 mx-2" />
 
-              {/* Step 2 Indicator */}
+              {/* Step 2 */}
               <div
                 onClick={createdDomain ? () => setStep(2) : undefined}
-                className={`flex items-center gap-2 transition-colors ${
+                className={`flex items-center gap-2.5 text-xs transition-colors ${
                   step === 2
-                    ? "text-cf-orange font-medium"
+                    ? "text-zinc-100 font-medium"
                     : createdDomain
-                    ? "text-kumo-strong hover:text-kumo-strong cursor-pointer"
-                    : "text-kumo-muted cursor-not-allowed opacity-60"
+                    ? "text-zinc-400 hover:text-zinc-200 cursor-pointer"
+                    : "text-zinc-600 cursor-not-allowed opacity-60"
                 }`}
               >
                 <span
-                  className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-colors ${
+                  className={`w-5 h-5 rounded-full flex items-center justify-center text-2xs font-semibold shrink-0 transition-colors ${
                     step === 2
-                      ? "bg-cf-orange text-white shadow-2xs"
+                      ? "bg-zinc-100 text-zinc-950"
                       : createdDomain && createdDomain.status === "VERIFIED"
-                      ? "bg-cf-success/20 text-cf-success border border-cf-success/40"
-                      : "bg-kumo-elevated text-kumo-subtle border border-kumo-line"
+                      ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                      : "bg-zinc-800 text-zinc-400 border border-zinc-700/60"
                   }`}
                 >
                   {createdDomain && createdDomain.status === "VERIFIED" && step !== 2 ? (
-                    <Check size={12} weight="bold" />
+                    <Check size={11} weight="bold" />
                   ) : (
                     "2"
                   )}
                 </span>
-                <span className="text-sm">Configure DNS Records</span>
+                <span>Configure DNS Records</span>
               </div>
             </div>
           </div>
 
-          {/* Wizard Body Content */}
-          <div className="p-5 sm:p-7 space-y-5">
+          {/* Wizard Content */}
+          <div className="p-5 sm:p-6 space-y-5">
             {step === 1 ? (
               /* STEP 1: DOMAIN & VPS INPUT */
-              <form onSubmit={handleSubmitStep1} className="space-y-4.5">
-                {/* Form Heading & Supporting Description */}
+              <form onSubmit={handleSubmitStep1} className="space-y-4">
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-kumo-control border border-kumo-line/80 flex items-center justify-center text-kumo-muted shrink-0">
-                      <Globe size={16} weight="bold" />
-                    </div>
-                    <h1 className="text-xl sm:text-2xl font-semibold text-kumo-strong tracking-tight leading-tight">
-                      Connect Primary Sending Domain
-                    </h1>
-                  </div>
-                  <p className="text-sm text-kumo-subtle leading-relaxed">
-                    Enter your root domain and VPS outbound IPv4 address to auto-generate 2048-bit RSA signing keys and SPF/DMARC records.
+                  <h1 className="text-2xl md:text-[26px] font-semibold text-zinc-100 tracking-tight">
+                    Connect Primary Sending Domain
+                  </h1>
+                  <p className="text-xs text-zinc-400">
+                    Enter your sending domain and VPS static IPv4 to generate 2048-bit RSA keys and DNS records.
                   </p>
                 </div>
 
                 {/* Primary Domain Name Input */}
                 <div>
-                  <label className="block text-sm font-medium text-kumo-strong mb-1.5">
-                    Primary Sending Domain <span className="text-cf-orange">*</span>
+                  <label className="block text-sm font-medium text-zinc-200 mb-1.5">
+                    Sending Domain <span className="text-zinc-500">*</span>
                   </label>
                   <div className="relative">
                     <Globe
-                      size={16}
-                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-kumo-muted pointer-events-none"
+                      size={14}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none"
                     />
                     <input
                       type="text"
                       required
-                      placeholder="e.g. yourcompany.com"
+                      placeholder="e.g. company.com"
                       value={domainName}
                       onChange={(e) => handleDomainChange(e.target.value)}
-                      className="w-full h-11 pl-10 pr-4 bg-kumo-control hover:bg-kumo-elevated/50 border border-kumo-line focus:border-cf-orange rounded-xl text-sm sm:text-base font-mono text-kumo-strong placeholder:text-kumo-muted focus:outline-none transition-colors"
+                      className="w-full h-9 pl-9 pr-3 bg-zinc-900 border border-zinc-800 focus:border-zinc-700 rounded-md text-xs font-mono text-zinc-100 placeholder:text-zinc-500 focus:outline-none transition-colors"
                     />
                   </div>
-                  <p className="text-xs text-kumo-subtle mt-1.5 leading-normal">
-                    Enter the apex or subdomain you will send emails from.
+                  <p className="text-2xs text-zinc-500 mt-1">
+                    Apex or subdomain you will dispatch messages from.
                   </p>
                 </div>
 
                 {/* VPS Public IPv4 Input */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-sm font-medium text-kumo-strong">
-                      VPS Public IPv4 Address <span className="text-cf-orange">*</span>
+                    <label className="block text-xs font-medium text-zinc-300">
+                      VPS Public IPv4 Address <span className="text-zinc-500">*</span>
                     </label>
                     <button
                       type="button"
                       onClick={handleDetectIp}
                       disabled={isDetectingIp}
-                      className="inline-flex items-center gap-1.5 text-xs text-cf-blue hover:text-cf-blue/80 hover:underline cursor-pointer disabled:opacity-50"
+                      className="text-2xs text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1"
                     >
-                      <ArrowsClockwise size={12} className={isDetectingIp ? "animate-spin" : ""} />
-                      <span>{isDetectingIp ? "Detecting..." : "Auto-detect VPS IP"}</span>
+                      <ArrowsClockwise size={11} className={isDetectingIp ? "animate-spin" : ""} />
+                      <span>{isDetectingIp ? "Detecting..." : "Auto-detect IP"}</span>
                     </button>
                   </div>
                   <div className="relative">
                     <HardDrives
-                      size={16}
-                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-kumo-muted pointer-events-none"
+                      size={14}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none"
                     />
                     <input
                       type="text"
@@ -503,39 +454,30 @@ export function OnboardingView() {
                       placeholder="e.g. 198.51.100.1"
                       value={vpsIp}
                       onChange={(e) => setVpsIp(e.target.value.trim())}
-                      className="w-full h-11 pl-10 pr-4 bg-kumo-control hover:bg-kumo-elevated/50 border border-kumo-line focus:border-cf-orange rounded-xl text-sm sm:text-base font-mono text-kumo-strong placeholder:text-kumo-muted focus:outline-none transition-colors"
+                      className="w-full h-9 pl-9 pr-3 bg-zinc-900 border border-zinc-800 focus:border-zinc-700 rounded-md text-xs font-mono text-zinc-100 placeholder:text-zinc-500 focus:outline-none transition-colors"
                     />
                   </div>
-                  <p className="text-xs text-kumo-subtle mt-1.5 leading-normal">
-                    Your server&apos;s public static IPv4 address. Used for SPF authorization and MTA identification.
+                  <p className="text-2xs text-zinc-500 mt-1">
+                    Server outbound IPv4 used for SPF alignment.
                   </p>
                 </div>
 
-                {/* Cluster Hostname Auto-Calculation Preview */}
+                {/* Cluster Hostname Preview */}
                 {domainName && (
-                  <div className="p-3 sm:p-3.5 rounded-xl bg-kumo-recessed/40 border border-kumo-line/50 space-y-2 animate-in fade-in duration-150">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-medium text-kumo-subtle uppercase tracking-wider block">
-                        Auto-Configured Cluster Records Preview
-                      </span>
-                      <span className="text-xs font-mono text-kumo-muted">
-                        Dynamic DNS
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      <div className="p-2.5 rounded-lg bg-kumo-base border border-kumo-hairline space-y-0.5">
-                        <span className="text-xs font-medium text-kumo-subtle block">
-                          Mail Server EHLO
-                        </span>
-                        <span className="font-mono text-sm font-semibold text-cf-orange truncate block" title={mailHostname || `mail.${domainName}`}>
+                  <div className="p-3 rounded-md bg-zinc-900/60 border border-zinc-800/60 space-y-2">
+                    <span className="text-2xs font-mono text-zinc-500 uppercase tracking-wider block">
+                      Generated Endpoints
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                      <div className="space-y-0.5">
+                        <span className="text-2xs text-zinc-500 block">Mail Server EHLO</span>
+                        <span className="font-mono text-zinc-300 truncate block">
                           {mailHostname || `mail.${domainName}`}
                         </span>
                       </div>
-                      <div className="p-2.5 rounded-lg bg-kumo-base border border-kumo-hairline space-y-0.5">
-                        <span className="text-xs font-medium text-kumo-subtle block">
-                          Return-Path Subdomain
-                        </span>
-                        <span className="font-mono text-sm font-semibold text-cf-blue truncate block" title={`send.${domainName}`}>
+                      <div className="space-y-0.5">
+                        <span className="text-2xs text-zinc-500 block">Return-Path Subdomain</span>
+                        <span className="font-mono text-zinc-300 truncate block">
                           send.{domainName}
                         </span>
                       </div>
@@ -543,28 +485,28 @@ export function OnboardingView() {
                   </div>
                 )}
 
-                {/* Submit / Proceed Button */}
-                <div className="pt-3.5 border-t border-kumo-hairline flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                {/* Actions */}
+                <div className="pt-3 border-t border-zinc-800/80 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
                   <Link
                     href="/settings"
-                    className="btn-cf-secondary h-9 sm:h-10 px-3.5 text-sm font-medium inline-flex items-center justify-center gap-1.5 cursor-pointer text-center"
+                    className="btn-cf-secondary text-xs h-9 px-3 text-center"
                   >
                     Configure in Settings
                   </Link>
                   <button
                     type="submit"
                     disabled={isSubmitting || !domainName.trim() || !vpsIp.trim()}
-                    className="btn-cf-primary h-9 sm:h-10 px-5 text-sm font-medium inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-sm active-press transition-all"
+                    className="btn-cf-primary text-xs h-9 px-4 disabled:opacity-50"
                   >
                     {isSubmitting ? (
                       <>
-                        <ArrowsClockwise size={14} className="animate-spin" />
-                        <span>Generating Cryptographic Keys...</span>
+                        <ArrowsClockwise size={13} className="animate-spin" />
+                        <span>Generating Keys...</span>
                       </>
                     ) : (
                       <>
-                        <span>Generate 2048-Bit DKIM & DNS Records</span>
-                        <ArrowRight size={14} weight="bold" />
+                        <span>Generate DKIM & DNS Records</span>
+                        <ArrowRight size={13} weight="bold" />
                       </>
                     )}
                   </button>
@@ -572,65 +514,56 @@ export function OnboardingView() {
               </form>
             ) : (
               /* STEP 2: MASTER DNS CHECKLIST & PROPAGATION */
-              <div className="space-y-4.5 animate-in fade-in duration-200">
-                {/* Step 2 Heading */}
+              <div className="space-y-5 animate-in fade-in duration-200">
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-kumo-control border border-kumo-line/80 flex items-center justify-center text-kumo-muted shrink-0">
-                      <ShieldCheck size={16} weight="bold" />
-                    </div>
-                    <h1 className="text-xl sm:text-2xl font-semibold text-kumo-strong tracking-tight leading-tight">
-                      Master DNS Verification Checklist
-                    </h1>
-                  </div>
-                  <p className="text-sm text-kumo-subtle leading-relaxed">
-                    Add the generated DNS records into your DNS provider (Cloudflare, AWS Route 53, Namecheap, etc.) to complete verification.
+                  <h1 className="text-2xl md:text-[26px] font-semibold text-zinc-100 tracking-tight">
+                    DNS Verification Checklist
+                  </h1>
+                  <p className="text-xs text-zinc-400">
+                    Add the DNS records below into your DNS provider (Cloudflare, Route 53, etc.) to complete verification.
                   </p>
                 </div>
 
                 {/* Domain Verification Status Header Bar */}
-                <div className="p-3 sm:p-3.5 rounded-xl bg-kumo-control/80 border border-kumo-line flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
+                <div className="p-3 rounded-lg bg-zinc-900/60 border border-zinc-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="flex items-center gap-2.5 flex-wrap">
-                      <span className="text-sm sm:text-base font-mono font-semibold text-kumo-strong truncate">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-mono font-medium text-zinc-200 truncate">
                         {createdDomain?.domainName || domainName}
                       </span>
                       <span
-                        className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium font-mono ${
+                        className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium ${
                           createdDomain?.status === "VERIFIED"
-                            ? "bg-cf-success/10 text-cf-success/90"
-                            : "bg-cf-amber/10 text-cf-amber/90"
+                            ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                            : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
                         }`}
                       >
                         <span
                           className={`w-1.5 h-1.5 rounded-full shrink-0 ${
                             createdDomain?.status === "VERIFIED"
-                              ? "bg-cf-success animate-pulse"
-                              : "bg-cf-amber"
+                              ? "bg-emerald-400"
+                              : "bg-amber-400 animate-pulse"
                           }`}
                         />
                         <span>
-                          {createdDomain?.status === "VERIFIED" ? "100% Verified" : "Pending Propagation"}
+                          {createdDomain?.status === "VERIFIED" ? "Verified" : "Pending Propagation"}
                         </span>
                       </span>
                     </div>
-                    <p className="text-xs sm:text-sm text-kumo-subtle mt-0.5 leading-normal">
-                      Add the DNS records below in Cloudflare, AWS Route 53, or your registrar console.
-                    </p>
                   </div>
 
                   <button
                     type="button"
                     onClick={handleVerifyDns}
                     disabled={isVerifying}
-                    className="btn-cf-secondary h-8.5 px-3 text-sm font-medium inline-flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0 w-full sm:w-auto"
+                    className="btn-cf-secondary text-xs h-8 px-3 shrink-0"
                   >
-                    <ArrowsClockwise size={13} className={isVerifying ? "animate-spin text-cf-orange" : ""} />
-                    <span>{isVerifying ? "Checking Nameservers..." : "Check Propagation"}</span>
+                    <ArrowsClockwise size={12} className={isVerifying ? "animate-spin text-zinc-400" : "text-zinc-400"} />
+                    <span>{isVerifying ? "Checking..." : "Check Propagation"}</span>
                   </button>
                 </div>
 
-                {/* Standardized DNS Records (Group 1: Sending & Deliverability, Group 2: Inbound Receiving) */}
+                {/* Standardized DNS Records */}
                 <DnsRecordsTable
                   sendingRecords={standardDns.sendingRecords}
                   inboundRecords={standardDns.inboundRecords}
@@ -638,67 +571,47 @@ export function OnboardingView() {
                 />
 
                 {/* Reverse DNS (PTR) Callout */}
-                <div className="p-3 sm:p-3.5 rounded-xl bg-cf-blue-tint/15 border border-cf-blue-border/30 flex items-start gap-2.5 shadow-2xs">
-                  <Info size={15} className="text-cf-blue shrink-0 mt-0.5" />
-                  <div className="space-y-0.5 text-xs leading-relaxed">
-                    <span className="font-semibold text-kumo-strong block">
-                      Reverse DNS (PTR) Requirement
-                    </span>
-                    <p className="text-kumo-subtle">
-                      In your VPS hosting provider control panel (DigitalOcean Networking &rarr; Droplet PTR, Hetzner Server &rarr; Reverse DNS, or AWS Route 53 PTR), set the reverse DNS of{" "}
-                      <code className="font-mono text-kumo-strong bg-kumo-base/80 px-1 py-0.5 rounded border border-kumo-line/60">
-                        {vpsIp}
-                      </code>{" "}
-                      to{" "}
-                      <code className="font-mono text-kumo-strong bg-kumo-base/80 px-1 py-0.5 rounded border border-kumo-line/60">
-                        {mailHostname || `mail.${createdDomain?.domainName || domainName}`}
-                      </code>
-                      .
-                    </p>
+                <div className="p-3 rounded-lg bg-zinc-900/40 border border-zinc-800/80 text-xs text-zinc-400 flex items-start gap-2.5 leading-relaxed">
+                  <Info size={15} className="text-zinc-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-medium text-zinc-200">Reverse DNS (PTR): </span>
+                    In your VPS provider console (DigitalOcean, Hetzner, AWS), set the reverse DNS PTR of{" "}
+                    <code className="font-mono text-zinc-200 bg-zinc-800 px-1 py-0.5 rounded">
+                      {vpsIp}
+                    </code>{" "}
+                    to{" "}
+                    <code className="font-mono text-zinc-200 bg-zinc-800 px-1 py-0.5 rounded">
+                      {mailHostname || `mail.${createdDomain?.domainName || domainName}`}
+                    </code>
+                    .
                   </div>
                 </div>
 
                 {/* Footer Action Buttons */}
-                <div className="pt-3.5 border-t border-kumo-hairline flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                <div className="pt-3 border-t border-zinc-800/80 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
                   <button
                     type="button"
                     onClick={() => setStep(1)}
-                    className="btn-cf-secondary h-9 sm:h-10 px-4 text-sm font-medium inline-flex items-center justify-center gap-1.5 cursor-pointer text-center"
+                    className="btn-cf-secondary text-xs h-9 px-3"
                   >
-                    <span>&larr; Back to Domain Details</span>
+                    <span>&larr; Back to Domain Settings</span>
                   </button>
 
                   <div
                     onClick={!isDomainConfirmed ? notifyDomainUnconfirmed : undefined}
-                    onKeyDown={
-                      !isDomainConfirmed
-                        ? (e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault();
-                              notifyDomainUnconfirmed();
-                            }
-                          }
-                        : undefined
-                    }
-                    tabIndex={!isDomainConfirmed ? 0 : undefined}
-                    role={!isDomainConfirmed ? "button" : undefined}
-                    aria-disabled={!isDomainConfirmed ? "true" : undefined}
-                    aria-label={!isDomainConfirmed ? "Proceed to Dashboard (Domain verification required)" : undefined}
-                    className="inline-flex rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-cf-orange/50 cursor-pointer"
+                    className="inline-flex cursor-pointer"
                   >
                     <button
                       type="button"
                       onClick={handleFinish}
                       disabled={!isDomainConfirmed}
                       title={isDomainConfirmed ? "Proceed to Dashboard" : undefined}
-                      className={`btn-cf-primary h-9 sm:h-10 px-5 text-sm font-medium inline-flex items-center justify-center gap-2 shadow-sm active-press transition-all text-center ${
-                        !isDomainConfirmed
-                          ? "opacity-40 pointer-events-none"
-                          : "cursor-pointer"
+                      className={`btn-cf-primary text-xs h-9 px-4 flex items-center gap-1.5 ${
+                        !isDomainConfirmed ? "opacity-40 pointer-events-none" : "cursor-pointer"
                       }`}
                     >
                       <span>Proceed to Dashboard</span>
-                      <ArrowRight size={14} weight="bold" />
+                      <ArrowRight size={13} weight="bold" />
                     </button>
                   </div>
                 </div>

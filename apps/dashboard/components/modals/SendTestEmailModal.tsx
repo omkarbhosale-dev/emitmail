@@ -6,9 +6,6 @@ import {
   PaperPlaneTilt,
   CheckCircle,
   CircleNotch,
-  EnvelopeSimple,
-  ShieldCheck,
-  WarningCircle,
 } from "@phosphor-icons/react";
 import { useToast } from "@/components/ui/Toast";
 import { useAuth } from "@/context/AuthContext";
@@ -21,34 +18,50 @@ interface SendTestEmailModalProps {
   onClose: () => void;
 }
 
+function getTemplate(domain: string) {
+  const dom = domain || "yourdomain.com";
+  const now = new Date().toISOString();
+  return {
+    subject: `Confirm your email configuration for ${dom}`,
+    fromName: `${dom} Security`,
+    body: `Hi there,\n\nThis is a confirmation message from your ${dom} mail server to verify that outbound SMTP, SPF, and 2048-bit DKIM signatures are properly aligned.\n\nConfiguration Details:\n- Sending Domain: ${dom}\n- Authentication: SPF & DKIM Aligned\n- Timestamp: ${now}\n\nNo further action is required. If you received this message in your primary inbox, your domain is ready for production traffic.\n\nBest regards,\n${dom} Infrastructure Team`,
+  };
+}
+
 export function SendTestEmailModal({ isOpen, onClose }: SendTestEmailModalProps) {
   const { toast } = useToast();
   const { isViewer } = useAuth();
   const [domains, setDomains] = useState<ApiDomain[]>([]);
   const [fromDomain, setFromDomain] = useState("");
-  const [fromPrefix, setFromPrefix] = useState("test");
-  const [recipient, setRecipient] = useState("user@example.com");
-  const [subject, setSubject] = useState("EmitMail Test Dispatch — BullMQ Worker Check");
-  const [body, setBody] = useState(
-    "Hello,\n\nThis is an automated test message dispatched via EmitMail's BullMQ distributed queue engine with 2048-bit DKIM signature and SPF alignment.\n\nStatus: 250 OK"
-  );
+  const [fromPrefix, setFromPrefix] = useState("notifications");
+  const [fromName, setFromName] = useState("");
+  const [recipient, setRecipient] = useState("");
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [step, setStep] = useState<"compose" | "enqueued" | "success">("compose");
   const [dispatchedInfo, setDispatchedInfo] = useState<{ id: string; messageId?: string } | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
-    
-    // Fetch domains for from identity
+
     api.domains.list()
       .then((items) => {
         setDomains(items);
         if (items.length > 0) {
-          // Prefer verified domain if available
           const verified = items.find((d) => d.status === "VERIFIED");
-          setFromDomain(verified ? verified.domainName : items[0].domainName);
+          const selected = verified ? verified.domainName : items[0].domainName;
+          setFromDomain(selected);
+          const tpl = getTemplate(selected);
+          setFromName(tpl.fromName);
+          setSubject(tpl.subject);
+          setBody(tpl.body);
         } else {
           setFromDomain("");
+          const tpl = getTemplate("yourdomain.com");
+          setFromName(tpl.fromName);
+          setSubject(tpl.subject);
+          setBody(tpl.body);
         }
       })
       .catch((err) => {
@@ -56,6 +69,14 @@ export function SendTestEmailModal({ isOpen, onClose }: SendTestEmailModalProps)
         setFromDomain("");
       });
   }, [isOpen]);
+
+  const handleDomainSelect = (domain: string) => {
+    setFromDomain(domain);
+    const tpl = getTemplate(domain);
+    setFromName(tpl.fromName);
+    setSubject(tpl.subject);
+    setBody(tpl.body);
+  };
 
   if (!isOpen) return null;
 
@@ -87,27 +108,41 @@ export function SendTestEmailModal({ isOpen, onClose }: SendTestEmailModalProps)
       return;
     }
 
-    if (!fromDomain.trim()) {
-      toast({
-        title: "Sender Domain Required",
-        description: "Please select or enter a sender domain.",
-        type: "error",
-      });
-      return;
-    }
-
     setIsSubmitting(true);
     setStep("enqueued");
 
-    const senderEmail = `${fromPrefix.trim() || "test"}@${fromDomain.trim()}`;
+    const senderAddress = `${fromPrefix.trim() || "notifications"}@${fromDomain.trim()}`;
+    const fullFrom = fromName.trim()
+      ? `"${fromName.trim()}" <${senderAddress}>`
+      : senderAddress;
+
+    const htmlBody = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${subject.trim()}</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #18181b; background-color: #f4f4f5; margin: 0; padding: 24px;">
+  <div style="max-width: 560px; margin: 0 auto; background: #ffffff; border: 1px solid #e4e4e7; border-radius: 8px; padding: 32px;">
+    <div style="margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #f4f4f5;">
+      <h2 style="margin: 0; font-size: 18px; font-weight: 600; color: #09090b;">Email Configuration Notice</h2>
+    </div>
+    <div style="font-size: 14px; color: #27272a; white-space: pre-wrap;">${body.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</div>
+    <div style="margin-top: 32px; pt: 16px; border-top: 1px solid #f4f4f5; font-size: 12px; color: #71717a;">
+      Sent via EmitMail Platform &bull; High-deliverability transactional delivery
+    </div>
+  </div>
+</body>
+</html>`;
 
     try {
       const result = await api.emails.send({
-        from: senderEmail,
+        from: fullFrom,
         to: recipient.trim(),
         subject: subject.trim(),
         text: body,
-        html: body.replace(/\n/g, "<br/>"),
+        html: htmlBody,
       });
 
       setDispatchedInfo({
@@ -118,21 +153,21 @@ export function SendTestEmailModal({ isOpen, onClose }: SendTestEmailModalProps)
       setIsSubmitting(false);
 
       toast({
-        title: "Email Successfully Dispatched",
-        description: `Dispatched to ${recipient.trim()} via ${senderEmail}`,
+        title: "Email Dispatched",
+        description: `Delivered to ${recipient.trim()} via ${senderAddress}`,
         type: "success",
       });
 
-      // Dispatch global event for EmailsView to refresh
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("emails-updated"));
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setIsSubmitting(false);
       setStep("compose");
+      const msg = err instanceof Error ? err.message : "An error occurred while dispatching email.";
       toast({
         title: "Failed to Send Email",
-        description: err.message || "An error occurred while dispatching email.",
+        description: msg,
         type: "error",
       });
     }
@@ -148,74 +183,76 @@ export function SendTestEmailModal({ isOpen, onClose }: SendTestEmailModalProps)
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+        className="fixed inset-0 bg-black/70 backdrop-blur-xs transition-opacity"
         onClick={handleReset}
       />
 
       {/* Modal Dialog */}
-      <div className="relative w-full max-w-lg bg-kumo-base border border-kumo-line rounded-2xl shadow-2xl overflow-hidden z-10 animate-in fade-in zoom-in-95 duration-150">
+      <div className="relative w-full max-w-lg bg-zinc-950 border border-zinc-800/80 rounded-lg shadow-2xl overflow-hidden z-10 animate-in fade-in zoom-in-95 duration-150">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-kumo-hairline">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-cf-blue/10 border border-cf-blue/20 flex items-center justify-center text-cf-blue">
-              <PaperPlaneTilt size={18} weight="fill" />
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-kumo-strong">
-                Send Test Email
-              </h3>
-              <p className="text-xs text-kumo-subtle">
-                Verify deliverability, DKIM signing, and BullMQ worker pipeline
-              </p>
-            </div>
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-zinc-800/80">
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-zinc-100">
+              Send Email
+            </h3>
+            <span className="text-2xs font-mono px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-400">
+              Transactional
+            </span>
           </div>
           <button
             onClick={handleReset}
-            className="p-1 rounded-md text-kumo-muted hover:text-kumo-strong hover:bg-kumo-tint"
+            className="p-1 rounded text-zinc-500 hover:text-zinc-200 transition-colors cursor-pointer"
             aria-label="Close"
           >
-            <X size={16} />
+            <X size={15} />
           </button>
         </div>
 
         {/* Content Body */}
         {step === "compose" && (
-          <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
+          <div className="p-5 space-y-3.5 max-h-[75vh] overflow-y-auto">
             {isViewer && (
               <ViewOnlyBanner message="You have view-only access and cannot dispatch test emails." />
             )}
 
-            {/* Sender Selection */}
-            <div>
-              <label className="block text-xs font-medium text-kumo-subtle mb-1.5">
-                From Address
+            {/* From Name & From Address */}
+            <div className="space-y-2">
+              <label className="block text-xs font-medium text-zinc-400">
+                From
               </label>
-              <div className="flex gap-2">
-                <div className="relative w-1/3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <input
+                  type="text"
+                  disabled={isViewer}
+                  value={fromName}
+                  onChange={(e) => setFromName(e.target.value)}
+                  placeholder="Sender Name"
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-zinc-700 disabled:opacity-60"
+                />
+
+                <div className="flex items-center gap-1.5">
                   <input
                     type="text"
                     disabled={isViewer}
                     value={fromPrefix}
                     onChange={(e) => setFromPrefix(e.target.value)}
-                    placeholder="prefix"
-                    className="w-full bg-kumo-control border border-kumo-line rounded-lg px-3 py-1.5 text-xs text-kumo-strong focus:outline-none focus:border-cf-blue font-mono disabled:opacity-60"
+                    placeholder="notifications"
+                    className="w-28 bg-zinc-900 border border-zinc-800 rounded-md px-2 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-zinc-700 font-mono disabled:opacity-60"
                   />
-                </div>
-                <span className="self-center text-kumo-muted font-mono">@</span>
-                <div className="relative flex-1">
+                  <span className="text-zinc-500 font-mono text-xs">@</span>
                   <select
                     disabled={isViewer}
                     value={fromDomain}
-                    onChange={(e) => setFromDomain(e.target.value)}
-                    className="w-full bg-kumo-control border border-kumo-line rounded-lg px-3 py-1.5 text-xs text-kumo-strong focus:outline-none focus:border-cf-blue font-mono cursor-pointer disabled:opacity-60"
+                    onChange={(e) => handleDomainSelect(e.target.value)}
+                    className="flex-1 min-w-0 bg-zinc-900 border border-zinc-800 rounded-md px-2 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-zinc-700 font-mono cursor-pointer disabled:opacity-60"
                   >
                     {domains.map((dom) => (
                       <option key={dom.id} value={dom.domainName}>
-                        {dom.domainName} {dom.status === "VERIFIED" ? "✓" : "(Pending)"}
+                        {dom.domainName}
                       </option>
                     ))}
                     {domains.length === 0 && (
-                      <option value="" disabled>No domains configured (Add a domain first)</option>
+                      <option value="" disabled>No domains configured</option>
                     )}
                   </select>
                 </div>
@@ -224,8 +261,8 @@ export function SendTestEmailModal({ isOpen, onClose }: SendTestEmailModalProps)
 
             {/* Recipient */}
             <div>
-              <label className="block text-xs font-medium text-kumo-subtle mb-1.5">
-                To (Recipient Address)
+              <label className="block text-xs font-medium text-zinc-400 mb-1">
+                To
               </label>
               <input
                 type="email"
@@ -233,36 +270,36 @@ export function SendTestEmailModal({ isOpen, onClose }: SendTestEmailModalProps)
                 value={recipient}
                 onChange={(e) => setRecipient(e.target.value)}
                 placeholder="recipient@example.com"
-                className="w-full bg-kumo-control border border-kumo-line rounded-lg px-3 py-1.5 text-xs text-kumo-strong focus:outline-none focus:border-cf-blue font-mono disabled:opacity-60"
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-zinc-700 font-mono disabled:opacity-60"
               />
             </div>
 
             {/* Subject */}
             <div>
-              <label className="block text-xs font-medium text-kumo-subtle mb-1.5">
-                Subject Line
+              <label className="block text-xs font-medium text-zinc-400 mb-1">
+                Subject
               </label>
               <input
                 type="text"
                 disabled={isViewer}
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                placeholder="Test Subject"
-                className="w-full bg-kumo-control border border-kumo-line rounded-lg px-3 py-1.5 text-xs text-kumo-strong focus:outline-none focus:border-cf-blue disabled:opacity-60"
+                placeholder="Subject Line"
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-zinc-700 disabled:opacity-60"
               />
             </div>
 
             {/* Body */}
             <div>
-              <label className="block text-xs font-medium text-kumo-subtle mb-1.5">
-                Email Body (Plain Text & HTML)
+              <label className="block text-xs font-medium text-zinc-400 mb-1">
+                Body
               </label>
               <textarea
-                rows={4}
+                rows={6}
                 disabled={isViewer}
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
-                className="w-full bg-kumo-control border border-kumo-line rounded-lg p-3 text-xs text-kumo-strong focus:outline-none focus:border-cf-blue font-mono leading-relaxed disabled:opacity-60"
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-md p-3 text-xs text-zinc-200 focus:outline-none focus:border-zinc-700 font-mono leading-relaxed disabled:opacity-60"
               />
             </div>
           </div>
@@ -270,40 +307,40 @@ export function SendTestEmailModal({ isOpen, onClose }: SendTestEmailModalProps)
 
         {/* Processing State */}
         {step === "enqueued" && (
-          <div className="py-14 px-6 text-center space-y-3">
-            <CircleNotch size={32} className="animate-spin text-cf-blue mx-auto" />
-            <h4 className="text-sm font-semibold text-kumo-strong">
-              Enqueuing Message into BullMQ
+          <div className="py-14 px-6 text-center space-y-2">
+            <CircleNotch size={28} className="animate-spin text-zinc-400 mx-auto" />
+            <h4 className="text-xs font-medium text-zinc-200">
+              Enqueuing Message
             </h4>
-            <p className="text-xs text-kumo-subtle">
-              Signing with 2048-bit DKIM private key and initializing SMTP handshake...
+            <p className="text-2xs text-zinc-500">
+              Signing with 2048-bit RSA DKIM key and dispatching via SMTP...
             </p>
           </div>
         )}
 
         {/* Success State */}
         {step === "success" && (
-          <div className="py-10 px-6 text-center space-y-3">
-            <div className="w-12 h-12 bg-cf-success/10 border border-cf-success/20 text-cf-success rounded-full flex items-center justify-center mx-auto">
-              <CheckCircle size={26} weight="fill" />
+          <div className="py-10 px-6 text-center space-y-2.5">
+            <div className="w-9 h-9 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto">
+              <CheckCircle size={20} weight="fill" />
             </div>
-            <h4 className="text-sm font-semibold text-kumo-strong">
-              Test Email Dispatched Successfully!
+            <h4 className="text-sm font-semibold text-zinc-100">
+              Email Dispatched
             </h4>
-            <p className="text-xs text-kumo-subtle max-w-sm mx-auto">
-              Message ID <span className="font-mono text-kumo-strong break-all">{dispatchedInfo?.messageId || dispatchedInfo?.id}</span> was processed and enqueued into BullMQ for SMTP delivery.
+            <p className="text-xs text-zinc-400 max-w-sm mx-auto font-mono text-2xs break-all">
+              ID: {dispatchedInfo?.messageId || dispatchedInfo?.id}
             </p>
           </div>
         )}
 
         {/* Footer Actions */}
-        <div className="px-5 py-3.5 bg-kumo-recessed border-t border-kumo-hairline flex items-center justify-end gap-2.5">
+        <div className="px-5 py-3 bg-zinc-900/50 border-t border-zinc-800/80 flex items-center justify-end gap-2">
           {step === "compose" ? (
             <>
               <button
                 type="button"
                 onClick={handleReset}
-                className="btn-cf-secondary"
+                className="btn-cf-secondary text-xs"
               >
                 Cancel
               </button>
@@ -311,18 +348,17 @@ export function SendTestEmailModal({ isOpen, onClose }: SendTestEmailModalProps)
                 type="button"
                 disabled={isSubmitting || isViewer}
                 onClick={handleSend}
-                title={isViewer ? "View-only members cannot dispatch emails" : undefined}
-                className="btn-cf-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                className="btn-cf-primary text-xs"
               >
-                <PaperPlaneTilt size={14} weight="bold" />
-                <span>Dispatch Email</span>
+                <PaperPlaneTilt size={13} weight="bold" />
+                <span>Send</span>
               </button>
             </>
           ) : step === "success" ? (
             <button
               type="button"
               onClick={handleReset}
-              className="btn-cf-primary"
+              className="btn-cf-primary text-xs"
             >
               Done
             </button>

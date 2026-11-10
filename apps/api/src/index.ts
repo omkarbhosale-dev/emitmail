@@ -86,6 +86,10 @@ async function startServer(): Promise<void> {
     console.log(`✨ EmitMail API listening on http://localhost:${env.PORT} [${env.NODE_ENV}]`);
   });
 
+  // Keep-alive timeouts aligned for reverse proxying (e.g. Next.js rewrite proxy / Nginx)
+  server.keepAliveTimeout = 65000;
+  server.headersTimeout = 66000;
+
   // Graceful shutdown
   const shutdown = async (signal: string) => {
     console.log(`\n🛑 Received ${signal}. Shutting down EmitMail API...`);

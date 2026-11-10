@@ -146,31 +146,37 @@ export function getStandardDnsRecords(params: GetDnsRecordsParams): StandardDnsR
     mxInboundItem?.status ||
     (domain?.inboundMxVerified ? "VERIFIED" : "PENDING");
 
+  const sanitizeDnsValue = (rawVal: string | undefined, fallback: string): string => {
+    if (!rawVal || typeof rawVal !== "string") return fallback;
+    let cleaned = rawVal;
+    if (cleaned.includes("0.0.0.0")) {
+      cleaned = cleaned.replace(/0\.0\.0\.0/g, resolvedIp);
+    }
+    if (cleaned.includes("mail.yourdomain.com") || cleaned.includes("mail.example.com")) {
+      cleaned = cleaned.replace(/mail\.(yourdomain\.com|example\.com)/g, resolvedMailHost);
+    }
+    if (cleaned.includes("yourdomain.com")) {
+      cleaned = cleaned.replace(/yourdomain\.com/g, domainName || "omkarbhosale.dev");
+    }
+    return isDummyValue(cleaned) ? fallback : cleaned;
+  };
+
   // Clean, real values (sanitized of any dummy / placeholder artifacts)
-  const finalDkimValue =
-    dkimItem?.value && !isDummyValue(dkimItem.value)
-      ? dkimItem.value
-      : dkimValue;
+  const finalDkimValue = sanitizeDnsValue(dkimItem?.value, dkimValue);
 
-  const finalSpfValue =
-    spfItem?.value && !isDummyValue(spfItem.value) && spfItem.value.endsWith("-all")
-      ? spfItem.value
-      : resolvedSpfValue;
+  const finalSpfValue = sanitizeDnsValue(
+    spfItem?.value && spfItem.value.endsWith("-all") ? spfItem.value : undefined,
+    resolvedSpfValue
+  );
 
-  const finalMxSendValue =
-    mxSendItem?.value && !isDummyValue(mxSendItem.value)
-      ? mxSendItem.value
-      : resolvedMailHost;
+  const finalMxSendValue = sanitizeDnsValue(mxSendItem?.value, resolvedMailHost);
 
-  const finalDmarcValue =
-    dmarcItem?.value && !isDummyValue(dmarcItem.value) && dmarcItem.value.includes("p=reject")
-      ? dmarcItem.value
-      : resolvedDmarcValue;
+  const finalDmarcValue = sanitizeDnsValue(
+    dmarcItem?.value && dmarcItem.value.includes("p=reject") ? dmarcItem.value : undefined,
+    resolvedDmarcValue
+  );
 
-  const finalMxInboundValue =
-    mxInboundItem?.value && !isDummyValue(mxInboundItem.value)
-      ? mxInboundItem.value
-      : resolvedMailHost;
+  const finalMxInboundValue = sanitizeDnsValue(mxInboundItem?.value, resolvedMailHost);
 
   // Group 1: Sending & Deliverability Records (4 records)
   const sendingRecords: StandardDnsRecord[] = [
