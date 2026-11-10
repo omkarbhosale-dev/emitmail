@@ -8,17 +8,17 @@ import {
   ArrowsClockwise,
   Trash,
   Check,
-  Copy,
   WarningCircle,
-  ArrowUpRight,
   CaretDown,
 } from "@phosphor-icons/react";
-import { ApiDomain, DnsRecordItem } from "@/types";
+import { ApiDomain } from "@/types";
 import { useToast } from "@/components/ui/Toast";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/context/AuthContext";
 import { ViewOnlyBanner } from "@/components/ui/ViewOnlyBanner";
 import { api } from "@/lib/api";
+import { getStandardDnsRecords } from "@/lib/dnsRecords";
+import { DnsRecordsTable } from "@/components/dns/DnsRecordsTable";
 
 interface DomainDetailsViewProps {
   domainId: string;
@@ -34,22 +34,37 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
   const [isVerifying, setIsVerifying] = useState(false);
   const [isRotatingDkim, setIsRotatingDkim] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isDnsCollapsed, setIsDnsCollapsed] = useState(false);
+  const [serverConfig, setServerConfig] = useState<{
+    mailServerHostname?: string;
+    vpsPublicIpv4?: string;
+    spfIncludeDomain?: string;
+  } | null>(null);
 
   const fetchDomain = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await api.domains.getById(domainId);
+      const [data, configRes] = await Promise.all([
+        api.domains.getById(domainId),
+        api.serverConfig.get().catch(() => null),
+      ]);
       setDomain(data);
+
+      const cfg = configRes?.serverConfig || configRes?.config;
+      if (cfg) {
+        setServerConfig(cfg);
+      }
 
       // Auto-collapse if all records are properly configured and verified
       const records = data.dnsRecords || [];
       const verified =
         data.status === "VERIFIED" ||
-        (records.length > 0 && records.every((r) => r.status === "VERIFIED")) ||
+        (records.length > 0 &&
+          records
+            .filter((r: any) => r.group !== "inbound")
+            .every((r: any) => r.status === "VERIFIED")) ||
         (data.dkimVerified && data.spfVerified && data.mxVerified && data.dmarcVerified);
       setIsDnsCollapsed(Boolean(verified));
     } catch (err: unknown) {
@@ -68,17 +83,6 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
   useEffect(() => {
     fetchDomain();
   }, [fetchDomain]);
-
-  const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedKey(label);
-    toast({
-      title: "Copied to Clipboard",
-      description: text.length > 50 ? `${text.slice(0, 47)}...` : text,
-      type: "success",
-    });
-    setTimeout(() => setCopiedKey(null), 2000);
-  };
 
   const handleVerifyDns = async () => {
     if (isViewer) {
@@ -226,188 +230,19 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
     );
   }
 
-  // Calculate status breakdown
-  const rawRecords: DnsRecordItem[] = domain.dnsRecords && domain.dnsRecords.length > 0
-    ? domain.dnsRecords
-    : [
-        {
-          type: "TXT",
-          host: `${domain.dkimSelector}._domainkey`,
-          fqdn: `${domain.dkimSelector}._domainkey.${domain.domainName}`,
-          value: `v=DKIM1; k=rsa; p=${domain.dkimPublicKey}`,
-          status: domain.dkimVerified ? "VERIFIED" : "PENDING",
-        },
-        {
-          type: "TXT",
-          host: domain.returnPathSubdomain,
-          fqdn: `${domain.returnPathSubdomain}.${domain.domainName}`,
-          value: `v=spf1 a mx ~all`,
-          status: domain.spfVerified ? "VERIFIED" : "PENDING",
-        },
-        {
-          type: "MX",
-          host: domain.returnPathSubdomain,
-          fqdn: `${domain.returnPathSubdomain}.${domain.domainName}`,
-          value: `mail.${domain.domainName}`,
-          status: domain.mxVerified ? "VERIFIED" : "PENDING",
-        },
-        {
-          type: "TXT",
-          host: "_dmarc",
-          fqdn: `_dmarc.${domain.domainName}`,
-          value: domain.dmarcPolicy || `v=DMARC1; p=none; rua=mailto:dmarc@${domain.domainName}; aspf=r; adkim=r;`,
-          status: domain.dmarcVerified ? "VERIFIED" : "PENDING",
-        },
-      ];
-
-  const verifiedCount = rawRecords.filter((r) => r.status === "VERIFIED").length;
-  const failedCount = rawRecords.filter((r) => r.status === "FAILED").length;
-  const isAllVerified = verifiedCount === rawRecords.length || domain.status === "VERIFIED";
+  // Standardized DNS records calculation (single source of truth with dynamic server config)
+  const standardDns = getStandardDnsRecords({
+    domain,
+    vpsIp: serverConfig?.vpsPublicIpv4,
+    mailHostname: serverConfig?.mailServerHostname,
+    spfIncludeDomain: serverConfig?.spfIncludeDomain,
+  });
+  const isAllVerified = standardDns.isAllSendingVerified || domain.status === "VERIFIED";
+  const verifiedCount = standardDns.sendingVerifiedCount;
+  const totalSendingCount = standardDns.sendingRecords.length;
+  const failedCount = standardDns.sendingRecords.filter((r) => r.status === "FAILED").length;
   const isPartiallyFailed = verifiedCount > 0 && !isAllVerified;
-  const isAllFailed = failedCount === rawRecords.length || (domain.status === "FAILED" && verifiedCount === 0);
-
-  // Group records by section
-  const dkimRecords = rawRecords.filter(
-    (r) => r.host.includes("_domainkey") || r.fqdn.includes("_domainkey")
-  );
-  const spfRecords = rawRecords.filter(
-    (r) =>
-      !r.host.includes("_domainkey") &&
-      !r.host.includes("_dmarc") &&
-      (r.host === domain.returnPathSubdomain || r.host === "@" || r.value.includes("v=spf1") || r.type === "MX")
-  );
-  const dmarcRecords = rawRecords.filter(
-    (r) => r.host.includes("_dmarc") || r.fqdn.includes("_dmarc")
-  );
-
-  const renderDnsTable = (title: string, records: DnsRecordItem[]) => {
-    if (records.length === 0) return null;
-
-    return (
-      <div className="space-y-2.5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5 text-sm font-bold text-white">
-            <span>{title}</span>
-            <ArrowUpRight size={14} className="text-kumo-subtle" />
-            {title === "DKIM" && (
-              <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-cf-orange/15 text-cf-orange border border-cf-orange/30">
-                2048-bit RSA
-              </span>
-            )}
-          </div>
-          {title === "DKIM" && !isViewer && (
-            <button
-              type="button"
-              onClick={handleRotateDkim}
-              disabled={isRotatingDkim || isVerifying}
-              className="text-xs font-medium px-2.5 py-1 rounded-md bg-kumo-elevated hover:bg-kumo-interact border border-kumo-line text-white flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
-              title="Regenerate a brand-new 2048-bit RSA DKIM key"
-            >
-              <ArrowsClockwise size={12} className={isRotatingDkim ? "animate-spin text-cf-orange" : ""} />
-              <span>{isRotatingDkim ? "Generating..." : "Regenerate 2048-bit Key"}</span>
-            </button>
-          )}
-        </div>
-
-        <div className="bg-kumo-base border border-kumo-line rounded-xl overflow-hidden shadow-2xs">
-          {/* Table Header matching the screenshot */}
-          <div className="bg-kumo-elevated border-b border-kumo-line px-4 py-2.5 grid grid-cols-12 gap-3 text-xs text-kumo-subtle font-medium items-center select-none">
-            <div className="col-span-2 sm:col-span-1">Type</div>
-            <div className="col-span-3 sm:col-span-3">Name</div>
-            <div className="col-span-4 sm:col-span-5">Content</div>
-            <div className="col-span-1 sm:col-span-1">TTL</div>
-            <div className="col-span-2 sm:col-span-2 text-right">Status</div>
-          </div>
-
-          {/* Table Rows with click-to-copy on Name and Content */}
-          <div className="divide-y divide-kumo-hairline">
-            {records.map((rec, idx) => {
-              const isRecVerified = rec.status === "VERIFIED";
-              const isRecFailed = rec.status === "FAILED";
-              const hostVal = rec.host || rec.fqdn;
-              const contentVal = rec.value;
-              const isNameCopied = copiedKey === `name-${rec.type}-${hostVal}`;
-              const isContentCopied = copiedKey === `content-${rec.type}-${hostVal}`;
-
-              return (
-                <div
-                  key={idx}
-                  className="grid grid-cols-12 gap-3 px-4 py-3.5 text-xs items-center hover:bg-kumo-recessed transition-colors"
-                >
-                  {/* Type */}
-                  <div className="col-span-2 sm:col-span-1 font-mono text-white text-xs font-semibold">
-                    {rec.type}
-                  </div>
-
-                  {/* Name - Click to Copy */}
-                  <div
-                    onClick={() => copyToClipboard(hostVal, `name-${rec.type}-${hostVal}`)}
-                    title="Click to copy Name"
-                    className="col-span-3 sm:col-span-3 font-mono text-white text-xs cursor-pointer hover:text-cf-orange transition-colors flex items-center gap-2 group/name truncate select-none"
-                  >
-                    <span className="truncate">{hostVal}</span>
-                    {isNameCopied ? (
-                      <span className="text-xs text-emerald-400 font-sans flex items-center gap-0.5 shrink-0 bg-emerald-500/10 px-1 rounded">
-                        <Check size={11} />
-                        <span>Copied</span>
-                      </span>
-                    ) : (
-                      <Copy
-                        size={13}
-                        className="text-kumo-subtle opacity-0 group-hover/name:opacity-100 transition-opacity shrink-0"
-                      />
-                    )}
-                  </div>
-
-                  {/* Content - Click to Copy */}
-                  <div
-                    onClick={() => copyToClipboard(contentVal, `content-${rec.type}-${hostVal}`)}
-                    title="Click to copy Content"
-                    className="col-span-4 sm:col-span-5 font-mono text-kumo-default text-xs cursor-pointer hover:text-white transition-colors flex items-center justify-between gap-2 group/content select-none"
-                  >
-                    <span className="truncate font-mono">{contentVal}</span>
-                    {isContentCopied ? (
-                      <span className="text-xs text-emerald-400 font-sans flex items-center gap-0.5 shrink-0 bg-emerald-500/10 px-1.5 py-0.5 rounded">
-                        <Check size={11} />
-                        <span>Copied</span>
-                      </span>
-                    ) : (
-                      <Copy
-                        size={13}
-                        className="text-kumo-subtle opacity-0 group-hover/content:opacity-100 transition-opacity shrink-0"
-                      />
-                    )}
-                  </div>
-
-                  {/* TTL */}
-                  <div className="col-span-1 sm:col-span-1 font-mono text-kumo-subtle text-xs">
-                    Auto
-                  </div>
-
-                  {/* Status Badge */}
-                  <div className="col-span-2 sm:col-span-2 flex justify-end">
-                    {isRecVerified ? (
-                      <span className="inline-flex items-center justify-center px-3 py-0.5 rounded-full text-xs font-medium bg-emerald-950/60 border border-emerald-500/30 text-emerald-400">
-                        Verified
-                      </span>
-                    ) : isRecFailed ? (
-                      <span className="inline-flex items-center justify-center px-3 py-0.5 rounded-full text-xs font-medium bg-rose-950/60 border border-rose-500/30 text-rose-400">
-                        Failed
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center justify-center px-3 py-0.5 rounded-full text-xs font-medium bg-amber-950/60 border border-amber-500/30 text-amber-400">
-                        Pending
-                      </span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    );
-  };
+  const isAllFailed = failedCount === totalSendingCount || (domain.status === "FAILED" && verifiedCount === 0);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
@@ -461,7 +296,7 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
                 {isAllVerified
                   ? "Active"
                   : isPartiallyFailed
-                  ? `Partially Failed (${verifiedCount}/${rawRecords.length} Verified)`
+                  ? `Partially Failed (${verifiedCount}/${totalSendingCount} Verified)`
                   : isAllFailed
                   ? "Failed"
                   : "Pending DNS"}
@@ -550,12 +385,12 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
             {isAllVerified ? (
               <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-400">
                 <Check size={12} weight="bold" />
-                <span>All Records Verified</span>
+                <span>All Sending Records Verified</span>
               </span>
             ) : isPartiallyFailed ? (
               <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-400">
                 <WarningCircle size={12} weight="bold" />
-                <span>{verifiedCount} of {rawRecords.length} Verified</span>
+                <span>{verifiedCount} of {totalSendingCount} Verified</span>
               </span>
             ) : (
               <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-zinc-500/10 border border-zinc-500/25 text-zinc-400">
@@ -572,7 +407,7 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
                 e.stopPropagation();
                 setIsDnsCollapsed(!isDnsCollapsed);
               }}
-              className="btn-cf-secondary text-xs flex items-center gap-1.5 py-1 px-2.5"
+              className="btn-cf-secondary text-xs flex items-center gap-1.5 py-1 px-2.5 cursor-pointer"
             >
               <span>{isDnsCollapsed ? "Show Records" : "Collapse"}</span>
               <CaretDown
@@ -583,23 +418,23 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
           </div>
         </div>
 
-        {/* Card Body with DNS Record Tables */}
+        {/* Card Body with Unified DNS Record Tables */}
         {!isDnsCollapsed && (
           <div className="p-6 space-y-6 animate-in fade-in duration-150">
-            {/* Warning Banner if not fully verified */}
+            {/* Warning Banner if sending is not fully verified */}
             {!isAllVerified && (
               <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-200 text-xs flex items-start gap-2.5">
                 <WarningCircle size={17} weight="bold" className="text-amber-400 shrink-0 mt-0.5" />
                 <div className="leading-relaxed">
-                  <strong className="text-white font-semibold">Sending is not affected:</strong> Your emails are still being sent. Add or fix the DNS records below to finish verifying this domain. {!isViewer && (
+                  <strong className="text-white font-semibold">Sending is not fully configured:</strong> Add the sending DNS records below in your DNS provider (Cloudflare, AWS Route 53, etc.) to complete verification and ensure high deliverability. {!isViewer && (
                     <>
-                      Once fixed,{" "}
+                      Once published,{" "}
                       <button
                         type="button"
                         onClick={handleVerifyDns}
                         className="underline hover:text-white font-medium cursor-pointer"
                       >
-                        restart verification
+                        verify DNS records now
                       </button>.
                     </>
                   )}
@@ -607,14 +442,15 @@ export function DomainDetailsView({ domainId }: DomainDetailsViewProps) {
               </div>
             )}
 
-            {/* 1. DKIM Section Table */}
-            {renderDnsTable("DKIM", dkimRecords)}
-
-            {/* 2. SPF Section Table */}
-            {renderDnsTable("SPF", spfRecords)}
-
-            {/* 3. DMARC Section Table */}
-            {renderDnsTable("DMARC", dmarcRecords)}
+            {/* Standardized Unified DNS Records (Group 1: Sending, Group 2: Inbound) */}
+            <DnsRecordsTable
+              sendingRecords={standardDns.sendingRecords}
+              inboundRecords={standardDns.inboundRecords}
+              onRotateDkim={handleRotateDkim}
+              isRotatingDkim={isRotatingDkim}
+              isViewer={isViewer}
+              showInboundToggleNote={true}
+            />
           </div>
         )}
       </div>

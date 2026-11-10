@@ -18,6 +18,8 @@ import {
 import { api, clearAuthToken } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
 import { ApiDomain } from "@/types";
+import { getStandardDnsRecords } from "@/lib/dnsRecords";
+import { DnsRecordsTable } from "@/components/dns/DnsRecordsTable";
 
 export function OnboardingView() {
   const router = useRouter();
@@ -274,7 +276,16 @@ export function OnboardingView() {
     }
   };
 
-  const isDomainConfirmed = createdDomain?.status === "VERIFIED";
+  const standardDns = getStandardDnsRecords({
+    domain: createdDomain,
+    domainName,
+    vpsIp,
+    mailHostname,
+    spfIncludeDomain: spfDomain,
+  });
+
+  const isDomainConfirmed =
+    createdDomain?.status === "VERIFIED" || standardDns.isAllSendingVerified;
 
   const lastDisabledToastRef = useRef<number>(0);
   const notifyDomainUnconfirmed = useCallback(() => {
@@ -511,7 +522,7 @@ export function OnboardingView() {
                         Dynamic DNS
                       </span>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       <div className="p-2.5 rounded-lg bg-kumo-base border border-kumo-hairline space-y-0.5">
                         <span className="text-xs font-medium text-kumo-subtle block">
                           Mail Server EHLO
@@ -526,14 +537,6 @@ export function OnboardingView() {
                         </span>
                         <span className="font-mono text-sm font-semibold text-cf-blue truncate block" title={`send.${domainName}`}>
                           send.{domainName}
-                        </span>
-                      </div>
-                      <div className="p-2.5 rounded-lg bg-kumo-base border border-kumo-hairline space-y-0.5">
-                        <span className="text-xs font-medium text-kumo-subtle block">
-                          Master SPF Host
-                        </span>
-                        <span className="font-mono text-sm font-semibold text-kumo-strong truncate block" title={spfDomain || `_spf.${domainName}`}>
-                          {spfDomain || `_spf.${domainName}`}
                         </span>
                       </div>
                     </div>
@@ -627,189 +630,12 @@ export function OnboardingView() {
                   </button>
                 </div>
 
-                {/* DNS Records Consolidated Table */}
-                {(() => {
-                  const dmarcRecords = createdDomain?.dnsRecords?.filter(
-                    (r) => r.type === "TXT" && r.host.startsWith("_dmarc")
-                  );
-
-                  const dnsRows: Array<{
-                    keyPrefix: string;
-                    type: string;
-                    badge?: string;
-                    host: string;
-                    value: string;
-                    copyValue: string;
-                  }> = [
-                    {
-                      keyPrefix: "dkim",
-                      type: "TXT",
-                      host: `${createdDomain?.dkimSelector || "esp"}._domainkey`,
-                      value: createdDomain?.dkimPublicKey
-                        ? `v=DKIM1; k=rsa; p=${createdDomain.dkimPublicKey}`
-                        : "Loading DKIM public key...",
-                      copyValue: createdDomain?.dkimPublicKey
-                        ? `v=DKIM1; k=rsa; p=${createdDomain.dkimPublicKey}`
-                        : "",
-                    },
-                    {
-                      keyPrefix: "spf-send",
-                      type: "TXT",
-                      host: "send",
-                      value: `v=spf1 ip4:${vpsIp} a mx -all`,
-                      copyValue: `v=spf1 ip4:${vpsIp} a mx -all`,
-                    },
-                    {
-                      keyPrefix: "spf-master",
-                      type: "TXT",
-                      host: spfDomain ? spfDomain.replace(`.${domainName}`, "") : "_spf",
-                      value: `v=spf1 ip4:${vpsIp} ~all`,
-                      copyValue: `v=spf1 ip4:${vpsIp} ~all`,
-                    },
-                    ...(dmarcRecords && dmarcRecords.length > 0
-                      ? dmarcRecords.map((r, i) => ({
-                          keyPrefix: `dmarc-${i}`,
-                          type: "TXT",
-                          host: r.host,
-                          value: r.value,
-                          copyValue: r.value,
-                        }))
-                      : [
-                          {
-                            keyPrefix: "dmarc-fallback",
-                            type: "TXT",
-                            host: `_dmarc.${createdDomain?.domainName || domainName || "yourdomain.com"}`,
-                            value: `v=DMARC1; p=reject; sp=reject; adkim=s; aspf=s; rua=mailto:dmarc-reports@${createdDomain?.domainName || domainName || "yourdomain.com"}`,
-                            copyValue: `v=DMARC1; p=reject; sp=reject; adkim=s; aspf=s; rua=mailto:dmarc-reports@${createdDomain?.domainName || domainName || "yourdomain.com"}`,
-                          },
-                        ]),
-                    {
-                      keyPrefix: "a-record",
-                      type: "A Record",
-                      host: mailHostname || `mail.${createdDomain?.domainName || domainName}`,
-                      value: vpsIp,
-                      copyValue: vpsIp,
-                    },
-                    {
-                      keyPrefix: "mx-record",
-                      type: "MX",
-                      badge: "(Priority 10)",
-                      host: "@",
-                      value: mailHostname || `mail.${createdDomain?.domainName || domainName}`,
-                      copyValue: mailHostname || `mail.${createdDomain?.domainName || domainName}`,
-                    },
-                    ...((createdDomain?.dnsRecords || [])
-                      .filter(
-                        (r) =>
-                          !r.host.includes("_domainkey") &&
-                          !r.host.startsWith("_dmarc") &&
-                          r.host !== "send" &&
-                          !r.host.startsWith("_spf") &&
-                          r.type !== "A" &&
-                          r.type !== "MX"
-                      )
-                      .map((r, i) => ({
-                        keyPrefix: `custom-${r.type}-${i}`,
-                        type: `${r.type} Record`,
-                        host: r.host,
-                        value: r.value,
-                        copyValue: r.value,
-                      }))),
-                  ];
-
-                  return (
-                    <div className="border border-kumo-line rounded-xl overflow-hidden bg-kumo-base shadow-2xs">
-                      <div className="overflow-x-auto">
-                        <table className="w-full table-fixed text-left border-collapse">
-                          <colgroup>
-                            <col className="w-1/5" />
-                            <col className="w-1/4" />
-                            <col className="w-7/12" />
-                          </colgroup>
-                          <thead>
-                            <tr className="bg-kumo-recessed/60 border-b border-kumo-line text-xs font-medium text-kumo-subtle uppercase tracking-wider select-none">
-                              <th className="py-2.5 px-4 text-left font-medium">Type</th>
-                              <th className="py-2.5 px-4 text-left font-medium">Host / Name</th>
-                              <th className="py-2.5 px-4 text-left font-medium">Value / Content</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-kumo-hairline">
-                            {dnsRows.map((row) => (
-                              <tr
-                                key={row.keyPrefix}
-                                className="transition-colors group"
-                              >
-                                {/* 1. Type (Click to copy) */}
-                                <td
-                                  onClick={() => handleCopy(row.type, `${row.keyPrefix}-type`)}
-                                  className="py-3 px-4 align-middle cursor-pointer hover:bg-kumo-control/50 transition-colors group/cell select-none relative overflow-hidden"
-                                  title={row.badge ? `Click to copy: ${row.type} ${row.badge}` : `Click to copy: ${row.type}`}
-                                >
-                                  <div className="flex items-center justify-between gap-2 min-w-0">
-                                    <div className="flex items-center gap-1.5 min-w-0">
-                                      <span className="font-mono text-xs sm:text-sm font-medium text-kumo-strong truncate block group-hover/cell:text-kumo-strong transition-colors">
-                                        {row.type}
-                                      </span>
-                                      {row.badge && (
-                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-mono font-semibold bg-cf-orange-tint text-cf-orange border border-cf-orange-border shrink-0 shadow-2xs">
-                                          {row.badge}
-                                        </span>
-                                      )}
-                                    </div>
-                                    {copiedKey === `${row.keyPrefix}-type` && (
-                                      <span className="inline-flex items-center gap-1 text-cf-success text-xs font-semibold shrink-0 bg-cf-success/10 px-1.5 py-0.5 rounded transition-all animate-in fade-in duration-150">
-                                        <Check size={11} weight="bold" />
-                                        <span>Copied</span>
-                                      </span>
-                                    )}
-                                  </div>
-                                </td>
-
-                                {/* 2. Host / Name (Click to copy) */}
-                                <td
-                                  onClick={() => handleCopy(row.host, `${row.keyPrefix}-host`)}
-                                  className="py-3 px-4 align-middle cursor-pointer hover:bg-kumo-control/50 transition-colors group/cell select-none relative overflow-hidden"
-                                  title={`Click to copy: ${row.host}`}
-                                >
-                                  <div className="flex items-center justify-between gap-2 min-w-0">
-                                    <span className="font-mono text-sm font-medium text-kumo-strong truncate block group-hover/cell:text-kumo-strong transition-colors">
-                                      {row.host}
-                                    </span>
-                                    {copiedKey === `${row.keyPrefix}-host` && (
-                                      <span className="inline-flex items-center gap-1 text-cf-success text-xs font-semibold shrink-0 bg-cf-success/10 px-1.5 py-0.5 rounded transition-all animate-in fade-in duration-150">
-                                        <Check size={11} weight="bold" />
-                                        <span>Copied</span>
-                                      </span>
-                                    )}
-                                  </div>
-                                </td>
-
-                                {/* 3. Value / Content (Click to copy) */}
-                                <td
-                                  onClick={() => handleCopy(row.copyValue, `${row.keyPrefix}-value`)}
-                                  className="py-3 px-4 align-middle cursor-pointer hover:bg-kumo-control/50 transition-colors group/cell select-none relative overflow-hidden"
-                                  title={`Click to copy: ${row.copyValue}`}
-                                >
-                                  <div className="flex items-center justify-between gap-2 min-w-0">
-                                    <span className="font-mono text-xs sm:text-sm text-kumo-default truncate block group-hover/cell:text-kumo-strong transition-colors">
-                                      {row.value}
-                                    </span>
-                                    {copiedKey === `${row.keyPrefix}-value` && (
-                                      <span className="inline-flex items-center gap-1 text-cf-success text-xs font-semibold shrink-0 bg-cf-success/10 px-1.5 py-0.5 rounded transition-all animate-in fade-in duration-150">
-                                        <Check size={11} weight="bold" />
-                                        <span>Copied</span>
-                                      </span>
-                                    )}
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  );
-                })()}
+                {/* Standardized DNS Records (Group 1: Sending & Deliverability, Group 2: Inbound Receiving) */}
+                <DnsRecordsTable
+                  sendingRecords={standardDns.sendingRecords}
+                  inboundRecords={standardDns.inboundRecords}
+                  showInboundToggleNote={true}
+                />
 
                 {/* Reverse DNS (PTR) Callout */}
                 <div className="p-3 sm:p-3.5 rounded-xl bg-cf-blue-tint/15 border border-cf-blue-border/30 flex items-start gap-2.5 shadow-2xs">

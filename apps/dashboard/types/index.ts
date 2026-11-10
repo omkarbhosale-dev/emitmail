@@ -25,6 +25,7 @@ export interface DnsRecordItem {
   reason?: string;
   foundValues?: string[];
   lastCheckedAt?: string;
+  group?: "sending" | "inbound";
 }
 
 export interface ApiDomain {
@@ -40,6 +41,8 @@ export interface ApiDomain {
   spfVerified: boolean;
   mxVerified: boolean;
   dmarcVerified: boolean;
+  inboundEnabled?: boolean;
+  inboundMxVerified?: boolean;
   lastVerifiedAt: string | null;
   createdAt: string;
   updatedAt: string;

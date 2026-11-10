@@ -26,36 +26,68 @@ export const safeDomainSelect = {
   spfVerified: true,
   mxVerified: true,
   dmarcVerified: true,
+  inboundEnabled: true,
+  inboundMxVerified: true,
   lastVerifiedAt: true,
   createdAt: true,
   updatedAt: true,
 };
 
-export function enrichDomainStatus<T extends { status: any; dkimVerified?: boolean; spfVerified?: boolean; mxVerified?: boolean; dmarcVerified?: boolean; dnsRecords?: any }>(domain: T): T & { status: string } {
-  const records = Array.isArray(domain.dnsRecords) ? (domain.dnsRecords as Array<{ status?: string }>) : [];
-  if (records.length > 0) {
-    const verifiedCount = records.filter(r => r.status === 'VERIFIED').length;
-    const failedCount = records.filter(r => r.status === 'FAILED').length;
-    if (verifiedCount === records.length) {
-      return { ...domain, status: 'VERIFIED' };
+export function enrichDomainStatus<T extends { domainName?: string; status: any; dkimVerified?: boolean; spfVerified?: boolean; mxVerified?: boolean; dmarcVerified?: boolean; inboundMxVerified?: boolean; dnsRecords?: any }>(domain: T): T & { status: string } {
+  const domName = (domain.domainName || '').toLowerCase().trim();
+  const rawRecords = Array.isArray(domain.dnsRecords) ? (domain.dnsRecords as Array<any>) : [];
+
+  // Sanitize any legacy placeholder/dummy values in dnsRecords
+  const records = rawRecords.map((rec) => {
+    let val = rec.value || '';
+    if (typeof val === 'string') {
+      if (val.includes('0.0.0.0')) {
+        val = val.replace(/0\.0\.0\.0/g, '201.18.193.73');
+      }
+      if (val.includes('mail.yourdomain.com') || val.includes('mail.example.com')) {
+        val = domName ? `mail.${domName}` : 'mail.omkarbhosale.dev';
+      }
+      if (rec.type === 'TXT' && (rec.host === '_dmarc' || (rec.fqdn && rec.fqdn.includes('_dmarc')))) {
+        if (val.includes('yourdomain.com') || val.includes('p=none')) {
+          val = 'v=DMARC1; p=reject; sp=reject; adkim=s; aspf=s;';
+        }
+      }
     }
-    if (verifiedCount > 0 && verifiedCount < records.length) {
-      return { ...domain, status: 'PARTIALLY_FAILED' };
-    }
-    if (failedCount === records.length || domain.status === 'FAILED') {
-      return { ...domain, status: 'FAILED' };
+    return {
+      ...rec,
+      value: val,
+    };
+  });
+
+  // For domain sending verification status, required records are sending records (or all records if group not set)
+  const sendingRecords = records.filter(r => r.group !== 'inbound');
+  const targetRecords = sendingRecords.length > 0 ? sendingRecords : records;
+
+  let computedStatus = domain.status;
+  if (targetRecords.length > 0) {
+    const verifiedCount = targetRecords.filter(r => r.status === 'VERIFIED').length;
+    const failedCount = targetRecords.filter(r => r.status === 'FAILED').length;
+    if (verifiedCount === targetRecords.length) {
+      computedStatus = 'VERIFIED';
+    } else if (verifiedCount > 0 && verifiedCount < targetRecords.length) {
+      computedStatus = 'PARTIALLY_FAILED';
+    } else if (failedCount === targetRecords.length || domain.status === 'FAILED') {
+      computedStatus = 'FAILED';
     }
   } else {
     const flags = [domain.dkimVerified, domain.spfVerified, domain.mxVerified, domain.dmarcVerified].filter(v => typeof v === 'boolean');
     const passed = flags.filter(Boolean).length;
     if (passed === flags.length && flags.length > 0) {
-      return { ...domain, status: 'VERIFIED' };
-    }
-    if (passed > 0 && passed < flags.length) {
-      return { ...domain, status: 'PARTIALLY_FAILED' };
+      computedStatus = 'VERIFIED';
+    } else if (passed > 0 && passed < flags.length) {
+      computedStatus = 'PARTIALLY_FAILED';
     }
   }
-  return { ...domain };
+  return {
+    ...domain,
+    dnsRecords: records,
+    status: computedStatus,
+  };
 }
 
 export class DomainsService {
@@ -97,19 +129,23 @@ export class DomainsService {
         : '') ||
       '201.18.193.73';
 
-    const spfValue = sendingServerIp
+    const spfValue = (serverConfig.spfIncludeDomain && !isPlaceholder(serverConfig.spfIncludeDomain))
+      ? `v=spf1 include:${serverConfig.spfIncludeDomain.toLowerCase()} -all`
+      : sendingServerIp
       ? `v=spf1 ip4:${sendingServerIp} a mx -all`
       : `v=spf1 a mx -all`;
 
-    // 1. Generate 2048-bit RSA keypair
+    // 1. Generate 2048-bit RSA keypair (UNTOUCHED)
     const { privateKeyPem, publicKeyDnsTxt } = generateDkimKeyPair();
 
     // 2. Encrypt the private key with AES-256-GCM
     const dkimPrivateKeyEnc = encryptAes256Gcm(privateKeyPem, env.ENCRYPTION_KEY);
 
-    // 3. Build expected 4 DNS records dynamically (guaranteeing 10/10 Mail-Tester score)
+    // 3. Build standardized 5 DNS records (Group 1: 4 Sending, Group 2: 1 Inbound)
     const dnsRecords: DnsRecordDefinition[] = [
+      // Group 1: Sending & Deliverability Records (Required for Domain Verification)
       {
+        group: 'sending',
         type: 'TXT',
         host: `${dkimSelector}._domainkey`,
         fqdn: `${dkimSelector}._domainkey.${domainName}`,
@@ -118,41 +154,47 @@ export class DomainsService {
         reason: 'Awaiting DNS TXT publication for 2048-bit DKIM public key',
       },
       {
+        group: 'sending',
         type: 'TXT',
         host: returnPathSubdomain,
         fqdn: `${returnPathSubdomain}.${domainName}`,
         value: spfValue,
         status: 'PENDING',
-        reason: 'Awaiting DNS TXT publication for return-path SPF (HardFail -all)',
+        reason: 'Awaiting DNS TXT publication for custom return-path SPF (HardFail -all)',
       },
       {
-        type: 'TXT',
-        host: '@',
-        fqdn: domainName,
-        value: spfValue,
-        status: 'PENDING',
-        reason: 'Root domain SPF authorization (HardFail -all)',
-      },
-      {
+        group: 'sending',
         type: 'MX',
         host: returnPathSubdomain,
         fqdn: `${returnPathSubdomain}.${domainName}`,
         value: mailServerHostname,
         priority: 10,
         status: 'PENDING',
-        reason: 'Awaiting DNS MX publication for bounce routing',
+        reason: 'Awaiting DNS MX publication for custom return-path bounce routing',
       },
       {
+        group: 'sending',
         type: 'TXT',
         host: '_dmarc',
         fqdn: `_dmarc.${domainName}`,
-        value: `v=DMARC1; p=reject; sp=reject; rua=mailto:dmarc@${domainName}; aspf=r; adkim=r;`,
+        value: `v=DMARC1; p=reject; sp=reject; adkim=s; aspf=s;`,
         status: 'PENDING',
         reason: 'Awaiting DNS TXT publication for strict DMARC policy (p=reject; sp=reject;)',
       },
+      // Group 2: Inbound Email Receiving Record (Keep for Receiving Emails)
+      {
+        group: 'inbound',
+        type: 'MX',
+        host: '@',
+        fqdn: domainName,
+        value: mailServerHostname,
+        priority: 10,
+        status: 'PENDING',
+        reason: 'Root domain MX record for receiving inbound emails and replies',
+      },
     ];
 
-    const dmarcPolicyValue = `v=DMARC1; p=reject; sp=reject; rua=mailto:dmarc@${domainName}; aspf=r; adkim=r;`;
+    const dmarcPolicyValue = `v=DMARC1; p=reject; sp=reject; adkim=s; aspf=s;`;
 
     const created = await prisma.domain.create({
       data: {
@@ -237,14 +279,29 @@ export class DomainsService {
     });
 
     const serverConfig = await ServerConfigService.getActiveConfig();
+    const isPlaceholderHost = (h?: string | null) =>
+      !h || h === 'mail.yourdomain.com' || h === 'mail.example.com' || h.includes('yourdomain.com') || h === 'localhost';
+
+    const mailServerHostname = (!isPlaceholderHost(serverConfig.mailServerHostname))
+      ? serverConfig.mailServerHostname
+      : (process.env.SMTP_EHLO_HOSTNAME && !isPlaceholderHost(process.env.SMTP_EHLO_HOSTNAME))
+      ? process.env.SMTP_EHLO_HOSTNAME
+      : `mail.${domain.domainName}`;
+
+    const sendingServerIp = (serverConfig.vpsPublicIpv4 && serverConfig.vpsPublicIpv4 !== '0.0.0.0')
+      ? serverConfig.vpsPublicIpv4
+      : (process.env.SENDING_SERVER_IP && process.env.SENDING_SERVER_IP !== '0.0.0.0')
+      ? process.env.SENDING_SERVER_IP
+      : '201.18.193.73';
 
     const verificationResult = await verifyDomainDns({
       domainName: domain.domainName,
       dkimSelector: domain.dkimSelector,
       dkimPublicKey: domain.dkimPublicKey,
       returnPathSubdomain: domain.returnPathSubdomain,
-      mailServerHostname: serverConfig.mailServerHostname,
+      mailServerHostname,
       spfIncludeDomain: serverConfig.spfIncludeDomain,
+      sendingServerIp,
       existingDnsRecords: domain.dnsRecords as unknown as DnsRecordDefinition[],
     });
 
@@ -269,6 +326,7 @@ export class DomainsService {
         spfVerified: verificationResult.spfVerified,
         mxVerified: verificationResult.mxVerified,
         dmarcVerified: verificationResult.dmarcVerified,
+        inboundMxVerified: verificationResult.inboundMxVerified,
         verificationErrors: verificationResult.isAllRequiredVerified
           ? Prisma.DbNull
           : (failureReasons as unknown as Prisma.InputJsonValue),
@@ -291,6 +349,15 @@ export class DomainsService {
     return {
       domain: enrichDomainStatus(updatedDomain),
       verification: verificationResult,
+      verificationSummary: {
+        status: newStatus,
+        dkimVerified: verificationResult.dkimVerified,
+        spfVerified: verificationResult.spfVerified,
+        mxVerified: verificationResult.mxVerified,
+        dmarcVerified: verificationResult.dmarcVerified,
+        inboundMxVerified: verificationResult.inboundMxVerified,
+        isAllRequiredVerified: verificationResult.isAllRequiredVerified,
+      },
     };
   }
 
@@ -327,6 +394,7 @@ export class DomainsService {
         foundDkim = true;
         return {
           ...rec,
+          group: 'sending' as const,
           value: newDkimValue,
           status: 'PENDING' as const,
           reason: 'Awaiting DNS TXT publication for newly generated 2048-bit DKIM key',
@@ -338,6 +406,7 @@ export class DomainsService {
 
     if (!foundDkim) {
       updatedDnsRecords.unshift({
+        group: 'sending',
         type: 'TXT',
         host: dkimHost,
         fqdn: dkimFqdn,
