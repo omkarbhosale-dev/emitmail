@@ -253,3 +253,38 @@ We welcome contributions from developers across all skill levels! Please see our
 
 This repository is licensed under the **[Apache License 2.0](LICENSE)**. Third-party dependencies retain their respective licenses; see their package metadata and license files. The `packages/` directories are empty scaffolding and do not contain separately licensed client libraries.
 
+---
+
+## Contributors
+
+Thank you to everyone who has contributed to EmitMail!
+
+<a href="https://github.com/omkarbhosale-dev/emitmail/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=omkarbhosale-dev/emitmail" alt="EmitMail Contributors" />
+</a>
+
+<br /><br />
+
+<table>
+  <tbody>
+    <tr>
+      <td align="center" valign="top" width="120px">
+        <a href="https://github.com/omkarbhosale-dev">
+          <img src="https://avatars.githubusercontent.com/u/160086877?v=4" width="70px;" style="border-radius: 50%;" alt="Omkar Bhosale"/><br />
+          <sub><b>Omkar Bhosale</b></sub>
+        </a><br />
+        <sub>Creator & Core Maintainer</sub>
+      </td>
+      <td align="center" valign="top" width="120px">
+        <a href="https://github.com/Shivtej18">
+          <img src="https://avatars.githubusercontent.com/u/139151745?v=4" width="70px;" style="border-radius: 50%;" alt="Shivtej18"/><br />
+          <sub><b>Shivtej18</b></sub>
+        </a><br />
+        <sub>Contributor</sub>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+We welcome contributions of all kinds! Check out our [Contributing Guide](CONTRIBUTING.md) to get started.
+
